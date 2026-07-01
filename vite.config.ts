@@ -5,8 +5,11 @@ import { defineConfig } from "vite";
 
 export default defineConfig(() => {
   return {
-    base: "./",
+    base: "./Class-teacher",
     plugins: [react(), tailwindcss()],
+    build: {
+      outDir: "dist",
+    },
     resolve: {
       alias: {
         "@": path.resolve("."),
