@@ -1,0 +1,74 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      let userDoc = /databases/$(database)/documents/users/$(request.auth.uid);
+      return exists(userDoc) ? get(userDoc).data : {};
+    }
+    
+    function isActive() {
+      return isAuthenticated() && getUserData().status == 'active';
+    }
+    
+    function isOwner() {
+      return (isAuthenticated() && request.auth.token.email == 'sekhar.root@gmail.com') || (isActive() && getUserData().role == 'owner');
+    }
+
+    function isAdminOrOwner() {
+      return (isAuthenticated() && request.auth.token.email == 'sekhar.root@gmail.com') || (isActive() && (getUserData().role == 'admin' || getUserData().role == 'owner'));
+    }
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Classroom manager collections
+    // Only active users can read and write standard collections for now.
+    // In a production app, you might restrict this further (e.g. teachers only writing to their own class)
+    match /students/{studentId} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+    
+    match /attendance/{date} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+    
+    match /classes/{classId} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+
+    match /leaves/{leaveId} {
+      // Allow read/write if the authenticated user has hasLeaveFeatureAccess set to true in their profile or is an admin/owner
+      allow read, write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+    }
+
+    match /users/{userId} {
+      // Anyone authenticated can read user profiles (needed for UI lists, etc.)
+      allow read: if isAuthenticated();
+      
+      // Creating a user profile during signup is allowed if it's their own ID.
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+                    
+      // Updating a user profile
+      allow update: if isAuthenticated() && (
+        // Admins/Owners can update any profile
+        isAdminOrOwner() ||
+        // Users can update their own profile, BUT they cannot change their role or status
+        (request.auth.uid == userId && 
+         request.resource.data.role == resource.data.role && 
+         request.resource.data.status == resource.data.status)
+      );
+      
+      // Only Admins/Owners can delete users, OR a user can delete their own pre-configured profile
+      allow delete: if isAdminOrOwner() || 
+                    (isAuthenticated() && userId.matches('^pre_.*') && resource.data.email == request.auth.token.email);
+    }
+  }
+}
