@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CustomThemeProvider } from "./contexts/ThemeContext";
 import { DataProvider } from "./contexts/DataContext";
@@ -29,7 +29,7 @@ export default function App() {
     <CustomThemeProvider>
       <AuthProvider>
         <DataProvider>
-          <BrowserRouter basename={import.meta.env.BASE_URL}>
+          <HashRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
 
@@ -46,7 +46,7 @@ export default function App() {
                 <Route path="testing" element={<Testing />} />
               </Route>
             </Routes>
-          </BrowserRouter>
+          </HashRouter>
         </DataProvider>
       </AuthProvider>
     </CustomThemeProvider>
