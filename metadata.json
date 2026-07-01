@@ -1,0 +1,6 @@
+{
+  "name": "Classroom Manager",
+  "description": "A productivity app for teachers to track attendance, leave requests, and manage their classroom.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
