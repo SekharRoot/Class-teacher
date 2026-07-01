@@ -6,8 +6,7 @@ async function startServer() {
   const PORT = 3000;
 
   const isProduction =
-    process.env.NODE_ENV === "production" ||
-    (!!process.env.K_SERVICE && process.env.NODE_ENV !== "development");
+    process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {

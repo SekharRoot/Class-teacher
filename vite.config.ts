@@ -4,8 +4,13 @@ import path from "path";
 import { defineConfig } from "vite";
 
 export default defineConfig(() => {
+  // Automatically detect if we are building in GitHub Actions for GitHub Pages
+  const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
+  const repoName = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split("/")[1] : "";
+  const base = isGitHubActions && repoName ? `/${repoName}/` : "./";
+
   return {
-    base: "./Class-teacher",
+    base,
     plugins: [react(), tailwindcss()],
     build: {
       outDir: "dist",
