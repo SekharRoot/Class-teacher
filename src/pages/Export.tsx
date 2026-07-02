@@ -17,7 +17,7 @@ import {
 import { PictureAsPdf, Download } from "@mui/icons-material";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { attendanceApi } from "../api/attendance";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
@@ -95,7 +95,7 @@ export default function Export() {
           ]);
         });
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           startY: 38,
           head: head,
           body: body,
@@ -133,7 +133,7 @@ export default function Export() {
             ]);
           });
 
-          (doc as any).autoTable({
+          autoTable(doc, {
             startY: 45,
             head: head,
             body: body,
@@ -201,7 +201,7 @@ export default function Export() {
             monthBody.push(row);
           });
 
-          (doc as any).autoTable({
+          autoTable(doc, {
             startY: 45,
             head: monthHead,
             body: monthBody,
