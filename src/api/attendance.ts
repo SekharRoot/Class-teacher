@@ -52,7 +52,7 @@ export const attendanceApi = {
   ): Promise<void> {
     try {
       const attendanceRef = doc(db, "attendance", dateString);
-      await setDoc(attendanceRef, records);
+      await setDoc(attendanceRef, records, { merge: true });
     } catch (error) {
       handleFirestoreError(
         error,
