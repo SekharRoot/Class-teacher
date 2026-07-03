@@ -26,8 +26,9 @@ var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = 3e3;
+  const PORT = Number(process.env.PORT) || 3e3;
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
+  console.log(`Starting server in ${isProduction ? "production" : "development"} mode...`);
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok" });
   });
