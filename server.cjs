@@ -26,11 +26,16 @@ var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = Number(process.env.PORT) || 3e3;
+  const PORT = 3e3;
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
-  console.log(`Starting server in ${isProduction ? "production" : "development"} mode...`);
+  console.log(
+    `Starting server in ${isProduction ? "production" : "development"} mode on port ${PORT}...`
+  );
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+    res.json({
+      status: "ok",
+      mode: isProduction ? "production" : "development"
+    });
   });
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
@@ -47,7 +52,7 @@ async function startServer() {
     });
   }
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server is listening on http://0.0.0.0:${PORT}`);
   });
 }
 startServer().catch((err) => {
