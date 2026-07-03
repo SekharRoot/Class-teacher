@@ -6,6 +6,7 @@ import {
   setDoc,
   deleteDoc,
   writeBatch,
+  where,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { Student } from "../types";
@@ -46,6 +47,28 @@ export const studentsApi = {
       return list;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "students");
+      return [];
+    }
+  },
+
+  /**
+   * Fetches all students for a specific class from Firestore.
+   */
+  async getByClass(classId: string): Promise<Student[]> {
+    try {
+      const q = query(
+        collection(db, "students"),
+        where("classId", "==", classId),
+      );
+      const querySnapshot = await getDocs(q);
+      const list: Student[] = [];
+      querySnapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as Student);
+      });
+      return list;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, "students");
+      return [];
     }
   },
 

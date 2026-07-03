@@ -1,5 +1,5 @@
 # --- Stage 1: Build the application ---
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm install
 
 # Copy application source
 COPY . .
@@ -16,19 +16,21 @@ COPY . .
 RUN npm run build
 
 # --- Stage 2: Serve the application ---
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
+# In Cloud Run, PORT is usually 8080, but we default to 3000 if not set.
+# The server.ts will also default to 3000.
 ENV PORT=3000
 
-# Copy dependency manifests and compiled outputs
-COPY package*.json ./
+# Copy dependency manifests and compiled outputs from builder
+COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
 
 # Install production-only dependencies
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Expose the application port
 EXPOSE 3000

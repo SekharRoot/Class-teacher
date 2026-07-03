@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { format, subDays, addDays, parseISO } from "date-fns";
 import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { leavesApi, attendanceApi } from "../api";
-import { AttendanceStatus, LeaveRequest } from "../types";
+import { leavesApi, attendanceApi, studentsApi } from "../api";
+import { AttendanceStatus, LeaveRequest, Student } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 import { cache } from "../lib/cache";
 import { useData } from "../contexts/DataContext";
@@ -108,9 +108,15 @@ export function useAttendanceData() {
 
   const fetchHistory = async () => {
     try {
-      const classStudentIds = selectedClassId
-        ? students.filter((s) => s.classId === selectedClassId).map((s) => s.id)
-        : undefined;
+      // Fetch students for the selected class specifically to save reads
+      let classStudents: Student[] = [];
+      if (selectedClassId) {
+        classStudents = await studentsApi.getByClass(selectedClassId);
+      } else {
+        classStudents = await studentsApi.getAll();
+      }
+
+      const classStudentIds = classStudents.map((s) => s.id);
 
       let datesList: any[] = [];
 

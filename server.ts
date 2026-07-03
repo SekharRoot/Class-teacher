@@ -3,16 +3,23 @@ import path from "path";
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
+  const PORT = 3000; // MUST be 3000 for AI Studio Cloud Run infrastructure
 
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
-  console.log(`Starting server in ${isProduction ? "production" : "development"} mode...`);
+  console.log(
+    `Starting server in ${
+      isProduction ? "production" : "development"
+    } mode on port ${PORT}...`
+  );
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+    res.json({
+      status: "ok",
+      mode: isProduction ? "production" : "development",
+    });
   });
 
   // Vite middleware for development
@@ -24,6 +31,7 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
+    // In production, we serve from the 'dist' directory
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
@@ -32,7 +40,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server is listening on http://0.0.0.0:${PORT}`);
   });
 }
 
