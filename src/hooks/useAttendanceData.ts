@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { format, subDays, addDays, parseISO } from "date-fns";
 import { collection, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { leavesApi } from "../api";
+import { leavesApi, attendanceApi } from "../api";
 import { AttendanceStatus, LeaveRequest } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 import { cache } from "../lib/cache";
@@ -111,20 +111,30 @@ export function useAttendanceData() {
       const classStudentIds = selectedClassId
         ? students.filter((s) => s.classId === selectedClassId).map((s) => s.id)
         : undefined;
-      const localStorageItems: Record<string, string> = {};
 
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith("attendance_")) {
-          localStorageItems[key] = localStorage.getItem(key) || "{}";
+      let datesList: any[] = [];
+
+      if (!offlineMode) {
+        // Fetch from Firestore (optimized to last 30 entries/days)
+        datesList = await attendanceApi.getHistory(
+          classStudentIds,
+          selectedClassId || undefined,
+        );
+      } else {
+        // Use local storage for offline history
+        const localStorageItems: Record<string, string> = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("attendance_")) {
+            localStorageItems[key] = localStorage.getItem(key) || "{}";
+          }
         }
+        datesList = await runCalculationWorker("CALCULATE_LOCAL_HISTORY", {
+          localStorageItems,
+          classStudentIds,
+          selectedClassId,
+        });
       }
-
-      const datesList = await runCalculationWorker("CALCULATE_LOCAL_HISTORY", {
-        localStorageItems,
-        classStudentIds,
-        selectedClassId,
-      });
 
       setHistoryDates(datesList);
     } catch (err) {

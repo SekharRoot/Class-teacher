@@ -3,10 +3,12 @@ import path from "path";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
+
+  console.log(`Starting server in ${isProduction ? "production" : "development"} mode...`);
 
   // API routes FIRST
   app.get("/api/health", (req, res) => {

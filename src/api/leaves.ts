@@ -6,6 +6,8 @@ import {
   setDoc,
   deleteDoc,
   updateDoc,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { LeaveRequest } from "../types";
@@ -18,24 +20,29 @@ export const leavesApi = {
   /**
    * Fetches all leave requests from Firestore.
    */
-  async getAll(forceRefresh = false): Promise<LeaveRequest[]> {
+  async getAll(
+    forceRefresh = false,
+    fetchLimit = 50,
+  ): Promise<LeaveRequest[]> {
     if (
       !forceRefresh &&
       leavesCache &&
+      leavesCache.length >= fetchLimit &&
       Date.now() - leavesCacheTime < CACHE_DURATION
     ) {
       return leavesCache;
     }
     try {
-      const q = query(collection(db, "leaves"));
+      const q = query(
+        collection(db, "leaves"),
+        orderBy("appliedAt", "desc"),
+        limit(fetchLimit),
+      );
       const querySnapshot = await getDocs(q);
       const list: LeaveRequest[] = [];
       querySnapshot.forEach((doc) => {
         list.push({ id: doc.id, ...doc.data() } as LeaveRequest);
       });
-
-      // Sort by appliedAt descending
-      list.sort((a, b) => b.appliedAt.localeCompare(a.appliedAt));
 
       leavesCache = list;
       leavesCacheTime = Date.now();

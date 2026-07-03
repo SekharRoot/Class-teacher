@@ -253,24 +253,56 @@ export default function Profiles() {
         };
 
         const rows = text.split(/\r?\n/).filter((row) => row.trim());
-        if (rows.length < 2) return;
+        if (rows.length < 2) {
+          showToast("CSV file is empty or missing data rows.", "warning");
+          return;
+        }
+
+        // Create a map of class names to IDs for easier resolution
+        const classNameToIdMap: Record<string, string> = {};
+        classes.forEach((c) => {
+          const fullName = `${c.board} ${c.classStandard} ${c.section}`
+            .toLowerCase()
+            .trim();
+          classNameToIdMap[fullName] = c.id;
+          classNameToIdMap[c.id.toLowerCase()] = c.id; // Also map ID to ID
+        });
 
         let importedCount = 0;
         let newStudents: Student[] = [];
+        const existingRollNumbers = new Set(
+          students.map((s) => `${s.classId}_${s.rollNumber.toUpperCase()}`),
+        );
 
         for (let i = 1; i < rows.length; i++) {
           const values = parseCSVLine(rows[i]);
-          if (values.length < 4) continue;
+          if (values.length < 3) continue; // Minimum: Roll No, First Name, Class
 
-          const rollNumber = values[0];
+          const rollNumber = values[0].toUpperCase();
           const firstName = values[1];
           const lastName = values[2] || ".";
-          const classId = values[3];
+          let classId = values[3] || "";
+
+          // Try to resolve classId if it looks like a name
+          const classLookup = classId.toLowerCase().trim();
+          if (classNameToIdMap[classLookup]) {
+            classId = classNameToIdMap[classLookup];
+          }
+
+          if (!firstName || !classId || !rollNumber) continue;
+
+          // Check for duplicate roll number in same class
+          if (existingRollNumbers.has(`${classId}_${rollNumber}`)) {
+            continue;
+          }
+
           const gender = (values[4] || "Male") as any;
           const phoneNumber = values[5] || "";
           const boarderType = (values[6] || "Day Scholar") as any;
 
-          const studentId = `std_${Date.now()}_${i}_${Math.random().toString(36).substr(2, 5)}`;
+          const studentId = `std_${Date.now()}_${i}_${Math.random()
+            .toString(36)
+            .substr(2, 5)}`;
 
           const savedStudent: Student = {
             id: studentId,
@@ -287,6 +319,7 @@ export default function Profiles() {
           };
 
           newStudents.push(savedStudent);
+          existingRollNumbers.add(`${classId}_${rollNumber}`);
         }
 
         if (newStudents.length > 0) {

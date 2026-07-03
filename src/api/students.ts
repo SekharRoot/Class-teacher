@@ -128,23 +128,28 @@ export const studentsApi = {
    */
   async seedDemo(studentsList: Student[]): Promise<void> {
     try {
-      const batch = writeBatch(db);
-      studentsList.forEach((student) => {
-        const studentRef = doc(db, "students", student.id);
-        batch.set(studentRef, {
-          firstName: student.firstName,
-          lastName: student.lastName,
-          rollNumber: student.rollNumber,
-          classId: student.classId || "",
-          gender: student.gender || "Male",
-          fatherName: student.fatherName || "",
-          motherName: student.motherName || "",
-          phoneNumber: student.phoneNumber || "",
-          boarderType: student.boarderType || "Day Scholar",
-          image: student.image || "",
+      // Firestore batch limit is 500 operations
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < studentsList.length; i += BATCH_SIZE) {
+        const chunk = studentsList.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach((student) => {
+          const studentRef = doc(db, "students", student.id);
+          batch.set(studentRef, {
+            firstName: student.firstName,
+            lastName: student.lastName,
+            rollNumber: student.rollNumber,
+            classId: student.classId || "",
+            gender: student.gender || "Male",
+            fatherName: student.fatherName || "",
+            motherName: student.motherName || "",
+            phoneNumber: student.phoneNumber || "",
+            boarderType: student.boarderType || "Day Scholar",
+            image: student.image || "",
+          });
         });
-      });
-      await batch.commit();
+        await batch.commit();
+      }
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "students");
