@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { AttendanceStatus, Student } from "../types";
 import { attendanceApi, classesApi, studentsApi } from "../api";
 import { cache } from "../lib/cache";
@@ -22,7 +22,7 @@ export function useAttendanceActions(
   setHistoryDates: (hd: any[]) => void,
   fetchBaseData: () => void,
 ) {
-  const updateLocalCache = (clientAtt: Record<string, AttendanceStatus>) => {
+  const updateLocalCache = useCallback((clientAtt: Record<string, AttendanceStatus>) => {
     // Generate enriched records to save
     const enriched: Record<string, any> = {};
     Object.entries(clientAtt).forEach(([sId, status]) => {
@@ -36,9 +36,9 @@ export function useAttendanceActions(
     cache.set(`attendance_${dateString}`, enriched);
     localStorage.setItem(`unsynced_${dateString}`, "true");
     return enriched;
-  };
+  }, [students, dateString]);
 
-  const markAttendance = (
+  const markAttendance = useCallback((
     studentId: string,
     status: AttendanceStatus | null,
   ) => {
@@ -63,9 +63,9 @@ export function useAttendanceActions(
     Promise.resolve().then(() => {
       updateLocalCache(finalUpdated);
     });
-  };
+  }, [updateLocalCache, setAttendance]);
 
-  const markAllStatus = (
+  const markAllStatus = useCallback((
     status: AttendanceStatus,
     classStudents: Student[],
   ) => {
@@ -85,9 +85,9 @@ export function useAttendanceActions(
     Promise.resolve().then(() => {
       updateLocalCache(finalUpdated);
     });
-  };
+  }, [updateLocalCache, setAttendance]);
 
-  const syncAttendance = async () => {
+  const syncAttendance = useCallback(async () => {
     if (offlineMode) {
       showToast("Cannot sync while in offline mode.", "warning");
       return;
@@ -102,9 +102,9 @@ export function useAttendanceActions(
       console.error(err);
       showToast("Failed to synchronize with server.", "error");
     }
-  };
+  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache]);
 
-  const clearAllData = async () => {
+  const clearAllData = useCallback(async () => {
     if (
       !window.confirm(
         "CRITICAL WARNING: This will permanently wipe all students, classes, and attendance registers from the local cache and Firestore database! Do you want to proceed?",
@@ -161,7 +161,22 @@ export function useAttendanceActions(
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    offlineMode,
+    historyDates,
+    dateString,
+    setLoading,
+    setStudents,
+    setAttendance,
+    setHistoryDates,
+    showToast,
+    fetchBaseData,
+  ]);
 
-  return { markAttendance, markAllStatus, syncAttendance, clearAllData };
+  return useMemo(() => ({ markAttendance, markAllStatus, syncAttendance, clearAllData }), [
+    markAttendance,
+    markAllStatus,
+    syncAttendance,
+    clearAllData,
+  ]);
 }

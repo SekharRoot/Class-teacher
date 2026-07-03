@@ -39,14 +39,14 @@ interface TeacherDashboardProps {
   studentNameMap: Record<string, string>;
 }
 
-export function TeacherDashboard({
+export const TeacherDashboard = React.memo(({
   userProfile,
   teacherClassInfo,
   teacherClassStat,
   teacherLeaves,
   teacherPendingLeavesCount,
   studentNameMap,
-}: TeacherDashboardProps) {
+}: TeacherDashboardProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
 
@@ -625,4 +625,4 @@ export function TeacherDashboard({
       )}
     </Box>
   );
-}
+});

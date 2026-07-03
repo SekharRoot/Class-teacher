@@ -40,7 +40,10 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   dateString = "",
 }) => {
   const [syncing, setSyncing] = useState(false);
-  const classStudents = students.filter((s) => s.classId === selectedClassId);
+  const classStudents = React.useMemo(() => 
+    students.filter((s) => s.classId === selectedClassId && s.isActive !== false),
+    [students, selectedClassId]
+  );
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
   const loadMoreRef = React.useRef<HTMLDivElement | null>(null);

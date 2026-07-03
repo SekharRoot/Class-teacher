@@ -15,6 +15,8 @@ import {
   Divider,
   Stack,
   Chip,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -26,6 +28,7 @@ import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { UserProfile } from "../../types";
+import { DailyStatusReport } from "./DailyStatusReport";
 
 interface ClassStat {
   classId: string;
@@ -49,9 +52,12 @@ interface OversightDashboardProps {
   oversightPendingLeavesCount: number;
   sortedClassStatsByAttendance: ClassStat[];
   teacherNameForClass: (classId: string) => string;
+  students: any[];
+  classes: any[];
+  authorizedClassIds: string[];
 }
 
-export function OversightDashboard({
+export const OversightDashboard = React.memo(({
   userProfile,
   overallAttendanceRate,
   stats,
@@ -59,9 +65,17 @@ export function OversightDashboard({
   oversightPendingLeavesCount,
   sortedClassStatsByAttendance,
   teacherNameForClass,
-}: OversightDashboardProps) {
+  students,
+  classes,
+  authorizedClassIds,
+}: OversightDashboardProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = React.useState(0);
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
 
   return (
     <Box>
@@ -80,8 +94,30 @@ export function OversightDashboard({
         . School oversight metrics and structural reports for today.
       </Typography>
 
-      {/* School-Wide KPI Summary Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 4 }}>
+        <Tabs
+          value={activeTab}
+          onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
+          aria-label="dashboard tabs"
+          sx={{
+            "& .MuiTab-root": {
+              textTransform: "none",
+              fontWeight: "bold",
+              fontSize: "1rem",
+            },
+          }}
+        >
+          <Tab label="School Overview" />
+          <Tab label="Daily Status Report" />
+        </Tabs>
+      </Box>
+
+      {activeTab === 0 && (
+        <Box>
+          {/* School-Wide KPI Summary Grid */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Card 1: School-Wide Attendance Rate */}
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
@@ -603,5 +639,15 @@ export function OversightDashboard({
         </Grid>
       </Grid>
     </Box>
+      )}
+
+      {activeTab === 1 && (
+        <DailyStatusReport
+          students={students}
+          classes={classes}
+          authorizedClassIds={authorizedClassIds}
+        />
+      )}
+    </Box>
   );
-}
+});

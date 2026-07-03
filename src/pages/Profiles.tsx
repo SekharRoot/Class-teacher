@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -8,21 +8,20 @@ import {
   Snackbar,
   Alert,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import {
   Add,
   CloudOff,
+  Delete,
   FileDownload,
   FileUpload,
-  Warning,
+  PlaylistAddCheck,
 } from "@mui/icons-material";
 import { studentsApi } from "../api";
 import { Student } from "../types";
-import { cache } from "../lib/cache";
+import { imageCache } from "../utils/imageCache";
 import { StudentCard } from "../components/StudentCard";
 import { StudentDetailDialog } from "../components/StudentDetailDialog";
 import { StudentFormDialog } from "../components/StudentFormDialog";
@@ -30,14 +29,25 @@ import { StudentDeleteDialog } from "../components/StudentDeleteDialog";
 import { ProfileFilters } from "../components/ProfileFilters";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
+import { useProfileActions } from "../hooks/useProfileActions";
+import { processProfileImport } from "../utils/csvImport";
 
 export default function Profiles() {
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [editMode, setEditMode] = useState(false);
+  const [massDeleteDialogOpen, setMassDeleteDialogOpen] = useState(false);
+
+  useEffect(() => {
+    // Run image cache cleanup on mount (once a week internally)
+    imageCache.cleanup();
+  }, []);
   const [toastMessage, setToastMessage] = useState("");
   const [toastSeverity, setToastSeverity] = useState<
     "success" | "error" | "warning" | "info"
   >("success");
   const [toastDuration, setToastDuration] = useState<number>(4000);
-  const showToast = (
+  
+  const showToast = useCallback((
     message: string,
     severity: "success" | "error" | "warning" | "info" = "success",
     duration = 4000,
@@ -45,7 +55,7 @@ export default function Profiles() {
     setToastMessage(message);
     setToastSeverity(severity);
     setToastDuration(duration);
-  };
+  }, []);
 
   const {
     students,
@@ -77,135 +87,48 @@ export default function Profiles() {
   const [deleteStep, setDeleteStep] = useState(1);
 
   const { authorizedClassIds, isReadOnly } = useHierarchyScope();
+  const [viewType, setViewType] = useState<"grid" | "grid_compact" | "list_image" | "list_details">("list_details");
 
-  const filteredClasses = classes.filter((c) =>
+  const filteredClasses = useMemo(() => classes.filter((c) =>
     authorizedClassIds.includes(c.id),
-  );
+  ), [classes, authorizedClassIds]);
 
-  const handleOpenEditDialog = (student: Student) => {
+  const handleOpenEditDialog = useCallback((student: Student) => {
     setEditingStudent(student);
     setOpenDialog(true);
-  };
+  }, [setEditingStudent, setOpenDialog]);
 
-  const handleOpenDetail = (student: Student) => {
+  const handleOpenDetail = useCallback((student: Student) => {
     setSelectedStudent(student);
     setOpenDetailDialog(true);
-  };
+  }, [setSelectedStudent, setOpenDetailDialog]);
 
-  const handleSaveProfileAsync = async (formData: any): Promise<boolean> => {
-    const nameParts = formData.studentName.trim().split(/\s+/);
-    const firstName = nameParts[0] || "";
-    const lastName = nameParts.slice(1).join(" ") || ".";
-    const studentId = editingStudent?.id || `std_${Date.now()}`;
-    const generatedProfileId =
-      formData.profileId?.trim() ||
-      `PRFL-${Date.now().toString(36).toUpperCase()}-${Math.floor(
-        Math.random() * 1000,
-      )
-        .toString(16)
-        .toUpperCase()}`;
+  const {
+    isMassDeleting,
+    handleSaveProfileAsync: handleSaveProfileActions,
+    handleConfirmDeleteStudent: handleConfirmDeleteActions,
+    handleMassDelete: handleMassDeleteActions,
+  } = useProfileActions(students, setStudents, offlineMode, showToast, fetchInitialData);
 
-    const savedStudent: Student = {
-      id: studentId,
-      profileId: generatedProfileId,
-      firstName,
-      lastName,
-      rollNumber: formData.rollNumber.trim().toUpperCase(),
-      classId: formData.classId,
-      gender: formData.gender,
-      fatherName: formData.fatherName.trim(),
-      motherName: formData.motherName.trim(),
-      phoneNumber: formData.phoneNumber.trim(),
-      boarderType: formData.boarderType,
-      image: formData.imageUrl,
-    };
+  const handleSaveProfileAsync = useCallback((formData: any) => 
+    handleSaveProfileActions(formData, editingStudent, setOpenDialog, setEditingStudent),
+    [handleSaveProfileActions, editingStudent, setOpenDialog, setEditingStudent]);
 
-    let updatedList = [...students];
-    if (editingStudent) {
-      updatedList = updatedList.map((s) =>
-        s.id === studentId ? savedStudent : s,
-      );
-    } else {
-      updatedList.push(savedStudent);
-    }
+  const handleConfirmDeleteStudent = useCallback(() => 
+    handleConfirmDeleteActions(studentToDelete, setDeleteDialogOpen, setStudentToDelete),
+    [handleConfirmDeleteActions, studentToDelete, setDeleteDialogOpen, setStudentToDelete]);
 
-    updatedList.sort((a, b) => {
-      const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-      const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+  const handleMassDelete = useCallback(() => 
+    handleMassDeleteActions(selectedIds, setSelectedIds),
+    [handleMassDeleteActions, selectedIds, setSelectedIds]);
 
-    setStudents(updatedList);
-    cache.set("offline_students", updatedList);
-
-    if (offlineMode) {
-      showToast(
-        `Profile for "${formData.studentName}" saved offline!`,
-        "success",
-        2000,
-      );
-      setOpenDialog(false);
-      setEditingStudent(null);
-      return true;
-    }
-
-    // Immediately trigger background upload, show toast, close dialog, and return true.
-    showToast("Uploaded!", "success", 2000);
-    setOpenDialog(false);
-    setEditingStudent(null);
-
-    // Perform API call in the background
-    studentsApi
-      .create(savedStudent)
-      .then(() => {
-        fetchInitialData();
-      })
-      .catch((err: any) => {
-        console.error("Error saving student profile in background:", err);
-        showToast("Saved to offline cache. Synchronization failed.", "warning");
-      });
-
-    return true;
-  };
-
-  const handleDeleteProfile = async (studentId: string, name: string) => {
+  const handleDeleteProfile = useCallback(async (studentId: string, name: string) => {
     setStudentToDelete({ id: studentId, name });
     setDeleteStep(1);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const handleConfirmDeleteStudent = async () => {
-    if (!studentToDelete) return;
-    const { id: studentId, name } = studentToDelete;
-    const originalStudents = [...students];
-    setDeleteDialogOpen(false);
-
-    const updatedList = students.filter((s) => s.id !== studentId);
-    setStudents(updatedList);
-    cache.set("offline_students", updatedList);
-    setStudentToDelete(null);
-
-    if (offlineMode) {
-      showToast("Profile deleted from offline cache.", "info");
-      return;
-    }
-
-    // Perform database delete in background
-    (async () => {
-      try {
-        await studentsApi.delete(studentId);
-        showToast(`Profile for "${name}" deleted successfully!`, "success");
-        fetchInitialData();
-      } catch (err) {
-        console.error(err);
-        showToast("Could not remove from cloud database. Reverting.", "error");
-        setStudents(originalStudents);
-        fetchInitialData();
-      }
-    })();
-  };
-
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = useCallback(() => {
     const csvContent =
       "Roll No,First Name,Last Name,Class ID,Gender,Phone,Boarder Type\n001,John,Doe,class_123,Male,1234567890,Full Boarder";
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -217,189 +140,16 @@ export default function Profiles() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
-
-      try {
-        // More robust CSV splitting that handles quotes
-        const parseCSVLine = (line: string) => {
-          const result = [];
-          let current = "";
-          let inQuotes = false;
-          for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"' && line[i + 1] === '"') {
-              current += '"';
-              i++;
-            } else if (char === '"') {
-              inQuotes = !inQuotes;
-            } else if (char === "," && !inQuotes) {
-              result.push(current.trim());
-              current = "";
-            } else {
-              current += char;
-            }
-          }
-          result.push(current.trim());
-          return result;
-        };
-
-        const rows = text.split(/\r?\n/).filter((row) => row.trim());
-        if (rows.length < 2) {
-          showToast("CSV file is empty or missing data rows.", "warning");
-          return;
-        }
-
-        // Create a map of class names to IDs for easier resolution
-        const classNameToIdMap: Record<string, string> = {};
-        classes.forEach((c) => {
-          const fullName = `${c.board} ${c.classStandard} ${c.section}`
-            .toLowerCase()
-            .trim();
-          classNameToIdMap[fullName] = c.id;
-          classNameToIdMap[c.id.toLowerCase()] = c.id; // Also map ID to ID
-        });
-
-        let importedCount = 0;
-        let newStudents: Student[] = [];
-        const existingRollNumbers = new Set(
-          students.map((s) => `${s.classId}_${s.rollNumber.toUpperCase()}`),
-        );
-
-        for (let i = 1; i < rows.length; i++) {
-          const values = parseCSVLine(rows[i]);
-          if (values.length < 3) continue; // Minimum: Roll No, First Name, Class
-
-          const rollNumber = values[0].toUpperCase();
-          const firstName = values[1];
-          const lastName = values[2] || ".";
-          let classId = values[3] || "";
-
-          // Try to resolve classId if it looks like a name
-          const classLookup = classId.toLowerCase().trim();
-          if (classNameToIdMap[classLookup]) {
-            classId = classNameToIdMap[classLookup];
-          }
-
-          if (!firstName || !classId || !rollNumber) continue;
-
-          // Check for duplicate roll number in same class
-          if (existingRollNumbers.has(`${classId}_${rollNumber}`)) {
-            continue;
-          }
-
-          const gender = (values[4] || "Male") as any;
-          const phoneNumber = values[5] || "";
-          const boarderType = (values[6] || "Day Scholar") as any;
-
-          const studentId = `std_${Date.now()}_${i}_${Math.random()
-            .toString(36)
-            .substr(2, 5)}`;
-
-          const savedStudent: Student = {
-            id: studentId,
-            firstName,
-            lastName,
-            rollNumber,
-            classId,
-            gender,
-            fatherName: "",
-            motherName: "",
-            phoneNumber,
-            boarderType,
-            image: "",
-          };
-
-          newStudents.push(savedStudent);
-          existingRollNumbers.add(`${classId}_${rollNumber}`);
-        }
-
-        if (newStudents.length > 0) {
-          const updatedList = [...students, ...newStudents];
-          setStudents(updatedList);
-          cache.set("offline_students", updatedList);
-          importedCount = newStudents.length;
-
-          showToast(
-            `Imported ${importedCount} profiles locally! Syncing with server...`,
-            "info",
-          );
-
-          if (!offlineMode) {
-            (async () => {
-              try {
-                // Use batch update if possible
-                if ((studentsApi as any).batchCreate) {
-                  await (studentsApi as any).batchCreate(newStudents);
-                } else {
-                  // Fallback to seedDemo which is a batch update
-                  await studentsApi.seedDemo(newStudents);
-                }
-                showToast(
-                  `Successfully imported ${importedCount} profiles!`,
-                  "success",
-                );
-                fetchInitialData();
-              } catch (error: any) {
-                console.error("Import sync error", error);
-                showToast(
-                  "Failed to upload imported profiles to cloud. Saved in local cache.",
-                  "warning",
-                );
-              }
-            })();
-          }
-        }
-      } catch (error: any) {
-        console.error("Import error", error);
-        showToast("Error importing profiles. Check CSV format.", "error");
-      }
-
-      // Reset input
-      e.target.value = "";
-    };
-
-    reader.readAsText(file);
-  };
-
-  const [displayCount, setDisplayCount] = useState(12);
-  const observerRef = React.useRef<IntersectionObserver | null>(null);
-
-  React.useEffect(() => {
-    setDisplayCount(12);
-  }, [searchQuery, classFilter, students.length]);
-
-  const setLoadMoreRef = React.useCallback((node: HTMLDivElement | null) => {
-    if (observerRef.current) {
-      observerRef.current.disconnect();
-    }
-
-    if (node) {
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            setDisplayCount((prev) => prev + 12);
-          }
-        },
-        { threshold: 0.1 }, // Change threshold to 0.1 so it triggers easier
-      );
-      observerRef.current.observe(node);
-    }
   }, []);
 
-  const filteredStudents = students.filter((s) => {
+  const filteredStudents = useMemo(() => students.filter((s) => {
     // Role-based filtering
     const isClassPermitted =
       s.classId && authorizedClassIds.includes(s.classId);
     if (!isClassPermitted) return false;
+
+    // Filter out soft-deleted students
+    if (s.isActive === false) return false;
 
     const term = searchQuery.toLowerCase();
     const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
@@ -420,7 +170,100 @@ export default function Profiles() {
       classString.includes(term);
     const matchesFilter = classFilter === "ALL" || s.classId === classFilter;
     return matchesSearch && matchesFilter;
-  });
+  }), [students, authorizedClassIds, searchQuery, classes, classFilter]);
+
+  const handleToggleSelectAll = useCallback((checked: boolean) => {
+    if (checked) {
+      setSelectedIds(filteredStudents.map((s) => s.id));
+    } else {
+      setSelectedIds([]);
+    }
+  }, [filteredStudents]);
+
+  const handleSelectStudent = useCallback((studentId: string, selected: boolean) => {
+    if (selected) {
+      setSelectedIds((prev) => [...prev, studentId]);
+    } else {
+      setSelectedIds((prev) => prev.filter((id) => id !== studentId));
+    }
+  }, []);
+
+  const handleImportData = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      try {
+        const { newStudents, importedCount } = await processProfileImport(
+          text,
+          classes,
+          students,
+          offlineMode
+        );
+
+        if (newStudents.length > 0) {
+          const updatedList = [...students, ...newStudents];
+          setStudents(updatedList);
+          showToast(
+            `Imported ${importedCount} profiles locally! Syncing with server...`,
+            "info"
+          );
+
+          if (!offlineMode) {
+            try {
+              if ((studentsApi as any).batchCreate) {
+                await (studentsApi as any).batchCreate(newStudents);
+              } else {
+                await studentsApi.seedDemo(newStudents);
+              }
+              showToast(`Successfully imported ${importedCount} profiles!`, "success");
+              fetchInitialData();
+            } catch (error: any) {
+              console.error("Import sync error", error);
+              showToast(
+                "Failed to upload imported profiles to cloud. Saved in local cache.",
+                "warning"
+              );
+            }
+          }
+        }
+      } catch (error: any) {
+        console.error("Import error", error);
+        showToast(error.message || "Error importing profiles.", "error");
+      }
+      e.target.value = "";
+    };
+    reader.readAsText(file);
+  }, [classes, students, offlineMode, setStudents, showToast, fetchInitialData]);
+
+  const [displayCount, setDisplayCount] = useState(12);
+  const observerRef = React.useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    setDisplayCount(12);
+  }, [searchQuery, classFilter, students.length]);
+
+  const setLoadMoreRef = React.useCallback((node: HTMLDivElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
+    }
+
+    if (node) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            setDisplayCount((prev) => prev + 12);
+          }
+        },
+        { threshold: 0.1 }, // Change threshold to 0.1 so it triggers easier
+      );
+      observerRef.current.observe(node);
+    }
+  }, []);
 
   return (
     <Box sx={{ maxWidth: "lg", mx: "auto", pb: 6 }}>
@@ -462,6 +305,18 @@ export default function Profiles() {
         </Box>
         {!isReadOnly && (
           <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+            <Button
+              variant={editMode ? "contained" : "outlined"}
+              color="info"
+              startIcon={<PlaylistAddCheck />}
+              onClick={() => {
+                setEditMode(!editMode);
+                if (!editMode === false) setSelectedIds([]);
+              }}
+              sx={{ textTransform: "none", borderRadius: 2 }}
+            >
+              {editMode ? "Exit Edit Mode" : "Edit Mode"}
+            </Button>
             <Button
               variant="outlined"
               color="secondary"
@@ -508,7 +363,36 @@ export default function Profiles() {
         classFilter={classFilter}
         setClassFilter={setClassFilter}
         classes={filteredClasses}
+        viewType={viewType}
+        setViewType={setViewType}
       />
+
+      {editMode && (
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, px: 1 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                indeterminate={selectedIds.length > 0 && selectedIds.length < filteredStudents.length}
+                checked={selectedIds.length > 0 && selectedIds.length === filteredStudents.length}
+                onChange={(e) => handleToggleSelectAll(e.target.checked)}
+              />
+            }
+            label={`Select All (${selectedIds.length} selected)`}
+          />
+          {selectedIds.length > 0 && (
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<Delete />}
+              onClick={() => setMassDeleteDialogOpen(true)}
+              disabled={isMassDeleting}
+              sx={{ borderRadius: 2, textTransform: "none" }}
+            >
+              Delete Selected
+            </Button>
+          )}
+        </Box>
+      )}
 
       {loading && students.length === 0 ? (
         <Box
@@ -564,12 +448,13 @@ export default function Profiles() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, 1fr)",
-                md: "repeat(3, 1fr)",
-              },
-              gap: 3,
+              gridTemplateColumns:
+                viewType === "grid"
+                  ? { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }
+                  : viewType === "grid_compact"
+                    ? { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(5, 1fr)" }
+                    : "1fr",
+              gap: viewType === "grid_compact" ? 1.5 : 3,
             }}
           >
             {filteredStudents.slice(0, displayCount).map((item) => (
@@ -581,6 +466,9 @@ export default function Profiles() {
                 onEdit={handleOpenEditDialog}
                 onDelete={handleDeleteProfile}
                 readOnly={isReadOnly}
+                selected={selectedIds.includes(item.id)}
+                onSelect={editMode ? handleSelectStudent : undefined}
+                layout={viewType}
               />
             ))}
           </Box>
@@ -623,6 +511,18 @@ export default function Profiles() {
         setDeleteStep={setDeleteStep}
         studentToDelete={studentToDelete}
         onConfirm={handleConfirmDeleteStudent}
+      />
+
+      <StudentDeleteDialog
+        open={massDeleteDialogOpen}
+        onClose={() => setMassDeleteDialogOpen(false)}
+        deleteStep={deleteStep}
+        setDeleteStep={setDeleteStep}
+        studentToDelete={{ id: "mass", name: `${selectedIds.length} selected students` }}
+        onConfirm={() => {
+          handleMassDelete();
+          setMassDeleteDialogOpen(false);
+        }}
       />
 
       <Snackbar

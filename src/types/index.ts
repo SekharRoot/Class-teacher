@@ -11,6 +11,7 @@ export interface Student {
   phoneNumber?: string;
   image?: string; // base64 Data URL
   boarderType?: "Day Boarder" | "Day Scholar" | "Full Boarder";
+  isActive?: boolean;
 }
 
 export type AttendanceStatus = "present" | "absent" | "leave";

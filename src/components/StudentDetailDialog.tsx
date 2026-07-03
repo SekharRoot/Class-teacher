@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import { Close, School, Phone } from "@mui/icons-material";
 import { Student, ClassItem } from "../types";
+import { fetchAndCacheImage } from "../utils/imageCache";
 
 interface StudentDetailDialogProps {
   open: boolean;
@@ -26,6 +27,20 @@ export const StudentDetailDialog: React.FC<StudentDetailDialogProps> = ({
   student,
   classes,
 }) => {
+  const [displayImage, setDisplayImage] = useState<string>("");
+
+  useEffect(() => {
+    if (student?.image) {
+      if (student.image.startsWith("http")) {
+        fetchAndCacheImage(student.image).then(setDisplayImage);
+      } else {
+        setDisplayImage(student.image);
+      }
+    } else {
+      setDisplayImage("");
+    }
+  }, [student]);
+
   if (!student) return null;
 
   const getClassNameFromId = (classId?: string) => {
@@ -78,10 +93,10 @@ export const StudentDetailDialog: React.FC<StudentDetailDialogProps> = ({
             <Close />
           </IconButton>
 
-          {student.image ? (
+          {displayImage ? (
             <Avatar
               variant="rounded"
-              src={student.image}
+              src={displayImage}
               sx={{
                 width: 90,
                 height: 90,

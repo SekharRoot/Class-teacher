@@ -18,6 +18,8 @@ import {
   Alert,
   Switch,
   FormControlLabel,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import WarningIcon from "@mui/icons-material/Warning";
 import AddIcon from "@mui/icons-material/Add";
@@ -33,6 +35,8 @@ import { HierarchyTree } from "../components/admin/HierarchyTree";
 
 export default function AdminPanel() {
   const { userProfile } = useAuth();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [activeTab, setActiveTab] = useState(0);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -424,29 +428,39 @@ export default function AdminPanel() {
         </Alert>
       )}
 
-      <Paper sx={{ mb: 4, borderRadius: 3 }}>
+      <Paper sx={{ mb: 4, borderRadius: 3, overflow: "hidden" }}>
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
-          sx={{ borderBottom: 1, borderColor: "divider", px: 2 }}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
+          sx={{ 
+            borderBottom: 1, 
+            borderColor: "divider", 
+            px: { xs: 0, sm: 2 },
+            "& .MuiTabs-scrollButtons": {
+              display: { xs: "flex", sm: "none" }
+            }
+          }}
         >
           <Tab
             icon={<SupervisorAccountIcon />}
-            label="Manage Roles & Permissions"
+            label={isMobile ? "Roles" : "Manage Roles & Permissions"}
             iconPosition="start"
-            sx={{ fontWeight: "bold", textTransform: "none" }}
+            sx={{ fontWeight: "bold", textTransform: "none", minHeight: 64 }}
           />
           <Tab
             icon={<AccountTreeIcon />}
-            label="School Hierarchy Tree"
+            label={isMobile ? "Hierarchy" : "School Hierarchy Tree"}
             iconPosition="start"
-            sx={{ fontWeight: "bold", textTransform: "none" }}
+            sx={{ fontWeight: "bold", textTransform: "none", minHeight: 64 }}
           />
           <Tab
             icon={<AddIcon />}
-            label="Pending Approvals"
+            label={isMobile ? "Approvals" : "Pending Approvals"}
             iconPosition="start"
-            sx={{ fontWeight: "bold", textTransform: "none" }}
+            sx={{ fontWeight: "bold", textTransform: "none", minHeight: 64 }}
           />
         </Tabs>
 

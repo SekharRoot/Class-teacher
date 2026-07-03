@@ -8,10 +8,18 @@
 - Ensure `package.json` contains the correct build script for a full-stack application (e.g. `vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs`).
 - Ensure `server.ts` handles serving static files correctly in production mode. Use `process.env.NODE_ENV === 'production' || !!process.env.K_SERVICE` to detect production mode in Cloud Run.
 
+## Project Structure & Modularization
+
+- **Hooks**: Logic for profile data management and actions is extracted into `src/hooks/useProfilesData.ts` and `src/hooks/useProfileActions.ts`.
+- **Utilities**: CSV import logic is centralized in `src/utils/csvImport.ts`.
+- **Navigation**: The floating navigation bar is extracted into `src/components/navigation/BottomNavBar.tsx`.
+- **Dashboard**: Specialized reports like the `DailyStatusReport` are modularized within `src/components/dashboard/`.
+
 ## Multi-Platform Development
 
 - **Flutter Frontend**: A mobile application located in the `/flutter` directory.
 - **Backend/API**: The application primarily uses Firebase (Cloud Firestore) for data persistence. Both the React web app and Flutter mobile app share the same database structure.
+- **Attendance Logic**: Daily status reports and attendance rates are calculated based on boarder types (Day Scholar, Day Boarder, Full Boarder).
 - **Future Changes**: Any changes to the database schema or attendance logic should be synchronized across both the `src/api` (React) and `flutter/lib/services` (Flutter) modules.
 - **API Endpoints**: If new REST endpoints are added to `server.ts`, the `FirebaseService` in Flutter should be updated to use the `http` package for communication.
 

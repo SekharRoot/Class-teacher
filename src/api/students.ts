@@ -85,7 +85,7 @@ export const studentsApi = {
   async create(student: Student): Promise<void> {
     try {
       const studentRef = doc(db, "students", student.id);
-      await setDoc(studentRef, {
+      const data = {
         firstName: student.firstName,
         lastName: student.lastName,
         rollNumber: student.rollNumber,
@@ -96,7 +96,10 @@ export const studentsApi = {
         phoneNumber: student.phoneNumber || "",
         boarderType: student.boarderType || "Day Scholar",
         image: student.image || "",
-      });
+        profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        isActive: student.isActive !== undefined ? student.isActive : true,
+      };
+      await setDoc(studentRef, data);
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(
@@ -116,7 +119,15 @@ export const studentsApi = {
   ): Promise<void> {
     try {
       const studentRef = doc(db, "students", studentId);
-      await setDoc(studentRef, studentData, { merge: true });
+      const updateData = { ...studentData };
+      
+      // Auto-assign profileId if missing during update
+      if (updateData.profileId === undefined) {
+        // We don't necessarily want to generate it here unless it's explicitly missing in DB
+        // But for "Automatic profile id generation too" requirement:
+      }
+
+      await setDoc(studentRef, updateData, { merge: true });
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `students/${studentId}`);
@@ -124,11 +135,12 @@ export const studentsApi = {
   },
 
   /**
-   * Deletes a student profile.
+   * Deletes a student profile (Soft Delete).
    */
   async delete(studentId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, "students", studentId));
+      const studentRef = doc(db, "students", studentId);
+      await setDoc(studentRef, { isActive: false }, { merge: true });
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(
@@ -136,6 +148,65 @@ export const studentsApi = {
         OperationType.DELETE,
         `students/${studentId}`,
       );
+    }
+  },
+
+  /**
+   * Batch deletes student profiles (Soft Delete).
+   */
+  async batchDelete(studentIds: string[]): Promise<void> {
+    try {
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < studentIds.length; i += BATCH_SIZE) {
+        const chunk = studentIds.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => {
+          const studentRef = doc(db, "students", id);
+          batch.update(studentRef, { isActive: false });
+        });
+        await batch.commit();
+      }
+      this.invalidateCache();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, "students");
+    }
+  },
+
+  /**
+   * Restores a deleted student profile.
+   */
+  async restore(studentId: string): Promise<void> {
+    try {
+      const studentRef = doc(db, "students", studentId);
+      await setDoc(studentRef, { isActive: true }, { merge: true });
+      this.invalidateCache();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `students/${studentId}`);
+    }
+  },
+
+  /**
+   * Assigns profile IDs to students missing them.
+   */
+  async assignMissingProfileIds(): Promise<number> {
+    try {
+      const students = await this.getAll(true);
+      const missing = students.filter(s => !s.profileId);
+      if (missing.length === 0) return 0;
+
+      const batch = writeBatch(db);
+      missing.forEach(s => {
+        const ref = doc(db, "students", s.id);
+        batch.update(ref, { 
+          profileId: `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}` 
+        });
+      });
+      await batch.commit();
+      this.invalidateCache();
+      return missing.length;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "students");
+      return 0;
     }
   },
 
@@ -169,6 +240,8 @@ export const studentsApi = {
             phoneNumber: student.phoneNumber || "",
             boarderType: student.boarderType || "Day Scholar",
             image: student.image || "",
+            profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+            isActive: student.isActive !== undefined ? student.isActive : true,
           });
         });
         await batch.commit();

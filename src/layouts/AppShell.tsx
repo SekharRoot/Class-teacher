@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Outlet, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { imageCache } from "../utils/imageCache";
 import {
   AppBar,
   Box,
@@ -40,8 +41,9 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import DashboardIcon from "@mui/icons-material/Dashboard";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
+import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
+import { BottomNavBar } from "../components/navigation/BottomNavBar";
 
 export default function AppShell() {
   const { currentUser, userProfile, signOut } = useAuth();
@@ -111,7 +113,9 @@ export default function AppShell() {
     );
   }
 
-  const isDeepNavigation = location.pathname.split("/").length > 2;
+  const isReportsPage = location.pathname.startsWith("/reports") || location.pathname.includes("reports");
+  const isDeepNavigation = location.pathname.split("/").filter(Boolean).length > 1 && !isReportsPage;
+  const isDashboard = location.pathname === "/";
 
   const handleBack = () => {
     const parts = location.pathname.split("/");
@@ -139,6 +143,10 @@ export default function AppShell() {
     setAnchorEl(null);
   };
 
+  useEffect(() => {
+    imageCache.cleanup();
+  }, []);
+
   const primaryMenuItems = [
     { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
     { text: "Attendance", icon: <CheckCircleIcon />, path: "/attendance" },
@@ -159,6 +167,18 @@ export default function AppShell() {
       : []),
     ...(userProfile?.hasLeaveFeatureAccess
       ? [{ text: "Leave Requests", icon: <DateRangeIcon />, path: "/leaves" }]
+      : []),
+    ...(userProfile?.role === "admin" ||
+    userProfile?.role === "owner" ||
+    userProfile?.role === "academic_coordinator" ||
+    userProfile?.role === "principal"
+      ? [
+          {
+            text: "Inactive Profiles",
+            icon: <DeleteSweepIcon />,
+            path: "/inactive-profiles",
+          },
+        ]
       : []),
     { text: "Export", icon: <PictureAsPdfIcon />, path: "/export" },
     { text: "Settings", icon: <SettingsIcon />, path: "/settings" },
@@ -290,26 +310,30 @@ export default function AppShell() {
             />
           )}
           <Box sx={{ flexGrow: 1 }} />
-          <Tooltip title="Synchronize Data with Server">
-            <IconButton
-              id="btn-sync-global"
-              color="primary"
-              onClick={handleSync}
-              sx={{ mr: 1.5 }}
-              disabled={syncing}
-            >
-              <SyncIcon className={syncing ? "animate-spin" : ""} />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Logout">
-            <IconButton
-              id="btn-logout"
-              color="inherit"
-              onClick={() => setLogoutDialogOpen(true)}
-            >
-              <LogoutIcon />
-            </IconButton>
-          </Tooltip>
+          {isDashboard && (
+            <>
+              <Tooltip title="Synchronize Data with Server">
+                <IconButton
+                  id="btn-sync-global"
+                  color="primary"
+                  onClick={handleSync}
+                  sx={{ mr: 1.5 }}
+                  disabled={syncing}
+                >
+                  <SyncIcon className={syncing ? "animate-spin" : ""} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Logout">
+                <IconButton
+                  id="btn-logout"
+                  color="inherit"
+                  onClick={() => setLogoutDialogOpen(true)}
+                >
+                  <LogoutIcon />
+                </IconButton>
+              </Tooltip>
+            </>
+          )}
         </Toolbar>
       </AppBar>
       <Dialog
@@ -357,146 +381,13 @@ export default function AppShell() {
       </Box>
 
       {/* Floating Bottom Navigation Bar */}
-      <Box
-        sx={{
-          position: "fixed",
-          bottom: { xs: 16, sm: 24 },
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 1100,
-          width: "100%",
-          display: "flex",
-          justifyContent: "center",
-          pointerEvents: "none",
-        }}
-      >
-        <Paper
-          elevation={6}
-          sx={{
-            pointerEvents: "auto",
-            display: "flex",
-            alignItems: "center",
-            gap: { xs: 0.5, sm: 1 },
-            p: { xs: 0.5, sm: 1 },
-            borderRadius: "24px",
-            bgcolor:
-              theme.palette.mode === "dark"
-                ? "rgba(30, 30, 30, 0.85)"
-                : "rgba(255, 255, 255, 0.85)",
-            backdropFilter: "blur(16px)",
-            border: "1px solid",
-            borderColor:
-              theme.palette.mode === "dark"
-                ? "rgba(255, 255, 255, 0.08)"
-                : "rgba(0, 0, 0, 0.06)",
-            boxShadow:
-              theme.palette.mode === "dark"
-                ? "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
-                : "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
-            maxWidth: "95%",
-          }}
-        >
-          {primaryMenuItems.map((item) => {
-            const active =
-              item.path === "/"
-                ? location.pathname === "/"
-                : location.pathname.startsWith(item.path);
-            return (
-              <Tooltip key={item.text} title={item.text} arrow>
-                <IconButton
-                  onClick={() => navigate(item.path)}
-                  sx={{
-                    color: active ? "primary.main" : "text.secondary",
-                    bgcolor: active
-                      ? theme.palette.mode === "dark"
-                        ? "rgba(25, 118, 210, 0.15)"
-                        : "rgba(25, 118, 210, 0.08)"
-                      : "transparent",
-                    borderRadius: "18px",
-                    px: { xs: 1.5, sm: 2 },
-                    py: { xs: 1, sm: 1.25 },
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 0.25,
-                    minWidth: { xs: 50, sm: 70 },
-                    transition: "all 0.2s ease",
-                    "&:hover": {
-                      color: "primary.main",
-                      bgcolor:
-                        theme.palette.mode === "dark"
-                          ? "rgba(25, 118, 210, 0.1)"
-                          : "rgba(25, 118, 210, 0.04)",
-                    },
-                  }}
-                >
-                  {item.icon}
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: active ? 700 : 500,
-                      fontSize: { xs: "0.65rem", sm: "0.72rem" },
-                      display: { xs: "none", sm: "block" },
-                    }}
-                  >
-                    {item.text}
-                  </Typography>
-                </IconButton>
-              </Tooltip>
-            );
-          })}
-
-          <Tooltip title="More Options" arrow>
-            <IconButton
-              onClick={handleMoreClick}
-              sx={{
-                color: secondaryMenuItems.some((item) =>
-                  location.pathname.startsWith(item.path),
-                )
-                  ? "primary.main"
-                  : "text.secondary",
-                bgcolor: secondaryMenuItems.some((item) =>
-                  location.pathname.startsWith(item.path),
-                )
-                  ? theme.palette.mode === "dark"
-                    ? "rgba(25, 118, 210, 0.15)"
-                    : "rgba(25, 118, 210, 0.08)"
-                  : "transparent",
-                borderRadius: "18px",
-                px: { xs: 1.5, sm: 2 },
-                py: { xs: 1, sm: 1.25 },
-                display: "flex",
-                flexDirection: "column",
-                gap: 0.25,
-                minWidth: { xs: 50, sm: 70 },
-                transition: "all 0.2s ease",
-                "&:hover": {
-                  color: "primary.main",
-                  bgcolor:
-                    theme.palette.mode === "dark"
-                      ? "rgba(25, 118, 210, 0.1)"
-                      : "rgba(25, 118, 210, 0.04)",
-                },
-              }}
-            >
-              <MoreHorizIcon />
-              <Typography
-                variant="caption"
-                sx={{
-                  fontWeight: secondaryMenuItems.some((item) =>
-                    location.pathname.startsWith(item.path),
-                  )
-                    ? 700
-                    : 500,
-                  fontSize: { xs: "0.65rem", sm: "0.72rem" },
-                  display: { xs: "none", sm: "block" },
-                }}
-              >
-                More
-              </Typography>
-            </IconButton>
-          </Tooltip>
-        </Paper>
-      </Box>
+      <BottomNavBar
+        primaryMenuItems={primaryMenuItems}
+        secondaryMenuItems={secondaryMenuItems}
+        currentPath={location.pathname}
+        onNavigate={navigate}
+        onMoreClick={handleMoreClick}
+      />
 
       {/* Popover Menu for Secondary Navigation Items */}
       <Menu

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { UserProfile, ClassItem } from "../types";
 import { useData } from "../contexts/DataContext";
@@ -47,7 +47,7 @@ export function useHierarchyScope() {
     return [];
   }, [userProfile, allClasses, allUsers]);
 
-  const isClassAuthorized = (classId: string): boolean => {
+  const isClassAuthorized = useCallback((classId: string): boolean => {
     if (!userProfile) return false;
     if (
       userProfile.role === "owner" ||
@@ -56,9 +56,9 @@ export function useHierarchyScope() {
     )
       return true;
     return authorizedClassIds.includes(classId);
-  };
+  }, [userProfile, authorizedClassIds]);
 
-  const isReadOnly = userProfile?.role === "principal";
+  const isReadOnly = useMemo(() => userProfile?.role === "principal", [userProfile]);
 
   return {
     allUsers,

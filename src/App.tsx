@@ -18,6 +18,7 @@ import PlaceholderPage from "./pages/PlaceholderPage";
 import Testing from "./pages/Testing";
 import AdminPanel from "./pages/AdminPanel";
 import Leaves from "./pages/Leaves";
+import InactiveProfiles from "./pages/InactiveProfiles";
 
 import Settings from "./pages/Settings";
 import Export from "./pages/Export";
@@ -40,6 +41,7 @@ export default function App() {
                 <Route path="profiles" element={<Profiles />} />
                 <Route path="admin" element={<AdminPanel />} />
                 <Route path="leaves" element={<Leaves />} />
+                <Route path="inactive-profiles" element={<InactiveProfiles />} />
                 <Route path="reports/:classId?/:month?" element={<Reports />} />
                 <Route path="export" element={<Export />} />
                 <Route path="settings" element={<Settings />} />

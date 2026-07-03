@@ -70,25 +70,43 @@ export default function Attendance() {
 
   const { authorizedClassIds, isReadOnly, loadingScope } = useHierarchyScope();
 
+  const isPrincipal = isReadOnly;
+  const isTeacher = userProfile?.role === "class_teacher";
+  const [isSubstituteMode, setIsSubstituteMode] = React.useState<boolean>(false);
+  const [isTakeAttendanceMode, setIsTakeAttendanceMode] = React.useState<boolean>(isTeacher);
+
+  useEffect(() => {
+    if (userProfile && !loadingScope) {
+      setIsTakeAttendanceMode(userProfile.role === "class_teacher" || isSubstituteMode);
+    }
+  }, [userProfile, loadingScope, isSubstituteMode]);
+
   useEffect(() => {
     if (!userProfile || loadingScope) return;
 
     if (classId) {
-      const isAuthorized = authorizedClassIds.includes(classId);
+      const isAuthorized = authorizedClassIds.includes(classId) || (isTeacher && isSubstituteMode);
       if (!isAuthorized) {
         if (
           userProfile.role === "class_teacher" &&
-          userProfile.assignedClassId
+          userProfile.assignedClassId &&
+          !isSubstituteMode
         ) {
           navigate(`/attendance/${userProfile.assignedClassId}`);
         } else {
-          navigate("/attendance");
+          // Check if class exists even if not authorized yet
+          const classExists = classes.some(c => c.id === classId);
+          if (isSubstituteMode && classExists) {
+            setSelectedClassId(classId);
+          } else {
+            navigate("/attendance");
+          }
         }
       } else {
         setSelectedClassId(classId);
       }
     } else {
-      if (userProfile.role === "class_teacher" && userProfile.assignedClassId) {
+      if (userProfile.role === "class_teacher" && userProfile.assignedClassId && !isSubstituteMode) {
         navigate(`/attendance/${userProfile.assignedClassId}`);
       } else {
         setSelectedClassId(null);
@@ -101,6 +119,9 @@ export default function Attendance() {
     navigate,
     authorizedClassIds,
     loadingScope,
+    isSubstituteMode,
+    isTeacher,
+    classes,
   ]);
 
   const handleClassSelect = (id: string | null) => {
@@ -154,10 +175,8 @@ export default function Attendance() {
     showToast("Switched to Offline Mode successfully.", "info");
   };
 
-  const isPrincipal = isReadOnly;
-
   const filteredClasses = classes.filter((cls) =>
-    authorizedClassIds.includes(cls.id),
+    isSubstituteMode ? true : authorizedClassIds.includes(cls.id),
   );
 
   return (
@@ -194,7 +213,36 @@ export default function Attendance() {
             )}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}></Box>
+        <Box sx={{ display: "flex", gap: 1 }}>
+          {isTeacher && (
+            <Box sx={{ display: "flex", bgcolor: "action.hover", p: 0.5, borderRadius: 2 }}>
+              <Button
+                size="small"
+                variant={!isSubstituteMode ? "contained" : "text"}
+                onClick={() => {
+                  setIsSubstituteMode(false);
+                  if (userProfile.assignedClassId) {
+                    navigate(`/attendance/${userProfile.assignedClassId}`);
+                  }
+                }}
+                sx={{ textTransform: "none", fontWeight: "bold", borderRadius: 1.5 }}
+              >
+                My Class
+              </Button>
+              <Button
+                size="small"
+                variant={isSubstituteMode ? "contained" : "text"}
+                onClick={() => {
+                  setIsSubstituteMode(true);
+                  navigate("/attendance");
+                }}
+                sx={{ textTransform: "none", fontWeight: "bold", borderRadius: 1.5 }}
+              >
+                Substitute Attendance
+              </Button>
+            </Box>
+          )}
+        </Box>
       </Box>
 
       {error ? (
@@ -278,7 +326,7 @@ export default function Attendance() {
         </>
       ) : (
         <Box>
-          {userProfile?.role !== "class_teacher" && (
+          {(userProfile?.role !== "class_teacher" || isSubstituteMode) && (
             <Box
               sx={{
                 display: "flex",
@@ -416,6 +464,23 @@ export default function Attendance() {
                   >
                     Today
                   </Button>
+                  {!isTeacher && !isPrincipal && (
+                    <Button
+                      variant={isTakeAttendanceMode ? "contained" : "outlined"}
+                      color={isTakeAttendanceMode ? "primary" : "secondary"}
+                      size="small"
+                      startIcon={<ListAlt />}
+                      onClick={() => setIsTakeAttendanceMode(!isTakeAttendanceMode)}
+                      sx={{
+                        ml: 1,
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {isTakeAttendanceMode ? "View Mode" : "Take Attendance"}
+                    </Button>
+                  )}
                 </Box>
                 <AttendanceSummary
                   students={students}
@@ -423,7 +488,7 @@ export default function Attendance() {
                   selectedClassId={selectedClassId}
                 />
               </Paper>
-              <AttendanceStudentList
+            <AttendanceStudentList
                 students={students}
                 attendance={attendance}
                 selectedClassId={selectedClassId}
@@ -431,7 +496,7 @@ export default function Attendance() {
                 onMarkAll={markAllStatus}
                 onMarkAttendance={markAttendance}
                 onSync={syncAttendance}
-                readOnly={isPrincipal}
+                readOnly={!isTakeAttendanceMode || isPrincipal}
                 leavesList={leavesList}
                 dateString={dateString}
               />

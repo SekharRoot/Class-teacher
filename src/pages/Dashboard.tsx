@@ -40,6 +40,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import { format } from "date-fns";
 import { attendanceApi } from "../api";
+import { runCalculationWorker } from "../workers/calculator";
 import { useAuth } from "../contexts/AuthContext";
 import { cache } from "../lib/cache";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
@@ -68,11 +69,12 @@ export default function Dashboard() {
   const {
     classes,
     students,
-    leaves: contextLeaves,
+    leaves,
     loading: globalLoading,
   } = useData();
 
   const [loading, setLoading] = useState(true);
+  const [todayRecords, setTodayRecords] = useState<Record<string, any> | null>(null);
   const [stats, setStats] = useState({
     totalClasses: 0,
     totalStudents: 0,
@@ -81,136 +83,35 @@ export default function Dashboard() {
     todayTotalMarked: 0,
   });
   const [classStats, setClassStats] = useState<ClassStat[]>([]);
-  const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
-  const [allStudentsList, setAllStudentsList] = useState<any[]>([]);
 
   useEffect(() => {
     if (loadingScope || globalLoading) return;
 
     let active = true;
 
+    const calculateAndSetStats = async (records: any) => {
+      if (!active) return;
+      try {
+        const result = await runCalculationWorker("CALCULATE_DASHBOARD_STATS", {
+          classes,
+          students,
+          authorizedClassIds,
+          todayRecords: records,
+        });
+        if (active) {
+          setStats(result.stats);
+          setClassStats(result.classStats);
+        }
+      } catch (err) {
+        console.error("Worker calculation error:", err);
+      }
+    };
+
     const loadDashboardData = async () => {
       if (!currentUser) return;
 
       const todayDateString = format(new Date(), "yyyy-MM-dd");
-
-      const calculateStats = (
-        records: any,
-        classesList: any[],
-        studentsList: any[],
-      ) => {
-        let filteredClasses = classesList.filter((c) =>
-          authorizedClassIds.includes(c.id),
-        );
-        let filteredStudents = studentsList.filter(
-          (s) => s.classId && authorizedClassIds.includes(s.classId),
-        );
-
-        const classesCount = filteredClasses.length;
-        const studentsCount = filteredStudents.length;
-
-        let todayPresent = 0;
-        let todayTotalMarked = 0;
-
-        if (records) {
-          Object.keys(records).forEach((studentId) => {
-            const belongsToClass = filteredStudents.some(
-              (s) => s.id === studentId,
-            );
-            if (!belongsToClass) return;
-
-            const val = records[studentId];
-            let status = "";
-            if (typeof val === "object" && val !== null) {
-              status = (val as any).status || "";
-            } else {
-              status = String(val);
-            }
-            if (status) {
-              todayTotalMarked++;
-              if (
-                status === "Present" ||
-                status === "Late" ||
-                status === "present" ||
-                status === "late"
-              ) {
-                todayPresent++;
-              }
-            }
-          });
-        }
-
-        const attendanceRate =
-          todayTotalMarked > 0
-            ? Math.round((todayPresent / todayTotalMarked) * 100)
-            : null;
-
-        setStats({
-          totalClasses: classesCount,
-          totalStudents: studentsCount,
-          todayAttendanceRate: attendanceRate,
-          todayPresentCount: todayPresent,
-          todayTotalMarked: todayTotalMarked,
-        });
-
-        if (filteredClasses.length > 0) {
-          const computedStats: ClassStat[] = filteredClasses.map((cls) => {
-            const classStudents = filteredStudents.filter(
-              (s) => s.classId === cls.id,
-            );
-            const total = classStudents.length;
-
-            let present = 0;
-            let absent = 0;
-            let leave = 0;
-            let marked = 0;
-
-            classStudents.forEach((student) => {
-              const record = records ? records[student.id] : null;
-              let status = "";
-              if (record) {
-                if (typeof record === "object" && record !== null) {
-                  status = (record as any).status || "";
-                } else {
-                  status = String(record);
-                }
-              }
-
-              if (status) {
-                marked++;
-                if (
-                  status === "Present" ||
-                  status === "Late" ||
-                  status === "present" ||
-                  status === "late"
-                ) {
-                  present++;
-                } else if (status === "Absent" || status === "absent") {
-                  absent++;
-                } else if (status === "Leave" || status === "leave") {
-                  leave++;
-                }
-              }
-            });
-
-            const rate =
-              marked > 0 ? Math.round((present / marked) * 100) : null;
-
-            return {
-              classId: cls.id,
-              className: `${cls.classStandard} ${cls.section} (${cls.board})`,
-              totalStudents: total,
-              presentCount: present,
-              absentCount: absent,
-              leaveCount: leave,
-              markedCount: marked,
-              attendanceRate: rate,
-            };
-          });
-
-          setClassStats(computedStats);
-        }
-      };
+      let lastProcessedRecords: any = null;
 
       try {
         const localAttendanceStr = localStorage.getItem(
@@ -226,13 +127,11 @@ export default function Dashboard() {
         }
 
         if (active) {
-          if (contextLeaves) {
-            setLeaves(contextLeaves);
+          if (todayRecordsLocal) {
+            setTodayRecords(todayRecordsLocal);
+            lastProcessedRecords = todayRecordsLocal;
+            calculateAndSetStats(todayRecordsLocal);
           }
-          if (students) {
-            setAllStudentsList(students);
-          }
-          calculateStats(todayRecordsLocal, classes, students);
           setLoading(false);
         }
       } catch (cacheError) {
@@ -245,8 +144,14 @@ export default function Dashboard() {
           await attendanceApi.getByDate(todayDateString);
 
         if (active) {
-          calculateStats(todayRecordsOnline, classes, students);
           if (todayRecordsOnline) {
+            const isDifferent = JSON.stringify(todayRecordsOnline) !== JSON.stringify(lastProcessedRecords);
+            
+            if (isDifferent) {
+              setTodayRecords(todayRecordsOnline);
+              calculateAndSetStats(todayRecordsOnline);
+            }
+            
             await cache.set(
               `attendance_${todayDateString}`,
               todayRecordsOnline,
@@ -278,17 +183,16 @@ export default function Dashboard() {
     globalLoading,
     classes,
     students,
-    contextLeaves,
   ]);
 
   // Helper selectors
   const studentNameMap = useMemo(() => {
     const map: Record<string, string> = {};
-    allStudentsList.forEach((s) => {
+    students.forEach((s) => {
       map[s.id] = `${s.firstName} ${s.lastName}`;
     });
     return map;
-  }, [allStudentsList]);
+  }, [students]);
 
   const classNameMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -408,6 +312,9 @@ export default function Dashboard() {
       oversightPendingLeavesCount={oversightPendingLeavesCount}
       sortedClassStatsByAttendance={sortedClassStatsByAttendance}
       teacherNameForClass={teacherNameForClass}
+      students={students}
+      classes={classes}
+      authorizedClassIds={authorizedClassIds}
     />
   );
 }
