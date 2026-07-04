@@ -20,6 +20,7 @@ export interface AttendanceRecordSummary {
   present: number;
   absent: number;
   leave: number;
+  late: number;
 }
 
 export const attendanceApi = {

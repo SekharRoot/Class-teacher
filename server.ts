@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 
 async function startServer() {
   const app = express();
@@ -33,9 +34,29 @@ async function startServer() {
   } else {
     // In production, we serve from the 'dist' directory
     const distPath = path.join(process.cwd(), "dist");
+    console.log(`Serving static files from: ${distPath}`);
+    
+    // Verify dist directory exists
+    if (!fs.existsSync(distPath)) {
+      console.error(`CRITICAL: dist directory NOT found at ${distPath}`);
+    } else {
+      const indexPath = path.join(distPath, "index.html");
+      if (!fs.existsSync(indexPath)) {
+        console.error(`CRITICAL: index.html NOT found at ${indexPath}`);
+      } else {
+        console.log("Found index.html, ready to serve.");
+      }
+    }
+
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
+      const indexPath = path.join(distPath, "index.html");
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error("Error sending index.html:", err);
+          res.status(500).send("Application Error: Build artifacts not found.");
+        }
+      });
     });
   }
 

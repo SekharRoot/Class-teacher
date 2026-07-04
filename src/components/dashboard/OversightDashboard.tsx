@@ -97,7 +97,7 @@ export const OversightDashboard = React.memo(({
       .reverse()
       .map((d) => ({
         date: format(new Date(d.date), "MMM dd"),
-        rate: Math.round((d.present / (d.present + d.absent + d.leave || 1)) * 100),
+        rate: Math.round(((d.present + (d.late || 0)) / (d.present + (d.late || 0) + d.absent + d.leave || 1)) * 100),
       }));
   }, [historyData]);
 

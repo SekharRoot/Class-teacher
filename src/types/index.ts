@@ -59,6 +59,7 @@ export interface MonthlyReportEntry {
   studentName: string;
   rollNumber: string;
   present: number;
+  late: number;
   absent: number;
   leave: number;
   totalDays: number;
