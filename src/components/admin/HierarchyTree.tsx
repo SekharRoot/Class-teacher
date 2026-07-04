@@ -131,7 +131,8 @@ export function HierarchyTree({
                       const myTeachers = users.filter(
                         (u) =>
                           u.role === "class_teacher" &&
-                          u.coordinatorId === co.uid,
+                          (u.coordinatorIds?.includes(co.uid) ||
+                            u.coordinatorId === co.uid),
                       );
 
                       return (

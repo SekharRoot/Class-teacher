@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             role: assignedRole,
             status: assignedStatus,
             assignedClassId: null,
-            coordinatorId: null,
+            coordinatorIds: [],
             principalId: null,
           };
 

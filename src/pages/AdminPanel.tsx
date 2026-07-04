@@ -52,7 +52,7 @@ export default function AdminPanel() {
   const [formRole, setFormRole] = useState<UserRole>("class_teacher");
   const [formDisplayName, setFormDisplayName] = useState("");
   const [formAssignedClassId, setFormAssignedClassId] = useState<string>("");
-  const [formCoordinatorId, setFormCoordinatorId] = useState<string>("");
+  const [formCoordinatorIds, setFormCoordinatorIds] = useState<string[]>([]);
   const [formPrincipalId, setFormPrincipalId] = useState<string>("");
   const [formHasLeaveFeatureAccess, setFormHasLeaveFeatureAccess] =
     useState<boolean>(false);
@@ -143,7 +143,9 @@ export default function AdminPanel() {
     setFormRole(user.role);
     setFormDisplayName(user.displayName || "");
     setFormAssignedClassId(user.assignedClassId || "");
-    setFormCoordinatorId(user.coordinatorId || "");
+    setFormCoordinatorIds(
+      user.coordinatorIds || (user.coordinatorId ? [user.coordinatorId] : []),
+    );
     setFormPrincipalId(user.principalId || "");
     setFormHasLeaveFeatureAccess(user.hasLeaveFeatureAccess || false);
     setFormStatus(user.status || "active");
@@ -168,8 +170,8 @@ export default function AdminPanel() {
       displayName: formDisplayName,
       assignedClassId:
         formRole === "class_teacher" ? formAssignedClassId || null : null,
-      coordinatorId:
-        formRole === "class_teacher" ? formCoordinatorId || null : null,
+      coordinatorIds:
+        formRole === "class_teacher" ? formCoordinatorIds : [],
       principalId:
         formRole === "academic_coordinator" ? formPrincipalId || null : null,
       hasLeaveFeatureAccess: formHasLeaveFeatureAccess,
@@ -302,7 +304,7 @@ export default function AdminPanel() {
       role: newRole,
       status: "pending", // Pending real login
       assignedClassId: null,
-      coordinatorId: null,
+      coordinatorIds: [],
       principalId: null,
       hasLeaveFeatureAccess: newHasLeaveFeatureAccess,
     };
@@ -585,15 +587,23 @@ export default function AdminPanel() {
 
                   <FormControl fullWidth>
                     <InputLabel id="coordinator-select-label">
-                      Supervising Academic Coordinator
+                      Supervising Academic Coordinators
                     </InputLabel>
                     <Select
                       labelId="coordinator-select-label"
-                      label="Supervising Academic Coordinator"
-                      value={formCoordinatorId}
-                      onChange={(e) => setFormCoordinatorId(e.target.value)}
+                      label="Supervising Academic Coordinators"
+                      multiple
+                      value={formCoordinatorIds}
+                      onChange={(e) => setFormCoordinatorIds(e.target.value as string[])}
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {selected.map((value) => {
+                            const coord = coordinators.find(c => c.uid === value);
+                            return coord ? coord.displayName : value;
+                          }).join(", ")}
+                        </Box>
+                      )}
                     >
-                      <MenuItem value="">-- Unassigned --</MenuItem>
                       {coordinators.map((co) => (
                         <MenuItem key={co.uid} value={co.uid}>
                           {co.displayName} ({co.email})

@@ -66,8 +66,10 @@ export function RolesTable({
                 const assignedClass = classes.find(
                   (c: ClassItem) => c.id === user.assignedClassId,
                 );
-                const assignedCoord = users.find(
-                  (u: UserProfile) => u.uid === user.coordinatorId,
+                const assignedCoords = users.filter(
+                  (u: UserProfile) =>
+                    user.coordinatorIds?.includes(u.uid) ||
+                    user.coordinatorId === u.uid,
                 );
                 const assignedPrincipal = users.find(
                   (u: UserProfile) => u.uid === user.principalId,
@@ -114,9 +116,9 @@ export function RolesTable({
                               : "None Assigned"}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Coordinator:{" "}
-                            {assignedCoord
-                              ? assignedCoord.displayName
+                            Coordinators:{" "}
+                            {assignedCoords.length > 0
+                              ? assignedCoords.map(c => c.displayName).join(", ")
                               : "Unassigned"}
                           </Typography>
                         </Box>

@@ -33,7 +33,8 @@ export interface UserProfile {
   displayName: string | null;
   role: UserRole;
   assignedClassId?: string | null; // For class_teacher
-  coordinatorId?: string | null; // Links class_teacher -> academic_coordinator
+  coordinatorIds?: string[]; // Links class_teacher -> multiple academic_coordinators
+  coordinatorId?: string | null; // @deprecated: Links class_teacher -> academic_coordinator
   principalId?: string | null; // Links academic_coordinator -> principal
   status: "active" | "pending";
   hasLeaveFeatureAccess?: boolean;

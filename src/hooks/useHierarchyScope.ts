@@ -33,7 +33,9 @@ export function useHierarchyScope() {
     if (userProfile.role === "academic_coordinator") {
       const reportingTeachers = allUsers.filter(
         (u) =>
-          u.role === "class_teacher" && u.coordinatorId === userProfile.uid,
+          u.role === "class_teacher" &&
+          (u.coordinatorIds?.includes(userProfile.uid) ||
+            u.coordinatorId === userProfile.uid),
       );
       return reportingTeachers
         .map((t) => t.assignedClassId)

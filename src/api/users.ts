@@ -125,7 +125,7 @@ export const usersApi = {
         role: "class_teacher",
         status: "active",
         assignedClassId: defaultClassId,
-        coordinatorId: "demo_coordinator_1",
+        coordinatorIds: ["demo_coordinator_1"],
       },
       {
         uid: "demo_teacher_2",
@@ -134,7 +134,7 @@ export const usersApi = {
         role: "class_teacher",
         status: "active",
         assignedClassId: defaultClassId,
-        coordinatorId: "demo_coordinator_1",
+        coordinatorIds: ["demo_coordinator_1"],
       },
     ];
 
