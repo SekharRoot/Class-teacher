@@ -58,12 +58,21 @@ export default function InactiveProfiles() {
     }
   };
 
+  const handlePermanentDelete = async (studentId: string, name: string) => {
+    if (window.confirm(`Are you sure you want to PERMANENTLY delete ${name}? This action cannot be undone and all data will be lost forever.`)) {
+      try {
+        await studentsApi.permanentlyDelete(studentId);
+        setToast({ open: true, message: "Profile deleted permanently!", severity: "success" });
+        fetchInitialData();
+      } catch (error) {
+        setToast({ open: true, message: "Failed to delete profile permanently.", severity: "error" });
+      }
+    }
+  };
+
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 4 }}>
-        <IconButton onClick={() => navigate("/profiles")} sx={{ mr: 2 }}>
-          <ArrowBack />
-        </IconButton>
         <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
           Inactive Profiles
         </Typography>
@@ -98,26 +107,51 @@ export default function InactiveProfiles() {
           }}
         >
           {inactiveStudents.map((student) => (
-            <Box key={student.id} sx={{ position: "relative" }}>
-              <StudentCard
-                item={student}
-                classes={classes}
-                onViewDetails={() => {}}
-                onEdit={() => {}}
-                onDelete={() => {}}
-                readOnly={true}
-              />
+            <Box 
+              key={student.id} 
+              sx={{ 
+                display: "flex", 
+                flexDirection: "column",
+                height: "100%",
+                gap: 1
+              }}
+            >
+              <Box sx={{ flexGrow: 1 }}>
+                <StudentCard
+                  item={student}
+                  classes={classes}
+                  onViewDetails={() => {}}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                  readOnly={true}
+                />
+              </Box>
               {canRestore && (
-                <Button
-                  fullWidth
-                  variant="contained"
-                  color="primary"
-                  startIcon={<RestoreFromTrash />}
-                  onClick={() => handleRestore(student.id)}
-                  sx={{ mt: 1, borderRadius: 2 }}
-                >
-                  Restore Profile
-                </Button>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    color="primary"
+                    startIcon={<RestoreFromTrash />}
+                    onClick={() => handleRestore(student.id)}
+                    sx={{ borderRadius: 2, flexGrow: 2, textTransform: "none" }}
+                  >
+                    Restore
+                  </Button>
+                  <Tooltip title="Permanently Delete">
+                    <IconButton
+                      color="error"
+                      onClick={() => handlePermanentDelete(student.id, `${student.firstName} ${student.lastName}`)}
+                      sx={{ 
+                        bgcolor: "error.50",
+                        "&:hover": { bgcolor: "error.100" },
+                        borderRadius: 2
+                      }}
+                    >
+                      <DeleteForever />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
               )}
             </Box>
           ))}

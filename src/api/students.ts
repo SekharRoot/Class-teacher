@@ -186,6 +186,44 @@ export const studentsApi = {
   },
 
   /**
+   * Transfers students to a new class.
+   */
+  async transferStudents(studentIds: string[], targetClassId: string): Promise<void> {
+    try {
+      const BATCH_SIZE = 500;
+      for (let i = 0; i < studentIds.length; i += BATCH_SIZE) {
+        const chunk = studentIds.slice(i, i + BATCH_SIZE);
+        const batch = writeBatch(db);
+        chunk.forEach((id) => {
+          const studentRef = doc(db, "students", id);
+          batch.update(studentRef, { classId: targetClassId });
+        });
+        await batch.commit();
+      }
+      this.invalidateCache();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "students/transfer");
+    }
+  },
+
+  /**
+   * Permanently deletes a student profile from Firestore.
+   */
+  async permanentlyDelete(studentId: string): Promise<void> {
+    try {
+      const studentRef = doc(db, "students", studentId);
+      await deleteDoc(studentRef);
+      this.invalidateCache();
+    } catch (error) {
+      handleFirestoreError(
+        error,
+        OperationType.DELETE,
+        `students/${studentId}`,
+      );
+    }
+  },
+
+  /**
    * Assigns profile IDs to students missing them.
    */
   async assignMissingProfileIds(): Promise<number> {

@@ -2,6 +2,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { defineConfig } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(() => {
   // Automatically detect if we are building in GitHub Actions for GitHub Pages
@@ -11,7 +12,34 @@ export default defineConfig(() => {
 
   return {
     base,
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(), 
+      tailwindcss(),
+      VitePWA({
+        registerType: "autoUpdate",
+        manifest: {
+          name: "Classroom Manager by Sekhar",
+          short_name: "Classroom",
+          description: "Attendance and Classroom Management System",
+          theme_color: "#ffffff",
+          background_color: "#ffffff",
+          display: "standalone",
+          start_url: "/",
+          icons: [
+            {
+              src: "https://cdn-icons-png.flaticon.com/512/3587/3587091.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "any maskable"
+            },
+          ],
+        },
+        workbox: {
+          cleanupOutdatedCaches: true,
+          globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
+        },
+      }),
+    ],
     build: {
       outDir: "dist",
     },

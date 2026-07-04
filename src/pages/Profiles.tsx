@@ -18,6 +18,7 @@ import {
   FileDownload,
   FileUpload,
   PlaylistAddCheck,
+  SwapHoriz,
 } from "@mui/icons-material";
 import { studentsApi } from "../api";
 import { Student } from "../types";
@@ -26,6 +27,7 @@ import { StudentCard } from "../components/StudentCard";
 import { StudentDetailDialog } from "../components/StudentDetailDialog";
 import { StudentFormDialog } from "../components/StudentFormDialog";
 import { StudentDeleteDialog } from "../components/StudentDeleteDialog";
+import { TransferClassDialog } from "../components/TransferClassDialog";
 import { ProfileFilters } from "../components/ProfileFilters";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
@@ -36,6 +38,8 @@ export default function Profiles() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [massDeleteDialogOpen, setMassDeleteDialogOpen] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [isTransferring, setIsTransferring] = useState(false);
 
   useEffect(() => {
     // Run image cache cleanup on mount (once a week internally)
@@ -121,6 +125,22 @@ export default function Profiles() {
   const handleMassDelete = useCallback(() => 
     handleMassDeleteActions(selectedIds, setSelectedIds),
     [handleMassDeleteActions, selectedIds, setSelectedIds]);
+
+  const handleTransferStudents = useCallback(async (targetClassId: string) => {
+    setIsTransferring(true);
+    try {
+      await studentsApi.transferStudents(selectedIds, targetClassId);
+      showToast(`Successfully transferred ${selectedIds.length} students!`, "success");
+      setSelectedIds([]);
+      setTransferDialogOpen(false);
+      fetchInitialData();
+    } catch (error) {
+      console.error("Transfer error", error);
+      showToast("Failed to transfer students.", "error");
+    } finally {
+      setIsTransferring(false);
+    }
+  }, [selectedIds, showToast, fetchInitialData]);
 
   const handleDeleteProfile = useCallback(async (studentId: string, name: string) => {
     setStudentToDelete({ id: studentId, name });
@@ -380,16 +400,28 @@ export default function Profiles() {
             label={`Select All (${selectedIds.length} selected)`}
           />
           {selectedIds.length > 0 && (
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<Delete />}
-              onClick={() => setMassDeleteDialogOpen(true)}
-              disabled={isMassDeleting}
-              sx={{ borderRadius: 2, textTransform: "none" }}
-            >
-              Delete Selected
-            </Button>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<SwapHoriz />}
+                onClick={() => setTransferDialogOpen(true)}
+                disabled={isTransferring}
+                sx={{ borderRadius: 2, textTransform: "none" }}
+              >
+                Transfer Class
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Delete />}
+                onClick={() => setMassDeleteDialogOpen(true)}
+                disabled={isMassDeleting}
+                sx={{ borderRadius: 2, textTransform: "none" }}
+              >
+                Delete Selected
+              </Button>
+            </Box>
           )}
         </Box>
       )}
@@ -523,6 +555,14 @@ export default function Profiles() {
           handleMassDelete();
           setMassDeleteDialogOpen(false);
         }}
+      />
+
+      <TransferClassDialog
+        open={transferDialogOpen}
+        onClose={() => setTransferDialogOpen(false)}
+        onTransfer={handleTransferStudents}
+        classes={classes}
+        selectedCount={selectedIds.length}
       />
 
       <Snackbar
