@@ -22,13 +22,15 @@ export function useAttendanceActions(
   setHistoryDates: (hd: any[]) => void,
   fetchBaseData: () => void,
 ) {
-  const updateLocalCache = useCallback((clientAtt: Record<string, AttendanceStatus>) => {
+  const updateLocalCache = useCallback((clientAtt: Record<string, any>) => {
     // Generate enriched records to save
     const enriched: Record<string, any> = {};
-    Object.entries(clientAtt).forEach(([sId, status]) => {
+    Object.entries(clientAtt).forEach(([sId, val]) => {
       const student = students.find((s) => s.id === sId);
+      const isObj = typeof val === 'object' && val !== null;
       enriched[sId] = {
-        status,
+        status: isObj ? val.status : val,
+        notes: isObj ? val.notes : undefined,
         classId: student?.classId || "",
         boarderType: student?.boarderType || "",
       };
@@ -40,26 +42,36 @@ export function useAttendanceActions(
 
   const markAttendance = useCallback((
     studentId: string,
-    status: AttendanceStatus | null,
+    statusOrData: AttendanceStatus | null | { status: AttendanceStatus, notes?: string },
   ) => {
-    // 1. Calculate the new attendance state synchronously without side effects in a pure way
-    let finalUpdated: Record<string, AttendanceStatus> = {};
+    // 1. Calculate the new attendance state synchronously
+    let finalUpdated: Record<string, any> = {};
 
     setAttendance((prev) => {
       const updated = { ...prev };
-      if (status === null) {
+      if (statusOrData === null) {
         delete updated[studentId];
       } else {
-        updated[studentId] = status;
+        const prevData = updated[studentId];
+        const isPrevObj = typeof prevData === 'object' && prevData !== null;
+        
+        if (typeof statusOrData === 'string') {
+          // It's just a status string
+          updated[studentId] = isPrevObj 
+            ? { ...(prevData as any), status: statusOrData } 
+            : statusOrData;
+        } else {
+          // It's a full data object { status, notes }
+          updated[studentId] = isPrevObj
+            ? { ...(prevData as any), ...(statusOrData as any) }
+            : statusOrData;
+        }
       }
-      // Store reference to the calculated state for our side effects below
       finalUpdated = updated;
       return updated;
     });
 
-    // 2. Perform side effects outside of the setState updater
-    // React state updates might be batched, but we can safely use the finalUpdated we just calculated.
-    // Ensure we run this on the next microtask so we don't block the React render cycle if there are any immediate side effects.
+    // 2. Perform side effects
     Promise.resolve().then(() => {
       updateLocalCache(finalUpdated);
     });

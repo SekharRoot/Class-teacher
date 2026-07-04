@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Box,
   Button,
@@ -6,20 +6,22 @@ import {
   Paper,
   List,
   CircularProgress,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
-import { ChevronLeft, CloudUpload } from "@mui/icons-material";
+import { ChevronLeft, CloudUpload, Search } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
 import { AttendanceRow } from "./AttendanceRow";
 
 interface AttendanceStudentListProps {
   students: Student[];
-  attendance: Record<string, AttendanceStatus>;
+  attendance: Record<string, any>;
   selectedClassId: string;
   onBack: () => void;
   onMarkAll: (status: AttendanceStatus, classStudents: Student[]) => void;
   onMarkAttendance: (
     studentId: string,
-    status: AttendanceStatus | null,
+    status: any | null,
   ) => void;
   onSync: () => Promise<void>;
   readOnly?: boolean;
@@ -40,10 +42,22 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   dateString = "",
 }) => {
   const [syncing, setSyncing] = useState(false);
-  const classStudents = React.useMemo(() => 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const classStudents = useMemo(() => 
     students.filter((s) => s.classId === selectedClassId && s.isActive !== false),
     [students, selectedClassId]
   );
+
+  const filteredStudents = useMemo(() => {
+    if (!searchQuery.trim()) return classStudents;
+    const query = searchQuery.toLowerCase();
+    return classStudents.filter(s => 
+      `${s.firstName} ${s.lastName}`.toLowerCase().includes(query) ||
+      (s.rollNumber && s.rollNumber.toLowerCase().includes(query))
+    );
+  }, [classStudents, searchQuery]);
+
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
   const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
@@ -88,18 +102,18 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
           alignItems: "center",
           mb: 2,
           flexWrap: "wrap",
-          gap: 1,
+          gap: 2,
         }}
       >
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", flexGrow: 1 }}>
           <Button
             startIcon={<ChevronLeft />}
             onClick={onBack}
             variant="outlined"
             size="small"
-            sx={{ borderRadius: 4, textTransform: "none" }}
+            sx={{ borderRadius: 4, textTransform: "none", height: 40 }}
           >
-            Back to Classes
+            Back
           </Button>
           {!readOnly && (
             <Button
@@ -115,21 +129,40 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               color="primary"
               size="small"
               disabled={syncing}
-              sx={{ borderRadius: 4, textTransform: "none" }}
+              sx={{ borderRadius: 4, textTransform: "none", height: 40 }}
             >
-              Sync with Server
+              {syncing ? "Syncing..." : "Sync"}
             </Button>
           )}
+          <TextField
+            placeholder="Search student..."
+            size="small"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            sx={{ 
+              minWidth: { xs: '100%', sm: 200 },
+              "& .MuiOutlinedInput-root": { borderRadius: 4, height: 40, bgcolor: 'background.paper' }
+            }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search fontSize="small" />
+                  </InputAdornment>
+                ),
+              }
+            }}
+          />
         </Box>
 
         {!readOnly && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: 'center' }}>
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ width: "100%", mb: -0.5, fontWeight: "bold" }}
+              sx={{ fontWeight: "bold", mr: 1 }}
             >
-              BULK ACTIONS:
+              BULK:
             </Typography>
             <Button
               size="small"
@@ -165,15 +198,15 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
 
       <Paper elevation={2} sx={{ overflow: "hidden", borderRadius: 2 }}>
         <List disablePadding>
-          {classStudents.length === 0 ? (
+          {filteredStudents.length === 0 ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
               <Typography color="text.secondary">
-                No students found in this class.
+                {searchQuery ? "No matches found." : "No students found in this class."}
               </Typography>
             </Box>
           ) : (
             <>
-              {classStudents.slice(0, displayCount).map((student, idx, arr) => (
+              {filteredStudents.slice(0, displayCount).map((student, idx, arr) => (
                 <AttendanceRow
                   key={student.id}
                   student={student}
@@ -186,7 +219,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                   dateString={dateString}
                 />
               ))}
-              {displayCount < classStudents.length && (
+              {displayCount < filteredStudents.length && (
                 <Box
                   ref={loadMoreRef}
                   sx={{ display: "flex", justifyContent: "center", p: 2 }}

@@ -185,6 +185,33 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
           "info.main",
         )}
       </Paper>
+      <Paper
+        sx={{
+          p: 2,
+          textAlign: "center",
+          bgcolor: "warning.50",
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "warning.200",
+        }}
+      >
+        <Typography
+          variant="body2"
+          color="warning.main"
+          sx={{ fontWeight: "bold" }}
+        >
+          Late
+        </Typography>
+        <Typography variant="h5" color="warning.main" sx={{ mt: 1 }}>
+          {stats.lateCount || 0}
+        </Typography>
+        {renderStats(
+          stats.lateDayScholar,
+          stats.lateDayBoarder,
+          stats.lateFullBoarder,
+          "warning.main",
+        )}
+      </Paper>
     </Box>
   );
 };

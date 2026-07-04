@@ -95,30 +95,53 @@ self.onmessage = (event) => {
     const totalDayBoarder = classStudents.filter(st => st.boarderType === 'Day Boarder').length;
     const totalFullBoarder = classStudents.filter(st => st.boarderType === 'Full Boarder').length;
 
-    const presentStudents = classStudents.filter(st => attendance[st.id] === 'present');
+    const presentStudents = classStudents.filter(st => {
+      const val = attendance[st.id];
+      const status = (typeof val === 'object' && val !== null ? val.status : val || '').toLowerCase();
+      return status === 'present' || status === 'late';
+    });
     const presentCount = presentStudents.length;
     const presentDayScholar = presentStudents.filter(st => st.boarderType === 'Day Scholar').length;
     const presentDayBoarder = presentStudents.filter(st => st.boarderType === 'Day Boarder').length;
     const presentFullBoarder = presentStudents.filter(st => st.boarderType === 'Full Boarder').length;
 
-    const absentStudents = classStudents.filter(st => attendance[st.id] === 'absent' || attendance[st.id] === 'leave');
+    const absentStudents = classStudents.filter(st => {
+      const val = attendance[st.id];
+      const status = (typeof val === 'object' && val !== null ? val.status : val || '').toLowerCase();
+      return status === 'absent' || status === 'leave';
+    });
     const absentCount = absentStudents.length;
     const absentDayScholar = absentStudents.filter(st => st.boarderType === 'Day Scholar').length;
     const absentDayBoarder = absentStudents.filter(st => st.boarderType === 'Day Boarder').length;
     const absentFullBoarder = absentStudents.filter(st => st.boarderType === 'Full Boarder').length;
 
-    const leaveStudents = classStudents.filter(st => attendance[st.id] === 'leave');
+    const leaveStudents = classStudents.filter(st => {
+      const val = attendance[st.id];
+      const status = (typeof val === 'object' && val !== null ? val.status : val || '').toLowerCase();
+      return status === 'leave';
+    });
     const leaveCount = leaveStudents.length;
     const leaveDayScholar = leaveStudents.filter(st => st.boarderType === 'Day Scholar').length;
     const leaveDayBoarder = leaveStudents.filter(st => st.boarderType === 'Day Boarder').length;
     const leaveFullBoarder = leaveStudents.filter(st => st.boarderType === 'Full Boarder').length;
+
+    const lateStudents = classStudents.filter(st => {
+      const val = attendance[st.id];
+      const status = (typeof val === 'object' && val !== null ? val.status : val || '').toLowerCase();
+      return status === 'late';
+    });
+    const lateCount = lateStudents.length;
+    const lateDayScholar = lateStudents.filter(st => st.boarderType === 'Day Scholar').length;
+    const lateDayBoarder = lateStudents.filter(st => st.boarderType === 'Day Boarder').length;
+    const lateFullBoarder = lateStudents.filter(st => st.boarderType === 'Full Boarder').length;
 
     self.postMessage({
       payload: {
         totalCount, totalDayScholar, totalDayBoarder, totalFullBoarder,
         presentCount, presentDayScholar, presentDayBoarder, presentFullBoarder,
         absentCount, absentDayScholar, absentDayBoarder, absentFullBoarder,
-        leaveCount, leaveDayScholar, leaveDayBoarder, leaveFullBoarder
+        leaveCount, leaveDayScholar, leaveDayBoarder, leaveFullBoarder,
+        lateCount, lateDayScholar, lateDayBoarder, lateFullBoarder
       }
     });
   }
@@ -380,6 +403,11 @@ export const runCalculationWorker = async (
       leaveDayScholar: res1.leaveDayScholar + res2.leaveDayScholar,
       leaveDayBoarder: res1.leaveDayBoarder + res2.leaveDayBoarder,
       leaveFullBoarder: res1.leaveFullBoarder + res2.leaveFullBoarder,
+
+      lateCount: res1.lateCount + res2.lateCount,
+      lateDayScholar: res1.lateDayScholar + res2.lateDayScholar,
+      lateDayBoarder: res1.lateDayBoarder + res2.lateDayBoarder,
+      lateFullBoarder: res1.lateFullBoarder + res2.lateFullBoarder,
     };
   }
 

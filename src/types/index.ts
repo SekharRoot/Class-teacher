@@ -14,7 +14,7 @@ export interface Student {
   isActive?: boolean;
 }
 
-export type AttendanceStatus = "present" | "absent" | "leave";
+export type AttendanceStatus = "present" | "absent" | "leave" | "late";
 
 export interface AttendanceRecord {
   id: string; // usually combination of date and studentId or a unique doc id

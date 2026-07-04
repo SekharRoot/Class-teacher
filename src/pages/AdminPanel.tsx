@@ -172,6 +172,7 @@ export default function AdminPanel() {
         formRole === "class_teacher" ? formAssignedClassId || null : null,
       coordinatorIds:
         formRole === "class_teacher" ? formCoordinatorIds : [],
+      coordinatorId: null, // Clear deprecated field
       principalId:
         formRole === "academic_coordinator" ? formPrincipalId || null : null,
       hasLeaveFeatureAccess: formHasLeaveFeatureAccess,
@@ -305,6 +306,7 @@ export default function AdminPanel() {
       status: "pending", // Pending real login
       assignedClassId: null,
       coordinatorIds: [],
+      coordinatorId: null,
       principalId: null,
       hasLeaveFeatureAccess: newHasLeaveFeatureAccess,
     };

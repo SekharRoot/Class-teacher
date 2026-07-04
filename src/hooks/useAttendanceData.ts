@@ -92,15 +92,8 @@ export function useAttendanceData() {
     dateStr: string,
     skipCache = false,
   ) => {
-    const clientData: Record<string, AttendanceStatus> = {};
-    for (const [sId, val] of Object.entries(data)) {
-      if (typeof val === "object" && val !== null) {
-        clientData[sId] = val.status as AttendanceStatus;
-      } else {
-        clientData[sId] = val as AttendanceStatus;
-      }
-    }
-    setAttendance(clientData);
+    // We now keep the full object (including notes etc.) in the state
+    setAttendance(data);
     if (!skipCache) {
       localStorage.setItem(`attendance_${dateStr}`, JSON.stringify(data));
     }
