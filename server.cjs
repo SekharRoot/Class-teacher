@@ -24,6 +24,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 // server.ts
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
+var import_fs = __toESM(require("fs"), 1);
 async function startServer() {
   const app = (0, import_express.default)();
   const PORT = 3e3;
@@ -46,9 +47,26 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     const distPath = import_path.default.join(process.cwd(), "dist");
+    console.log(`Serving static files from: ${distPath}`);
+    if (!import_fs.default.existsSync(distPath)) {
+      console.error(`CRITICAL: dist directory NOT found at ${distPath}`);
+    } else {
+      const indexPath = import_path.default.join(distPath, "index.html");
+      if (!import_fs.default.existsSync(indexPath)) {
+        console.error(`CRITICAL: index.html NOT found at ${indexPath}`);
+      } else {
+        console.log("Found index.html, ready to serve.");
+      }
+    }
     app.use(import_express.default.static(distPath));
     app.get("*", (req, res) => {
-      res.sendFile(import_path.default.join(distPath, "index.html"));
+      const indexPath = import_path.default.join(distPath, "index.html");
+      res.sendFile(indexPath, (err) => {
+        if (err) {
+          console.error("Error sending index.html:", err);
+          res.status(500).send("Application Error: Build artifacts not found.");
+        }
+      });
     });
   }
   app.listen(PORT, "0.0.0.0", () => {
