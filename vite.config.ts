@@ -24,7 +24,8 @@ export default defineConfig(() => {
           theme_color: "#ffffff",
           background_color: "#ffffff",
           display: "standalone",
-          start_url: "/",
+          start_url: base,
+          scope: base,
           icons: [
             {
               src: "https://cdn-icons-png.flaticon.com/512/3587/3587091.png",

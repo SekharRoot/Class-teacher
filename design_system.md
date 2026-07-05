@@ -17,6 +17,7 @@ A modular, scalable React application for class teachers to manage students, tra
 
 - **Build Output**: The application is compiled into a bundled `dist` folder.
 - **Artifacts**: Do NOT add `dist/` or `build/` to `.gitignore`. Excluding these causes the AI Studio artifact uploader to fail, returning "Build artifacts are empty."
+- **PWA Configuration**: `vite-plugin-pwa` is configured with dynamic `start_url` and `scope` to ensure proper relative path serving on both cloud servers and subdirectory-based static hosts like GitHub Pages. This prevents 404 errors when opening the installed application.
 
 ## Directory Structure
 
