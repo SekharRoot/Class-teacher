@@ -29,10 +29,10 @@ export function useAttendanceActions(
       const student = students.find((s) => s.id === sId);
       const isObj = typeof val === 'object' && val !== null;
       enriched[sId] = {
-        status: isObj ? val.status : val,
-        notes: isObj ? val.notes : undefined,
-        classId: student?.classId || "",
-        boarderType: student?.boarderType || "",
+        status: (isObj ? val.status : val) || "absent",
+        notes: (isObj ? val.notes : "") ?? "",
+        classId: student?.classId ?? "",
+        boarderType: student?.boarderType ?? "",
       };
     });
     cache.set(`attendance_${dateString}`, enriched);

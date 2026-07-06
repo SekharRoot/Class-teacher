@@ -52,7 +52,24 @@ export const attendanceApi = {
   ): Promise<void> {
     try {
       const attendanceRef = doc(db, "attendance", dateString);
-      await setDoc(attendanceRef, records, { merge: true });
+      
+      // Sanitization: Recursively remove undefined values to prevent Firestore errors
+      const sanitize = (obj: any): any => {
+        if (Array.isArray(obj)) {
+          return obj.map(sanitize);
+        } else if (obj !== null && typeof obj === 'object') {
+          return Object.entries(obj).reduce((acc, [key, value]) => {
+            if (value !== undefined) {
+              acc[key] = sanitize(value);
+            }
+            return acc;
+          }, {} as any);
+        }
+        return obj;
+      };
+
+      const cleanRecords = sanitize(records);
+      await setDoc(attendanceRef, cleanRecords, { merge: true });
     } catch (error) {
       handleFirestoreError(
         error,

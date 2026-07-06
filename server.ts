@@ -33,27 +33,36 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // In production, we serve from the 'dist' directory
-    const distPath = path.join(process.cwd(), "dist");
-    console.log(`Serving static files from: ${distPath}`);
+    // Since this file (server.cjs) is inside 'dist/', __dirname is the 'dist' directory.
+    const distPath = __dirname;
+    console.log(`Production mode: Serving static files from: ${distPath}`);
     
-    // Verify dist directory exists
-    if (!fs.existsSync(distPath)) {
-      console.error(`CRITICAL: dist directory NOT found at ${distPath}`);
-    } else {
-      const indexPath = path.join(distPath, "index.html");
-      if (!fs.existsSync(indexPath)) {
-        console.error(`CRITICAL: index.html NOT found at ${indexPath}`);
-      } else {
-        console.log("Found index.html, ready to serve.");
+    // Verify dist directory and index.html
+    const indexPath = path.join(distPath, "index.html");
+    if (!fs.existsSync(indexPath)) {
+      console.error(`CRITICAL ERROR: index.html NOT found at ${indexPath}`);
+      // Also check one level up just in case of different build structure
+      const altPath = path.join(process.cwd(), "dist", "index.html");
+      console.log(`Checking alternate path: ${altPath}`);
+      if (fs.existsSync(altPath)) {
+        console.log("Found index.html at alternate path!");
       }
+    } else {
+      console.log("Confirmed: index.html exists.");
     }
 
     app.use(express.static(distPath));
+    
+    // SPA fallback
     app.get("*", (req, res) => {
-      const indexPath = path.join(distPath, "index.html");
+      // If it's an API route that reached here, return 404
+      if (req.path.startsWith("/api/")) {
+        return res.status(404).json({ error: "API route not found" });
+      }
+
       res.sendFile(indexPath, (err) => {
         if (err) {
-          console.error("Error sending index.html:", err);
+          console.error(`Error sending index.html from ${indexPath}:`, err);
           res.status(500).send("Application Error: Build artifacts not found.");
         }
       });
