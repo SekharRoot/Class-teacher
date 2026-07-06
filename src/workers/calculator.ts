@@ -10,7 +10,6 @@ self.onmessage = (event) => {
     for (const doc of docs) {
       const { id, data } = doc;
       let present = 0;
-      let late = 0;
       let absent = 0;
       let leave = 0;
 
@@ -27,13 +26,12 @@ self.onmessage = (event) => {
           }
         }
 
-        if (status === 'present') present++;
-        else if (status === 'late') late++;
+        if (status === 'present' || status === 'late') present++;
         else if (status === 'absent') absent++;
         else if (status === 'leave') { leave++; absent++; }
       }
 
-      datesList.push({ date: id, present, late, absent, leave });
+      datesList.push({ date: id, present, absent, leave });
     }
     
     datesList.sort((a, b) => b.date.localeCompare(a.date));
@@ -51,7 +49,6 @@ self.onmessage = (event) => {
           const recordData = JSON.parse(recordDataStr || '{}');
           
           let present = 0;
-          let late = 0;
           let absent = 0;
           let leave = 0;
           
@@ -68,8 +65,7 @@ self.onmessage = (event) => {
               }
             }
 
-            if (status === 'present') present++;
-            else if (status === 'late') late++;
+            if (status === 'present' || status === 'late') present++;
             else if (status === 'absent') absent++;
             else if (status === 'leave') { leave++; absent++; }
           }
@@ -77,7 +73,6 @@ self.onmessage = (event) => {
           datesList.push({
             date: dateStr,
             present,
-            late,
             absent,
             leave
           });
@@ -130,23 +125,12 @@ self.onmessage = (event) => {
     const leaveDayBoarder = leaveStudents.filter(st => st.boarderType === 'Day Boarder').length;
     const leaveFullBoarder = leaveStudents.filter(st => st.boarderType === 'Full Boarder').length;
 
-    const lateStudents = classStudents.filter(st => {
-      const val = attendance[st.id];
-      const status = (typeof val === 'object' && val !== null ? val.status : val || '').toLowerCase();
-      return status === 'late';
-    });
-    const lateCount = lateStudents.length;
-    const lateDayScholar = lateStudents.filter(st => st.boarderType === 'Day Scholar').length;
-    const lateDayBoarder = lateStudents.filter(st => st.boarderType === 'Day Boarder').length;
-    const lateFullBoarder = lateStudents.filter(st => st.boarderType === 'Full Boarder').length;
-
     self.postMessage({
       payload: {
         totalCount, totalDayScholar, totalDayBoarder, totalFullBoarder,
         presentCount, presentDayScholar, presentDayBoarder, presentFullBoarder,
         absentCount, absentDayScholar, absentDayBoarder, absentFullBoarder,
-        leaveCount, leaveDayScholar, leaveDayBoarder, leaveFullBoarder,
-        lateCount, lateDayScholar, lateDayBoarder, lateFullBoarder
+        leaveCount, leaveDayScholar, leaveDayBoarder, leaveFullBoarder
       }
     });
   }
@@ -165,7 +149,6 @@ self.onmessage = (event) => {
     const studentsCount = filteredStudents.length;
 
     let todayPresent = 0;
-    let todayLate = 0;
     let todayTotalMarked = 0;
 
     if (todayRecords) {
@@ -183,11 +166,8 @@ self.onmessage = (event) => {
         if (status) {
           todayTotalMarked++;
           const lowerStatus = status.toLowerCase();
-          if (lowerStatus === "present") {
+          if (lowerStatus === "present" || lowerStatus === "late") {
             todayPresent++;
-          } else if (lowerStatus === "late") {
-            todayLate++;
-            todayPresent++; // Count for rate
           }
         }
       });
@@ -197,16 +177,12 @@ self.onmessage = (event) => {
       todayTotalMarked > 0
         ? Math.round((todayPresent / todayTotalMarked) * 100)
         : null;
-    
-    // Adjust todayPresent to be pure present for display
-    const finalPresent = todayPresent - todayLate;
 
     const classStats = filteredClasses.map((cls) => {
       const classStudents = filteredStudents.filter((s) => s.classId === cls.id);
       const total = classStudents.length;
 
       let present = 0;
-      let lateCount = 0;
       let absent = 0;
       let leave = 0;
       let marked = 0;
@@ -225,11 +201,8 @@ self.onmessage = (event) => {
         if (status) {
           marked++;
           const lowerStatus = status.toLowerCase();
-          if (lowerStatus === "present") {
+          if (lowerStatus === "present" || lowerStatus === "late") {
             present++;
-          } else if (lowerStatus === "late") {
-            lateCount++;
-            present++; // Included in rate
           } else if (lowerStatus === "absent") {
             absent++;
           } else if (lowerStatus === "leave") {
@@ -242,10 +215,9 @@ self.onmessage = (event) => {
 
       return {
         classId: cls.id,
-        className: \`\${cls.classStandard} \${cls.section} (\${cls.board})\`,
+        className: cls.classStandard + " " + cls.section + " (" + cls.board + ")",
         totalStudents: total,
-        presentCount: present - lateCount,
-        lateCount: lateCount,
+        presentCount: present,
         absentCount: absent,
         leaveCount: leave,
         markedCount: marked,
@@ -259,8 +231,7 @@ self.onmessage = (event) => {
           totalClasses: classesCount,
           totalStudents: studentsCount,
           todayAttendanceRate: attendanceRate,
-          todayPresentCount: finalPresent,
-          todayLateCount: todayLate,
+          todayPresentCount: todayPresent,
           todayTotalMarked: todayTotalMarked,
         },
         classStats,
@@ -279,7 +250,6 @@ self.onmessage = (event) => {
 
     for (const student of classStudents) {
       let present = 0;
-      let late = 0;
       let absent = 0;
       let leave = 0;
 
@@ -288,13 +258,12 @@ self.onmessage = (event) => {
         if (!val) continue;
 
         const status = (typeof val === 'object' ? val.status : val || '').toLowerCase();
-        if (status === 'present') present++;
-        else if (status === 'late') late++;
+        if (status === 'present' || status === 'late') present++;
         else if (status === 'absent') absent++;
         else if (status === 'leave') { leave++; absent++; }
       }
 
-      const totalAttended = present + late;
+      const totalAttended = present;
       const percentage = totalWorkingDays > 0 ? (totalAttended / totalWorkingDays) * 100 : 0;
 
       reportEntries.push({
@@ -302,7 +271,6 @@ self.onmessage = (event) => {
         studentName: student.firstName + ' ' + student.lastName,
         rollNumber: student.rollNumber,
         present,
-        late,
         absent,
         leave,
         totalDays: totalWorkingDays,
@@ -424,11 +392,6 @@ export const runCalculationWorker = async (
       leaveDayScholar: res1.leaveDayScholar + res2.leaveDayScholar,
       leaveDayBoarder: res1.leaveDayBoarder + res2.leaveDayBoarder,
       leaveFullBoarder: res1.leaveFullBoarder + res2.leaveFullBoarder,
-
-      lateCount: res1.lateCount + res2.lateCount,
-      lateDayScholar: res1.lateDayScholar + res2.lateDayScholar,
-      lateDayBoarder: res1.lateDayBoarder + res2.lateDayBoarder,
-      lateFullBoarder: res1.lateFullBoarder + res2.lateFullBoarder,
     };
   }
 

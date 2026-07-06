@@ -277,29 +277,6 @@ export const TeacherDashboard = React.memo(({
                           {teacherClassStat?.presentCount || 0} Present
                         </Typography>
                       </Box>
-                      <Divider />
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontWeight: 500 }}
-                        >
-                          Late Today
-                        </Typography>
-                        <Typography
-                          variant="subtitle1"
-                          color="warning.main"
-                          sx={{ fontWeight: 800 }}
-                        >
-                          {teacherClassStat?.lateCount || 0} Late
-                        </Typography>
-                      </Box>
                     </Stack>
                   </Grid>
 

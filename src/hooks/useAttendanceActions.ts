@@ -44,36 +44,31 @@ export function useAttendanceActions(
     studentId: string,
     statusOrData: AttendanceStatus | null | { status: AttendanceStatus, notes?: string },
   ) => {
-    // 1. Calculate the new attendance state synchronously
-    let finalUpdated: Record<string, any> = {};
-
     setAttendance((prev) => {
       const updated = { ...prev };
       if (statusOrData === null) {
         delete updated[studentId];
       } else {
-        const prevData = updated[studentId];
+        const prevData = prev[studentId];
         const isPrevObj = typeof prevData === 'object' && prevData !== null;
         
         if (typeof statusOrData === 'string') {
-          // It's just a status string
           updated[studentId] = isPrevObj 
             ? { ...(prevData as any), status: statusOrData } 
             : statusOrData;
         } else {
-          // It's a full data object { status, notes }
           updated[studentId] = isPrevObj
             ? { ...(prevData as any), ...(statusOrData as any) }
             : statusOrData;
         }
       }
-      finalUpdated = updated;
-      return updated;
-    });
+      
+      // Perform side effect in a microtask to keep updater pure
+      Promise.resolve().then(() => {
+        updateLocalCache(updated);
+      });
 
-    // 2. Perform side effects
-    Promise.resolve().then(() => {
-      updateLocalCache(finalUpdated);
+      return updated;
     });
   }, [updateLocalCache, setAttendance]);
 
@@ -83,19 +78,17 @@ export function useAttendanceActions(
   ) => {
     if (classStudents.length === 0) return;
 
-    let finalUpdated: Record<string, AttendanceStatus> = {};
-
     setAttendance((prev) => {
       const updated = { ...prev };
       classStudents.forEach((student) => {
         updated[student.id] = status;
       });
-      finalUpdated = updated;
-      return updated;
-    });
 
-    Promise.resolve().then(() => {
-      updateLocalCache(finalUpdated);
+      Promise.resolve().then(() => {
+        updateLocalCache(updated);
+      });
+
+      return updated;
     });
   }, [updateLocalCache, setAttendance]);
 

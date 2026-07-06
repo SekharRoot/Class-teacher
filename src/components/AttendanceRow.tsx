@@ -62,7 +62,8 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   const [studentHistory, setStudentHistory] = React.useState<any[]>([]);
   const [showNotes, setShowNotes] = React.useState(false);
 
-  const status = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.status as AttendanceStatus) : (rawStatus as AttendanceStatus);
+  const rawStatusValue = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.status as string) : (rawStatus as string);
+  const status = (rawStatusValue === 'late' ? 'present' : rawStatusValue) as AttendanceStatus;
   const notes = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.notes as string) : "";
 
   const timerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
@@ -113,8 +114,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
     switch (s) {
       case "present":
         return "success";
-      case "late":
-        return "warning";
       case "absent":
         return "error";
       case "leave":
@@ -167,22 +166,18 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               ? "error.50"
               : status === "leave"
                 ? "info.50"
-                : status === "late"
-                  ? "warning.50"
-                  : status === "present"
-                    ? "success.50"
-                    : "inherit",
+                : status === "present"
+                  ? "success.50"
+                  : "inherit",
           "&:hover": {
             bgcolor:
               status === "absent"
                 ? "error.100"
                 : status === "leave"
                   ? "info.100"
-                  : status === "late"
-                    ? "warning.100"
-                    : status === "present"
-                      ? "success.100"
-                      : "grey.50",
+                  : status === "present"
+                    ? "success.100"
+                    : "grey.50",
           },
         }}
       >
@@ -303,7 +298,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
 
           {/* Attendance Marking Toggle Group */}
           <ToggleButtonGroup
-            value={status}
+            value={status === "leave" ? "leave" : status}
             exclusive
             disabled={disabled}
             onChange={handleStatusChange}
@@ -319,7 +314,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 borderRadius: "8px !important",
                 border: "1px solid !important",
                 borderColor: "divider !important",
-                marginLeft: "0 !important", // prevent negative margin from ToggleButtonGroup
+                marginLeft: "0 !important",
                 "&.Mui-selected": {
                   boxShadow: 2,
                 },
@@ -328,11 +323,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 bgcolor: "success.main",
                 color: "success.contrastText",
                 "&:hover": { bgcolor: "success.dark" },
-              },
-              '& .MuiToggleButton-root.Mui-selected[value="late"]': {
-                bgcolor: "warning.main",
-                color: "warning.contrastText",
-                "&:hover": { bgcolor: "warning.dark" },
               },
               '& .MuiToggleButton-root.Mui-selected[value="absent"]': {
                 bgcolor: "error.main",
@@ -348,9 +338,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
           >
             <ToggleButton value="present" aria-label="present">
               <CheckCircle sx={{ fontSize: { xs: 28, sm: 32 } }} />
-            </ToggleButton>
-            <ToggleButton value="late" aria-label="late">
-              <Schedule sx={{ fontSize: { xs: 28, sm: 32 } }} />
             </ToggleButton>
             <ToggleButton
               value={status === "leave" ? "leave" : "absent"}
@@ -487,6 +474,8 @@ export const AttendanceRow = React.memo(
       prevProps.status === nextProps.status &&
       prevProps.isLast === nextProps.isLast &&
       prevProps.index === nextProps.index &&
+      prevProps.disabled === nextProps.disabled &&
+      prevProps.onMarkStatus === nextProps.onMarkStatus &&
       prevProps.student.id === nextProps.student.id &&
       prevProps.student.firstName === nextProps.student.firstName &&
       prevProps.student.lastName === nextProps.student.lastName &&

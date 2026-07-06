@@ -41,12 +41,6 @@ export const ReportTable: React.FC<ReportTableProps> = ({ entries }) => {
               align="center"
               sx={{ fontWeight: "bold", bgcolor: "grey.100" }}
             >
-              Late
-            </TableCell>
-            <TableCell
-              align="center"
-              sx={{ fontWeight: "bold", bgcolor: "grey.100" }}
-            >
               Absent
             </TableCell>
             <TableCell
@@ -75,14 +69,6 @@ export const ReportTable: React.FC<ReportTableProps> = ({ entries }) => {
                   label={entry.present}
                   size="small"
                   color="success"
-                  variant="outlined"
-                />
-              </TableCell>
-              <TableCell align="center">
-                <Chip
-                  label={entry.late || 0}
-                  size="small"
-                  color="warning"
                   variant="outlined"
                 />
               </TableCell>

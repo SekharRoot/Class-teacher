@@ -37,7 +37,6 @@ interface ClassRowData {
   absentDB: number;
   absentDS: number;
   absentBoarder: number;
-  late: number;
 }
 
 export const DailyStatusReport = React.memo(({
@@ -88,7 +87,6 @@ export const DailyStatusReport = React.memo(({
         absentDB: 0,
         absentDS: 0,
         absentBoarder: 0,
-        late: 0,
       };
 
       classStudents.forEach((student) => {
@@ -103,13 +101,11 @@ export const DailyStatusReport = React.memo(({
         }
 
         const normalizedStatus = status.toLowerCase();
-        const isPresent = normalizedStatus === "present";
-        const isLate = normalizedStatus === "late";
+        const isPresent = normalizedStatus === "present" || normalizedStatus === "late";
         const isAbsent = normalizedStatus === "absent";
 
-        if (isPresent || isLate) {
+        if (isPresent) {
           row.present++;
-          if (isLate) row.late++;
           if (student.boarderType === "Day Boarder") row.presentDB++;
           else if (student.boarderType === "Day Scholar") row.presentDS++;
           else if (student.boarderType === "Full Boarder") row.presentBoarder++;
@@ -169,7 +165,6 @@ export const DailyStatusReport = React.memo(({
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present DB</TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present DS</TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present Boarders</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "warning.light", color: "warning.contrastText" }}>Late</TableCell>
                 
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent</TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent DS</TableCell>
@@ -190,7 +185,6 @@ export const DailyStatusReport = React.memo(({
                   <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentDB}</TableCell>
                   <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentDS}</TableCell>
                   <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentBoarder}</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: "bold", color: "warning.main" }}>{row.late}</TableCell>
                   
                   <TableCell align="center" sx={{ fontWeight: "bold", color: "error.main" }}>{row.absent}</TableCell>
                   <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentDS}</TableCell>

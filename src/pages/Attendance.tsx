@@ -76,10 +76,14 @@ export default function Attendance() {
   const [isTakeAttendanceMode, setIsTakeAttendanceMode] = React.useState<boolean>(isTeacher);
 
   useEffect(() => {
-    if (userProfile && !loadingScope) {
-      setIsTakeAttendanceMode(userProfile.role === "class_teacher" || isSubstituteMode);
+    if (userProfile) {
+      // Teachers always default to take attendance mode
+      // Others can toggle, but we initialize it to true for substitute mode or for teachers
+      if (userProfile.role === "class_teacher" || isSubstituteMode) {
+        setIsTakeAttendanceMode(true);
+      }
     }
-  }, [userProfile, loadingScope, isSubstituteMode]);
+  }, [userProfile?.role, isSubstituteMode]);
 
   useEffect(() => {
     if (!userProfile || loadingScope) return;
