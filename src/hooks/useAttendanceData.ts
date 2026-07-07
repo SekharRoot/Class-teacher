@@ -39,7 +39,6 @@ export function useAttendanceData() {
       present: number;
       absent: number;
       leave: number;
-      late: number;
     }[]
   >([]);
   const [activeTab, setActiveTab] = useState(0);

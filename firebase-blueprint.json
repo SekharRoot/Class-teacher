@@ -27,7 +27,7 @@
     },
     "AttendanceRecord": {
       "title": "AttendanceRecord",
-      "description": "A daily attendance sheet where keys are student IDs and values are attendance statuses (present, absent, late, excused)",
+      "description": "A daily attendance sheet where keys are student IDs and values are attendance statuses (present, absent, leave)",
       "type": "object",
       "properties": {
         "statusMap": {

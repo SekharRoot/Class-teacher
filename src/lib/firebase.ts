@@ -4,6 +4,7 @@ import {
   initializeFirestore,
   persistentLocalCache,
   persistentMultipleTabManager,
+  setLogLevel,
 } from "firebase/firestore";
 
 // Get config from generated firebase-applet-config.json via import or fetch.
@@ -24,6 +25,8 @@ export const db = initializeFirestore(
   },
   (firebaseConfig as any).firestoreDatabaseId || "(default)",
 );
+
+setLogLevel("error");
 
 export enum OperationType {
   CREATE = "create",

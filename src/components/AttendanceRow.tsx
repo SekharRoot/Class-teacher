@@ -1,14 +1,8 @@
 import React from "react";
 import {
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Avatar,
   Box,
   Typography,
   Chip,
-  Button,
-  Divider,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -19,13 +13,15 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  TableRow,
+  TableCell,
+  Avatar,
+  Divider,
 } from "@mui/material";
 import {
   CheckCircle,
-  Schedule,
   Cancel,
   Star,
-  AccessTime,
   History as HistoryIcon,
   Close as CloseIcon,
   Edit as EditIcon,
@@ -41,7 +37,6 @@ interface AttendanceRowProps {
   status: any | undefined;
   onMarkStatus: (studentId: string, status: any | null) => void;
   index: number;
-  isLast: boolean;
   disabled?: boolean;
   leavesList?: LeaveRequest[];
   dateString?: string;
@@ -52,7 +47,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   status: rawStatus,
   onMarkStatus,
   index,
-  isLast,
   disabled = false,
   leavesList = [],
   dateString = "",
@@ -63,7 +57,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   const [showNotes, setShowNotes] = React.useState(false);
 
   const rawStatusValue = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.status as string) : (rawStatus as string);
-  const status = (rawStatusValue === 'late' ? 'present' : rawStatusValue) as AttendanceStatus;
+  const status = rawStatusValue as AttendanceStatus;
   const notes = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.notes as string) : "";
 
   const timerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
@@ -155,12 +149,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
 
   return (
     <React.Fragment>
-      <ListItem
+      <TableRow
+        hover
         sx={{
-          py: { xs: 1.5, sm: 2 },
-          px: { xs: 1.5, sm: 3 },
-          flexDirection: "column",
-          alignItems: "stretch",
           bgcolor:
             status === "absent"
               ? "error.50"
@@ -169,231 +160,147 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 : status === "present"
                   ? "success.50"
                   : "inherit",
-          "&:hover": {
-            bgcolor:
-              status === "absent"
-                ? "error.100"
-                : status === "leave"
-                  ? "info.100"
-                  : status === "present"
-                    ? "success.100"
-                    : "grey.50",
-          },
+          "& td": { borderBottom: "1px solid", borderColor: "divider" },
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: { xs: 1, sm: 2 } }}>
-          {/* Student Details */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              flexGrow: 1,
-              minWidth: 0,
-              mr: 1,
-            }}
-          >
-            <ListItemAvatar sx={{ minWidth: { xs: 76, sm: 88 } }}>
-              <Box sx={{ position: 'relative' }}>
-                {student.image ? (
-                  <Box
-                    component="img"
-                    src={student.image}
-                    sx={{
-                      width: { xs: 64, sm: 72 },
-                      height: { xs: 64, sm: 72 },
-                      borderRadius: "2px",
-                      border: status ? "2px solid" : "none",
-                      borderColor: `${statusColor}.main`,
-                      boxShadow: 2,
-                      objectFit: "cover",
-                    }}
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      width: { xs: 64, sm: 72 },
-                      height: { xs: 64, sm: 72 },
-                      borderRadius: "2px",
-                      bgcolor: status ? `${statusColor}.light` : "primary.light",
-                      color: status
-                        ? `${statusColor}.contrastText`
-                        : "primary.contrastText",
-                      fontWeight: "bold",
-                      boxShadow: 2,
-                      fontSize: "1.5rem",
-                    }}
-                  >
-                    {student.firstName[0] || ""}
-                    {student.lastName ? student.lastName[0] : ""}
-                  </Avatar>
-                )}
-                <IconButton
-                  size="small"
-                  onClick={fetchStudentHistory}
-                  sx={{
-                    position: 'absolute',
-                    bottom: -8,
-                    right: -8,
-                    bgcolor: 'background.paper',
-                    boxShadow: 1,
-                    '&:hover': { bgcolor: 'action.hover' }
-                  }}
-                >
-                  <HistoryIcon sx={{ fontSize: 16 }} />
-                </IconButton>
-              </Box>
-            </ListItemAvatar>
-            <ListItemText
-              sx={{ minWidth: 0 }}
-              primary={
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    flexWrap: "wrap",
-                    gap: 1,
-                  }}
-                >
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      fontWeight: "700",
-                      color: "text.primary",
-                      lineHeight: 1.2,
-                      wordBreak: "break-word",
-                      whiteSpace: "normal",
-                    }}
-                  >
-                    {student.firstName} {student.lastName}
-                  </Typography>
-                  {approvedLeave && (
-                    <Chip
-                      label="On Leave"
-                      size="small"
-                      color="info"
-                      variant="outlined"
-                      sx={{
-                        fontWeight: "bold",
-                        height: 20,
-                        fontSize: "0.7rem",
-                        borderColor: "info.main",
-                        color: "info.main",
-                      }}
-                    />
-                  )}
-                </Box>
-              }
-              secondary={
-                <Typography
-                  variant="caption"
-                  sx={{ color: "text.secondary", fontWeight: 500 }}
-                >
-                  Roll: {student.rollNumber}
-                </Typography>
-              }
-            />
-          </Box>
+        <TableCell>
+          <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+            {student.rollNumber || "-"}
+          </Typography>
+        </TableCell>
 
-          {/* Attendance Marking Toggle Group */}
-          <ToggleButtonGroup
-            value={status === "leave" ? "leave" : status}
-            exclusive
-            disabled={disabled}
-            onChange={handleStatusChange}
-            aria-label="student attendance"
-            size="medium"
-            sx={{
-              flexShrink: 0,
-              display: "flex",
-              gap: 1,
-              "& .MuiToggleButton-root": {
-                minWidth: 0,
-                p: { xs: 1.25, sm: 1.5 },
-                borderRadius: "8px !important",
-                border: "1px solid !important",
-                borderColor: "divider !important",
-                marginLeft: "0 !important",
-                "&.Mui-selected": {
-                  boxShadow: 2,
-                },
-              },
-              '& .MuiToggleButton-root.Mui-selected[value="present"]': {
-                bgcolor: "success.main",
-                color: "success.contrastText",
-                "&:hover": { bgcolor: "success.dark" },
-              },
-              '& .MuiToggleButton-root.Mui-selected[value="absent"]': {
-                bgcolor: "error.main",
-                color: "error.contrastText",
-                "&:hover": { bgcolor: "error.dark" },
-              },
-              '& .MuiToggleButton-root.Mui-selected[value="leave"]': {
-                bgcolor: "info.main",
-                color: "info.contrastText",
-                "&:hover": { bgcolor: "info.dark" },
-              },
-            }}
-          >
-            <ToggleButton value="present" aria-label="present">
-              <CheckCircle sx={{ fontSize: { xs: 28, sm: 32 } }} />
-            </ToggleButton>
-            <ToggleButton
-              value={status === "leave" ? "leave" : "absent"}
-              aria-label="absent"
-              onTouchStart={startPress}
-              onTouchEnd={endPress}
-              onMouseDown={startPress}
-              onMouseUp={endPress}
-              onMouseLeave={endPress}
-              onClick={handleAbsentClick}
+        <TableCell>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box sx={{ position: "relative" }}>
+              <Avatar
+                variant="rounded"
+                src={student.image}
+                sx={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 1,
+                  boxShadow: 1,
+                  bgcolor: status ? `${statusColor}.light` : "primary.light",
+                }}
+              >
+                {student.firstName[0]}
+                {student.lastName?.[0]}
+              </Avatar>
+              <IconButton
+                size="small"
+                onClick={fetchStudentHistory}
+                sx={{
+                  position: "absolute",
+                  bottom: -4,
+                  right: -4,
+                  bgcolor: "background.paper",
+                  boxShadow: 1,
+                  p: 0.25,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <HistoryIcon sx={{ fontSize: 12 }} />
+              </IconButton>
+            </Box>
+            <Box>
+              <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                {student.firstName} {student.lastName}
+              </Typography>
+              {approvedLeave && (
+                <Chip
+                  label="On Leave"
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  sx={{ height: 16, fontSize: "0.6rem", fontWeight: "bold", mt: 0.25 }}
+                />
+              )}
+            </Box>
+          </Box>
+        </TableCell>
+
+        <TableCell align="center">
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
+            <ToggleButtonGroup
+              value={status === "leave" ? "leave" : status}
+              exclusive
+              disabled={disabled}
+              onChange={handleStatusChange}
+              size="small"
               sx={{
-                '&.Mui-selected[value="leave"]': {
+                "& .MuiToggleButton-root": {
+                  p: 0.75,
+                  borderRadius: "6px !important",
+                  border: "1px solid !important",
+                  borderColor: "divider !important",
+                  marginLeft: "0 !important",
+                  mx: 0.25,
+                },
+                '& .MuiToggleButton-root.Mui-selected[value="present"]': {
+                  bgcolor: "success.main",
+                  color: "success.contrastText",
+                  "&:hover": { bgcolor: "success.dark" },
+                },
+                '& .MuiToggleButton-root.Mui-selected[value="absent"]': {
+                  bgcolor: "error.main",
+                  color: "error.contrastText",
+                  "&:hover": { bgcolor: "error.dark" },
+                },
+                '& .MuiToggleButton-root.Mui-selected[value="leave"]': {
                   bgcolor: "info.main",
                   color: "info.contrastText",
                   "&:hover": { bgcolor: "info.dark" },
                 },
               }}
             >
-              {status === "leave" ? (
-                <Star sx={{ fontSize: { xs: 28, sm: 32 } }} />
-              ) : (
-                <Cancel sx={{ fontSize: { xs: 28, sm: 32 } }} />
-              )}
-            </ToggleButton>
-          </ToggleButtonGroup>
-        </Box>
+              <ToggleButton value="present" aria-label="present">
+                <CheckCircle sx={{ fontSize: 20 }} />
+              </ToggleButton>
+              <ToggleButton
+                value={status === "leave" ? "leave" : "absent"}
+                aria-label="absent"
+                onTouchStart={startPress}
+                onTouchEnd={endPress}
+                onMouseDown={startPress}
+                onMouseUp={endPress}
+                onMouseLeave={endPress}
+                onClick={handleAbsentClick}
+              >
+                {status === "leave" ? (
+                  <Star sx={{ fontSize: 20 }} />
+                ) : (
+                  <Cancel sx={{ fontSize: 20 }} />
+                )}
+              </ToggleButton>
+            </ToggleButtonGroup>
 
-        {/* Reason for Absence Notes Field */}
-        {(status === 'absent' || showNotes || notes) && (
-          <Box sx={{ mt: 1.5, width: '100%', display: 'flex', justifyContent: 'flex-end' }}>
-            <TextField
-              size="small"
-              placeholder="Reason for absence..."
-              fullWidth
-              value={notes || ""}
-              onChange={handleNotesChange}
-              disabled={disabled}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EditIcon sx={{ fontSize: 16, color: 'error.main' }} />
-                    </InputAdornment>
-                  ),
-                  sx: { 
-                    borderRadius: 2, 
-                    bgcolor: 'rgba(255, 255, 255, 0.6)',
-                    '& .MuiInputBase-input': { py: 0.75, fontSize: '0.85rem' }
-                  }
-                }
-              }}
-              sx={{ maxWidth: { xs: '100%', sm: 300 } }}
-            />
+            {(status === "absent" || showNotes || notes) && (
+              <TextField
+                size="small"
+                placeholder="Reason..."
+                value={notes || ""}
+                onChange={handleNotesChange}
+                disabled={disabled}
+                sx={{
+                  mt: 0.5,
+                  width: "100%",
+                  maxWidth: 150,
+                  "& .MuiInputBase-root": { fontSize: "0.75rem", py: 0 },
+                }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EditIcon sx={{ fontSize: 12 }} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            )}
           </Box>
-        )}
-      </ListItem>
+        </TableCell>
+      </TableRow>
 
       {/* Student History Dialog */}
       <Dialog
@@ -461,8 +368,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
           )}
         </DialogContent>
       </Dialog>
-
-      {!isLast && <Divider variant="inset" component="li" />}
     </React.Fragment>
   );
 };
@@ -472,7 +377,6 @@ export const AttendanceRow = React.memo(
   (prevProps, nextProps) => {
     return (
       prevProps.status === nextProps.status &&
-      prevProps.isLast === nextProps.isLast &&
       prevProps.index === nextProps.index &&
       prevProps.disabled === nextProps.disabled &&
       prevProps.onMarkStatus === nextProps.onMarkStatus &&

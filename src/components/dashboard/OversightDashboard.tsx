@@ -51,7 +51,6 @@ interface OversightDashboardProps {
   };
   unmarkedClasses: ClassStat[];
   oversightPendingLeavesCount: number;
-  sortedClassStatsByAttendance: ClassStat[];
   teacherNameForClass: (classId: string) => string;
   students: any[];
   classes: any[];
@@ -64,7 +63,6 @@ export const OversightDashboard = React.memo(({
   stats,
   unmarkedClasses,
   oversightPendingLeavesCount,
-  sortedClassStatsByAttendance,
   teacherNameForClass,
   students,
   classes,
@@ -360,123 +358,8 @@ export const OversightDashboard = React.memo(({
 
       {/* Main Insights Panels */}
       <Grid container spacing={4}>
-        {/* Left Side: Attendance Leaderboard / Class Breakdown */}
-        <Grid size={{ xs: 12, md: 7 }}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: "none",
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 1 }}>
-                Today's Class-wise Attendance
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Ranked breakdown of daily reporting levels for all classes under
-                your scope.
-              </Typography>
-
-              {sortedClassStatsByAttendance.length === 0 ? (
-                <Box sx={{ py: 4, textAlign: "center" }}>
-                  <Typography variant="body2" color="text.secondary">
-                    No active classes found.
-                  </Typography>
-                </Box>
-              ) : (
-                <Stack spacing={3.5}>
-                  {sortedClassStatsByAttendance.map((cls) => {
-                    const isUnmarked = cls.markedCount === 0;
-                    const attendancePercentage = cls.attendanceRate || 0;
-
-                    return (
-                      <Box key={cls.classId}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            mb: 0.75,
-                          }}
-                        >
-                          <Typography
-                            variant="subtitle2"
-                            sx={{ fontWeight: 700 }}
-                          >
-                            {cls.className}
-                          </Typography>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            {isUnmarked ? (
-                              <Chip
-                                label="Unmarked"
-                                size="small"
-                                color="error"
-                                variant="outlined"
-                                sx={{ fontWeight: "bold" }}
-                              />
-                            ) : (
-                              <>
-                                <Typography
-                                  variant="body2"
-                                  color="text.secondary"
-                                  sx={{ fontWeight: 500 }}
-                                >
-                                  ({cls.presentCount}/{cls.markedCount})
-                                </Typography>
-                                <Chip
-                                  label={`${attendancePercentage}%`}
-                                  size="small"
-                                  color={
-                                    attendancePercentage >= 90
-                                      ? "success"
-                                      : attendancePercentage >= 75
-                                        ? "warning"
-                                        : "error"
-                                  }
-                                  sx={{ fontWeight: "bold", color: "white" }}
-                                />
-                              </>
-                            )}
-                          </Box>
-                        </Box>
-                        <LinearProgress
-                          variant={isUnmarked ? "determinate" : "determinate"}
-                          value={isUnmarked ? 100 : attendancePercentage}
-                          sx={{
-                            borderRadius: 1,
-                            height: 8,
-                            bgcolor: isUnmarked
-                              ? theme.palette.action.hover
-                              : undefined,
-                            "& .MuiLinearProgress-bar": {
-                              bgcolor: isUnmarked
-                                ? theme.palette.action.disabledBackground
-                                : attendancePercentage >= 90
-                                  ? theme.palette.success.main
-                                  : attendancePercentage >= 75
-                                    ? theme.palette.warning.main
-                                    : theme.palette.error.main,
-                            },
-                          }}
-                        />
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Right Side: Alerts and Actions */}
-        <Grid size={{ xs: 12, md: 5 }}>
+        {/* Alerts and Actions */}
+        <Grid size={{ xs: 12 }}>
           <Stack spacing={4}>
             {/* Unmarked Attendance Alerts Box */}
             <Card

@@ -16,7 +16,6 @@ interface HistoryRecord {
   present: number;
   absent: number;
   leave: number;
-  late: number;
 }
 
 interface AttendanceHistoryProps {
@@ -57,8 +56,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
             const total =
               record.present +
               record.absent +
-              record.leave +
-              (record.late || 0);
+              record.leave;
             const isSelected = record.date === dateString;
 
             return (
@@ -127,15 +125,6 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                       label={`A: ${record.absent}`}
                       sx={{ fontWeight: 600 }}
                     />
-                    {record.late > 0 && (
-                      <Chip
-                        size="small"
-                        variant="outlined"
-                        color="warning"
-                        label={`Late: ${record.late}`}
-                        sx={{ fontWeight: 600 }}
-                      />
-                    )}
                     {record.leave > 0 && (
                       <Chip
                         size="small"

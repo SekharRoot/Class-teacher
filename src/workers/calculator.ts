@@ -26,7 +26,7 @@ self.onmessage = (event) => {
           }
         }
 
-        if (status === 'present' || status === 'late') present++;
+        if (status === 'present') present++;
         else if (status === 'absent') absent++;
         else if (status === 'leave') { leave++; absent++; }
       }
@@ -65,7 +65,7 @@ self.onmessage = (event) => {
               }
             }
 
-            if (status === 'present' || status === 'late') present++;
+            if (status === 'present') present++;
             else if (status === 'absent') absent++;
             else if (status === 'leave') { leave++; absent++; }
           }
@@ -98,7 +98,7 @@ self.onmessage = (event) => {
     const presentStudents = classStudents.filter(st => {
       const val = attendance[st.id];
       const status = (typeof val === 'object' && val !== null ? val.status : val || '').toLowerCase();
-      return status === 'present' || status === 'late';
+      return status === 'present';
     });
     const presentCount = presentStudents.length;
     const presentDayScholar = presentStudents.filter(st => st.boarderType === 'Day Scholar').length;
@@ -166,7 +166,7 @@ self.onmessage = (event) => {
         if (status) {
           todayTotalMarked++;
           const lowerStatus = status.toLowerCase();
-          if (lowerStatus === "present" || lowerStatus === "late") {
+          if (lowerStatus === "present") {
             todayPresent++;
           }
         }
@@ -201,7 +201,7 @@ self.onmessage = (event) => {
         if (status) {
           marked++;
           const lowerStatus = status.toLowerCase();
-          if (lowerStatus === "present" || lowerStatus === "late") {
+          if (lowerStatus === "present") {
             present++;
           } else if (lowerStatus === "absent") {
             absent++;
@@ -258,7 +258,7 @@ self.onmessage = (event) => {
         if (!val) continue;
 
         const status = (typeof val === 'object' ? val.status : val || '').toLowerCase();
-        if (status === 'present' || status === 'late') present++;
+        if (status === 'present') present++;
         else if (status === 'absent') absent++;
         else if (status === 'leave') { leave++; absent++; }
       }

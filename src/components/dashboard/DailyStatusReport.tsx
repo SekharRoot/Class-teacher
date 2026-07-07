@@ -101,7 +101,7 @@ export const DailyStatusReport = React.memo(({
         }
 
         const normalizedStatus = status.toLowerCase();
-        const isPresent = normalizedStatus === "present" || normalizedStatus === "late";
+        const isPresent = normalizedStatus === "present";
         const isAbsent = normalizedStatus === "absent";
 
         if (isPresent) {

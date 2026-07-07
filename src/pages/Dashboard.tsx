@@ -263,16 +263,6 @@ export default function Dashboard() {
       : null;
   }, [classStats]);
 
-  const sortedClassStatsByAttendance = useMemo(() => {
-    // Put classes with marked attendance first, sorted descending, then unmarked classes
-    return [...classStats].sort((a, b) => {
-      if (a.attendanceRate === null && b.attendanceRate === null) return 0;
-      if (a.attendanceRate === null) return 1;
-      if (b.attendanceRate === null) return -1;
-      return b.attendanceRate - a.attendanceRate;
-    });
-  }, [classStats]);
-
   if (loading || loadingScope) {
     return (
       <Box
@@ -310,7 +300,6 @@ export default function Dashboard() {
       stats={stats}
       unmarkedClasses={unmarkedClasses}
       oversightPendingLeavesCount={oversightPendingLeavesCount}
-      sortedClassStatsByAttendance={sortedClassStatsByAttendance}
       teacherNameForClass={teacherNameForClass}
       students={students}
       classes={classes}

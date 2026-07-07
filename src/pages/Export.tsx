@@ -193,9 +193,7 @@ export default function Export() {
                   ? "P"
                   : status === "Absent"
                     ? "A"
-                    : status === "Late"
-                      ? "L"
-                      : "-",
+                    : "-",
               );
             });
             monthBody.push(row);
@@ -295,7 +293,7 @@ export default function Export() {
 
             datesInMonth.forEach((date) => {
               const status = recordsMap[date][student.id];
-              row += `,${status === "Present" ? "P" : status === "Absent" ? "A" : status === "Late" ? "L" : "-"}`;
+              row += `,${status === "Present" ? "P" : status === "Absent" ? "A" : "-"}`;
             });
 
             csvContent += row + "\n";

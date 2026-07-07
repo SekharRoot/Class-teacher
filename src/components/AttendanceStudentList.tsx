@@ -4,10 +4,15 @@ import {
   Button,
   Typography,
   Paper,
-  List,
   CircularProgress,
   TextField,
   InputAdornment,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import { ChevronLeft, CloudUpload, Search } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
@@ -60,7 +65,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
 
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = React.useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = React.useRef<HTMLTableRowElement | null>(null);
 
   React.useEffect(() => {
     setDisplayCount(12);
@@ -111,7 +116,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
             onClick={onBack}
             variant="outlined"
             size="small"
-            sx={{ borderRadius: 4, textTransform: "none", height: 40 }}
+            sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
           >
             Back
           </Button>
@@ -119,9 +124,9 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
             <Button
               startIcon={
                 syncing ? (
-                  <CircularProgress size={16} color="inherit" />
+                  <CircularProgress size={12} color="inherit" />
                 ) : (
-                  <CloudUpload />
+                  <CloudUpload sx={{ fontSize: 16 }} />
                 )
               }
               onClick={handleSync}
@@ -129,19 +134,19 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               color="primary"
               size="small"
               disabled={syncing}
-              sx={{ borderRadius: 4, textTransform: "none", height: 40 }}
+              sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
             >
-              {syncing ? "Syncing..." : "Sync"}
+              {syncing ? "Sync..." : "Sync"}
             </Button>
           )}
           <TextField
-            placeholder="Search student..."
+            placeholder="Search..."
             size="small"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             sx={{ 
-              minWidth: { xs: '100%', sm: 200 },
-              "& .MuiOutlinedInput-root": { borderRadius: 4, height: 40, bgcolor: 'background.paper' }
+              minWidth: { xs: '100%', sm: 140 },
+              "& .MuiOutlinedInput-root": { borderRadius: 2, height: 32, bgcolor: 'background.paper', fontSize: '0.75rem' }
             }}
             slotProps={{
               input: {
@@ -156,13 +161,13 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         </Box>
 
         {!readOnly && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: 'center' }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "nowrap", alignItems: 'center' }}>
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ fontWeight: "bold", mr: 1 }}
+              sx={{ fontWeight: "bold", whiteSpace: 'nowrap', fontSize: '0.6rem' }}
             >
-              BULK:
+              Bulk:
             </Typography>
             <Button
               size="small"
@@ -170,13 +175,15 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               color="success"
               onClick={() => onMarkAll("present", classStudents)}
               sx={{
-                borderRadius: 4,
-                fontSize: "0.7rem",
+                borderRadius: 2,
+                fontSize: "0.65rem",
                 textTransform: "none",
-                py: 0.5,
+                py: 0.25,
+                px: 1,
+                minWidth: 0
               }}
             >
-              All Present
+              Present
             </Button>
             <Button
               size="small"
@@ -184,53 +191,66 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               color="error"
               onClick={() => onMarkAll("absent", classStudents)}
               sx={{
-                borderRadius: 4,
-                fontSize: "0.7rem",
+                borderRadius: 2,
+                fontSize: "0.65rem",
                 textTransform: "none",
-                py: 0.5,
+                py: 0.25,
+                px: 1,
+                minWidth: 0
               }}
             >
-              All Absent
+              Absent
             </Button>
           </Box>
         )}
       </Box>
 
-      <Paper elevation={2} sx={{ overflow: "hidden", borderRadius: 2 }}>
-        <List disablePadding>
-          {filteredStudents.length === 0 ? (
-            <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography color="text.secondary">
-                {searchQuery ? "No matches found." : "No students found in this class."}
-              </Typography>
-            </Box>
-          ) : (
-            <>
-              {filteredStudents.slice(0, displayCount).map((student, idx, arr) => (
-                <AttendanceRow
-                  key={student.id}
-                  student={student}
-                  status={attendance[student.id]}
-                  onMarkStatus={onMarkAttendance}
-                  index={idx}
-                  isLast={idx === arr.length - 1}
-                  disabled={readOnly}
-                  leavesList={leavesList}
-                  dateString={dateString}
-                />
-              ))}
-              {displayCount < filteredStudents.length && (
-                <Box
-                  ref={loadMoreRef}
-                  sx={{ display: "flex", justifyContent: "center", p: 2 }}
-                >
-                  <CircularProgress size={24} />
-                </Box>
-              )}
-            </>
-          )}
-        </List>
-      </Paper>
+      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+        <Table size="small">
+          <TableHead sx={{ bgcolor: "action.hover" }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: "bold", width: 80 }}>Roll</TableCell>
+              <TableCell sx={{ fontWeight: "bold" }}>Student</TableCell>
+              <TableCell align="center" sx={{ fontWeight: "bold", width: { xs: 120, sm: 200 } }}>
+                Attendance
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredStudents.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                  <Typography color="text.secondary">
+                    {searchQuery ? "No matches found." : "No students found in this class."}
+                  </Typography>
+                </TableCell>
+              </TableRow>
+            ) : (
+              <>
+                {filteredStudents.slice(0, displayCount).map((student, idx) => (
+                  <AttendanceRow
+                    key={student.id}
+                    student={student}
+                    status={attendance[student.id]}
+                    onMarkStatus={onMarkAttendance}
+                    index={idx}
+                    disabled={readOnly}
+                    leavesList={leavesList}
+                    dateString={dateString}
+                  />
+                ))}
+                {displayCount < filteredStudents.length && (
+                  <TableRow ref={loadMoreRef}>
+                    <TableCell colSpan={3} align="center" sx={{ p: 2 }}>
+                      <CircularProgress size={24} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };
