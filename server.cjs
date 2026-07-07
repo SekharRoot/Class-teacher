@@ -27,9 +27,8 @@ var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
 async function startServer() {
   const app = (0, import_express.default)();
-  const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
-  const isCloudRun = !!process.env.K_SERVICE;
-  const PORT = isCloudRun && process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE && process.env.NODE_ENV !== "development";
+  const PORT = process.env.NODE_ENV === "development" ? 3e3 : process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
   console.log(
     `Starting server in ${isProduction ? "production" : "development"} mode on port ${PORT}...`
   );

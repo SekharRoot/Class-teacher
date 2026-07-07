@@ -1,0 +1,1 @@
+import{b8 as a,b7 as h,b9 as n}from"./index-DY-jm13Z.js";const u=a();function c(t){const{props:m,name:o,defaultTheme:r,themeId:s}=t;let e=h(r);return s&&(e=e[s]||e),n({theme:e,name:o,props:m})}export{u as s,c as u};
