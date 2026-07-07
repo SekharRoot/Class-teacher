@@ -65,29 +65,34 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
 
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = React.useRef<HTMLTableRowElement | null>(null);
 
   React.useEffect(() => {
     setDisplayCount(12);
   }, [selectedClassId, students.length]);
 
-  React.useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setDisplayCount((prev) => prev + 12);
-        }
-      },
-      { threshold: 1.0 },
-    );
-    observerRef.current = observer;
-
-    if (loadMoreRef.current) {
-      observer.observe(loadMoreRef.current);
+  const setLoadMoreRef = React.useCallback((node: HTMLTableRowElement | null) => {
+    if (observerRef.current) {
+      observerRef.current.disconnect();
     }
 
+    if (node) {
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting) {
+            setDisplayCount((prev) => prev + 12);
+          }
+        },
+        { threshold: 0.1 },
+      );
+      observerRef.current.observe(node);
+    }
+  }, []);
+
+  React.useEffect(() => {
     return () => {
-      if (observerRef.current) observerRef.current.disconnect();
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
     };
   }, []);
 
@@ -239,7 +244,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                   />
                 ))}
                 {displayCount < filteredStudents.length && (
-                  <TableRow ref={loadMoreRef}>
+                  <TableRow ref={setLoadMoreRef}>
                     <TableCell colSpan={2} align="center" sx={{ p: 2 }}>
                       <CircularProgress size={24} />
                     </TableCell>
