@@ -9,14 +9,7 @@ async function startServer() {
     process.env.NODE_ENV === "production" ||
     (!!process.env.K_SERVICE && process.env.NODE_ENV !== "development");
 
-  // In Cloud Run (production), use the PORT environment variable.
-  // In the dev workspace, always use port 3000.
-  const PORT =
-    process.env.NODE_ENV === "development"
-      ? 3000
-      : process.env.PORT
-      ? parseInt(process.env.PORT, 10)
-      : 3000;
+  const PORT = 3000;
 
   console.log(
     `Starting server in ${
