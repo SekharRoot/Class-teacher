@@ -164,20 +164,14 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
         }}
       >
         <TableCell>
-          <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-            {student.rollNumber || "-"}
-          </Typography>
-        </TableCell>
-
-        <TableCell>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Box sx={{ position: "relative" }}>
               <Avatar
                 variant="rounded"
                 src={student.image}
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: 60,
+                  height: 60,
                   borderRadius: 1,
                   boxShadow: 1,
                   bgcolor: status ? `${statusColor}.light` : "primary.light",
@@ -226,15 +220,17 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               exclusive
               disabled={disabled}
               onChange={handleStatusChange}
-              size="small"
+              size="medium"
               sx={{
                 "& .MuiToggleButton-root": {
-                  p: 0.75,
-                  borderRadius: "6px !important",
+                  p: { xs: 1.25, sm: 1.5 },
+                  minWidth: { xs: 58, sm: 68 },
+                  height: { xs: 44, sm: 48 },
+                  borderRadius: "10px !important",
                   border: "1px solid !important",
                   borderColor: "divider !important",
                   marginLeft: "0 !important",
-                  mx: 0.25,
+                  mx: { xs: 0.5, sm: 0.75 },
                 },
                 '& .MuiToggleButton-root.Mui-selected[value="present"]': {
                   bgcolor: "success.main",
@@ -254,7 +250,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               }}
             >
               <ToggleButton value="present" aria-label="present">
-                <CheckCircle sx={{ fontSize: 20 }} />
+                <CheckCircle sx={{ fontSize: { xs: 24, sm: 28 } }} />
               </ToggleButton>
               <ToggleButton
                 value={status === "leave" ? "leave" : "absent"}
@@ -267,9 +263,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 onClick={handleAbsentClick}
               >
                 {status === "leave" ? (
-                  <Star sx={{ fontSize: 20 }} />
+                  <Star sx={{ fontSize: { xs: 24, sm: 28 } }} />
                 ) : (
-                  <Cancel sx={{ fontSize: 20 }} />
+                  <Cancel sx={{ fontSize: { xs: 24, sm: 28 } }} />
                 )}
               </ToggleButton>
             </ToggleButtonGroup>

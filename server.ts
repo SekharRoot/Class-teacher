@@ -9,7 +9,7 @@ async function startServer() {
     process.env.NODE_ENV === "production" ||
     (!!process.env.K_SERVICE && process.env.NODE_ENV !== "development");
 
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   console.log(
     `Starting server in ${

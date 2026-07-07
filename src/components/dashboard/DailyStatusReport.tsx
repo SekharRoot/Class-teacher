@@ -11,8 +11,12 @@ import {
   Paper,
   CircularProgress,
   TextField,
+  Button,
 } from "@mui/material";
+import { Download, PictureAsPdf } from "@mui/icons-material";
 import { format } from "date-fns";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { attendanceApi } from "../../api";
 import { Student, ClassItem } from "../../types";
 
@@ -121,29 +125,151 @@ export const DailyStatusReport = React.memo(({
     });
   }, [classes, students, authorizedClassIds, attendance]);
 
+  const exportToCSV = () => {
+    const headers = [
+      "Class", "Total Students", "Total DB", "Total DS", "Total BOARDER",
+      "Present", "Present DB", "Present DS", "Present Boarders",
+      "Absent", "Absent DS", "Absent DB", "Absent Boarders"
+    ];
+    
+    const rows = reportData.map(row => [
+      `"${row.className.replace(/"/g, '""')}"`,
+      row.total,
+      row.totalDB,
+      row.totalDS,
+      row.totalBoarder,
+      row.present,
+      row.presentDB,
+      row.presentDS,
+      row.presentBoarder,
+      row.absent,
+      row.absentDS,
+      row.absentDB,
+      row.absentBoarder
+    ]);
+    
+    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `daily_attendance_${dateString}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
+      format: "a4"
+    });
+
+    // Add title & metadata
+    doc.setFontSize(16);
+    doc.setTextColor(33, 33, 33);
+    doc.text("Daily Attendance Status Report", 14, 15);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Report Date: ${dateString}`, 14, 21);
+    doc.text(`Generated At: ${new Date().toLocaleString()}`, 14, 26);
+
+    const head = [[
+      "Class", "Total", "Total DB", "Total DS", "Total Boarder",
+      "Present", "Present DB", "Present DS", "Present Boarders",
+      "Absent", "Absent DS", "Absent DB", "Absent Boarders"
+    ]];
+
+    const body = reportData.map(row => [
+      row.className,
+      row.total,
+      row.totalDB,
+      row.totalDS,
+      row.totalBoarder,
+      row.present,
+      row.presentDB,
+      row.presentDS,
+      row.presentBoarder,
+      row.absent,
+      row.absentDS,
+      row.absentDB,
+      row.absentBoarder
+    ]);
+
+    autoTable(doc, {
+      startY: 32,
+      head: head,
+      body: body,
+      theme: "grid",
+      styles: {
+        fontSize: 7.5,
+        cellPadding: 1.8,
+        halign: "center",
+        valign: "middle",
+        overflow: "linebreak"
+      },
+      columnStyles: {
+        0: { halign: "left", fontStyle: "bold", cellWidth: "auto" }
+      },
+      headStyles: {
+        fillColor: [25, 118, 210], // Primary color
+        textColor: 255,
+        fontStyle: "bold",
+        fontSize: 8
+      },
+      margin: { top: 32, right: 10, bottom: 15, left: 10 }
+    });
+
+    doc.save(`daily_attendance_${dateString}.pdf`);
+  };
+
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, justifyContent: "space-between", alignItems: { xs: "stretch", sm: "center" }, mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 800 }}>
           Daily Attendance Status Report
         </Typography>
-        <TextField
-          type="date"
-          label="Select Date"
-          value={dateString}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (val) {
-              const [y, m, d] = val.split("-").map(Number);
-              setSelectedDate(new Date(y, m - 1, d));
-            }
-          }}
-          size="small"
-          slotProps={{
-            inputLabel: { shrink: true }
-          }}
-          sx={{ width: 180 }}
-        />
+        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 2, alignSelf: { xs: "flex-end", sm: "auto" } }}>
+          <Button
+            variant="outlined"
+            size="small"
+            color="primary"
+            startIcon={<Download />}
+            onClick={exportToCSV}
+            disabled={loading || reportData.length === 0}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="contained"
+            size="small"
+            color="primary"
+            startIcon={<PictureAsPdf />}
+            onClick={exportToPDF}
+            disabled={loading || reportData.length === 0}
+          >
+            Export PDF
+          </Button>
+          <TextField
+            type="date"
+            label="Select Date"
+            value={dateString}
+            onChange={(e) => {
+              const val = e.target.value;
+              if (val) {
+                const [y, m, d] = val.split("-").map(Number);
+                setSelectedDate(new Date(y, m - 1, d));
+              }
+            }}
+            size="small"
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
+            sx={{ width: 180 }}
+          />
+        </Box>
       </Box>
 
       {loading ? (

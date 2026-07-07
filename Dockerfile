@@ -21,9 +21,9 @@ FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-# In Cloud Run, PORT is usually 8080, but we default to 3000 if not set.
-# The server.ts will also default to 3000.
-ENV PORT=3000
+# In Cloud Run, PORT is usually 8080, but we default to 8080 if not set.
+# The server.ts will also default to 8080 or use the injected PORT.
+ENV PORT=8080
 
 # Copy dependency manifests and compiled outputs from builder
 COPY --from=builder /app/package*.json ./
@@ -33,7 +33,7 @@ COPY --from=builder /app/dist ./dist
 RUN npm install --omit=dev
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 8080
 
 # Start the application
 CMD ["node", "dist/server.cjs"]

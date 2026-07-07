@@ -69,6 +69,8 @@ export default function Classes() {
     fetchClasses,
   } = useClassesData(showToast);
 
+  const classStudents = studentsList.filter((s) => s.classId === selectedClass?.id);
+
   const handleSaveClassAsync = async (
     oldId: string | null,
     trimmedBoard: string,
@@ -305,6 +307,7 @@ export default function Classes() {
               {selectedClass.section}
             </Typography>
           </Box>
+
           <Box
             sx={{
               display: "grid",
@@ -316,8 +319,7 @@ export default function Classes() {
               gap: 3,
             }}
           >
-            {studentsList.filter((s) => s.classId === selectedClass.id)
-              .length === 0 ? (
+            {classStudents.length === 0 ? (
               <Typography
                 variant="body1"
                 color="text.secondary"
@@ -326,22 +328,20 @@ export default function Classes() {
                 No students are currently assigned to this class.
               </Typography>
             ) : (
-              studentsList
-                .filter((s) => s.classId === selectedClass.id)
-                .map((student) => (
-                  <StudentCard
-                    key={student.id}
-                    item={student}
-                    classes={classesList}
-                    onViewDetails={(st) => {
-                      setSelectedStudent(st);
-                      setOpenDetailDialog(true);
-                    }}
-                    onEdit={() => {}}
-                    onDelete={() => {}}
-                    readOnly={true}
-                  />
-                ))
+              classStudents.map((student) => (
+                <StudentCard
+                  key={student.id}
+                  item={student}
+                  classes={classesList}
+                  onViewDetails={(st) => {
+                    setSelectedStudent(st);
+                    setOpenDetailDialog(true);
+                  }}
+                  onEdit={() => {}}
+                  onDelete={() => {}}
+                  readOnly={true}
+                />
+              ))
             )}
           </Box>
         </Box>

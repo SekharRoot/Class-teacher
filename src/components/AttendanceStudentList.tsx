@@ -209,9 +209,8 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         <Table size="small">
           <TableHead sx={{ bgcolor: "action.hover" }}>
             <TableRow>
-              <TableCell sx={{ fontWeight: "bold", width: 80 }}>Roll</TableCell>
               <TableCell sx={{ fontWeight: "bold" }}>Student</TableCell>
-              <TableCell align="center" sx={{ fontWeight: "bold", width: { xs: 120, sm: 200 } }}>
+              <TableCell align="center" sx={{ fontWeight: "bold", width: { xs: 150, sm: 220 } }}>
                 Attendance
               </TableCell>
             </TableRow>
@@ -219,7 +218,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
           <TableBody>
             {filteredStudents.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     {searchQuery ? "No matches found." : "No students found in this class."}
                   </Typography>
@@ -241,7 +240,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                 ))}
                 {displayCount < filteredStudents.length && (
                   <TableRow ref={loadMoreRef}>
-                    <TableCell colSpan={3} align="center" sx={{ p: 2 }}>
+                    <TableCell colSpan={2} align="center" sx={{ p: 2 }}>
                       <CircularProgress size={24} />
                     </TableCell>
                   </TableRow>
