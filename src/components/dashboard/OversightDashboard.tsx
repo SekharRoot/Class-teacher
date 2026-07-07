@@ -27,20 +27,9 @@ import PendingActionsIcon from "@mui/icons-material/PendingActions";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import { format } from "date-fns";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from "recharts";
 import { UserProfile } from "../../types";
 import { DailyStatusReport } from "./DailyStatusReport";
+import { SubstituteAssignmentsManager } from "./SubstituteAssignmentsManager";
 
 interface ClassStat {
   classId: string;
@@ -67,7 +56,6 @@ interface OversightDashboardProps {
   students: any[];
   classes: any[];
   authorizedClassIds: string[];
-  historyData?: any[];
 }
 
 export const OversightDashboard = React.memo(({
@@ -81,7 +69,6 @@ export const OversightDashboard = React.memo(({
   students,
   classes,
   authorizedClassIds,
-  historyData = [],
 }: OversightDashboardProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -90,16 +77,6 @@ export const OversightDashboard = React.memo(({
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
   };
-
-  const chartData = React.useMemo(() => {
-    if (!historyData || historyData.length === 0) return [];
-    return [...historyData]
-      .reverse()
-      .map((d) => ({
-        date: format(new Date(d.date), "MMM dd"),
-        rate: Math.round((d.present / (d.present + d.absent + d.leave || 1)) * 100),
-      }));
-  }, [historyData]);
 
   return (
     <Box>
@@ -135,6 +112,11 @@ export const OversightDashboard = React.memo(({
         >
           <Tab label="School Overview" />
           <Tab label="Daily Status Report" />
+          {(userProfile?.role === "admin" ||
+            userProfile?.role === "owner" ||
+            userProfile?.role === "academic_coordinator") && (
+            <Tab label="Substitute Assignments" />
+          )}
         </Tabs>
       </Box>
 
@@ -371,87 +353,6 @@ export const OversightDashboard = React.memo(({
               >
                 Awaiting your approval
               </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Attendance Trends Chart */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12 }}>
-          <Card
-            sx={{
-              borderRadius: 3,
-              border: `1px solid ${theme.palette.divider}`,
-              boxShadow: "none",
-            }}
-          >
-            <CardContent sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                    Attendance Trends
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Average school-wide attendance rate over the last 7 report cycles.
-                  </Typography>
-                </Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: 'primary.main' }} />
-                  <Typography variant="caption" sx={{ fontWeight: 600 }}>Attendance %</Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ width: "100%", height: 250 }}>
-                {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor={theme.palette.primary.main} stopOpacity={0.1}/>
-                          <stop offset="95%" stopColor={theme.palette.primary.main} stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.palette.divider} />
-                      <XAxis 
-                        dataKey="date" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                        dy={10}
-                      />
-                      <YAxis 
-                        domain={[0, 100]} 
-                        axisLine={false} 
-                        tickLine={false}
-                        tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          borderRadius: '8px', 
-                          border: 'none', 
-                          boxShadow: theme.shadows[3],
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }} 
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="rate" 
-                        stroke={theme.palette.primary.main} 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorRate)" 
-                        animationDuration={1500}
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', bgcolor: 'action.hover', borderRadius: 2 }}>
-                    <Typography variant="body2" color="text.secondary">Insufficient data for trend analysis</Typography>
-                  </Box>
-                )}
-              </Box>
             </CardContent>
           </Card>
         </Grid>
@@ -752,6 +653,12 @@ export const OversightDashboard = React.memo(({
           classes={classes}
           authorizedClassIds={authorizedClassIds}
         />
+      )}
+
+      {activeTab === 2 && (userProfile?.role === "admin" ||
+        userProfile?.role === "owner" ||
+        userProfile?.role === "academic_coordinator") && (
+        <SubstituteAssignmentsManager />
       )}
     </Box>
   );

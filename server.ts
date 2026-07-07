@@ -4,10 +4,13 @@ import fs from "fs";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000; // MUST be 3000 for AI Studio Cloud Run infrastructure
 
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
+  const isCloudRun = !!process.env.K_SERVICE;
+
+  // Use the PORT environment variable on Cloud Run, but default to 3000 in the dev workspace
+  const PORT = isCloudRun && process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   console.log(
     `Starting server in ${

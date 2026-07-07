@@ -43,7 +43,18 @@ export function useHierarchyScope() {
     }
 
     if (userProfile.role === "class_teacher") {
-      return userProfile.assignedClassId ? [userProfile.assignedClassId] : [];
+      const ids: string[] = [];
+      if (userProfile.assignedClassId) {
+        ids.push(userProfile.assignedClassId);
+      }
+      if (userProfile.alternateClassIds) {
+        userProfile.alternateClassIds.forEach((id) => {
+          if (id && !ids.includes(id)) {
+            ids.push(id);
+          }
+        });
+      }
+      return ids;
     }
 
     return [];

@@ -24,6 +24,10 @@ service cloud.firestore {
       return (isAuthenticated() && request.auth.token.email == 'sekhar.root@gmail.com') || (isActive() && (getUserData().role == 'admin' || getUserData().role == 'owner'));
     }
 
+    function isCoordinator() {
+      return isActive() && getUserData().role == 'academic_coordinator';
+    }
+
     // Global default-deny catch-all
     match /{document=**} {
       allow read, write: if false;
@@ -60,6 +64,8 @@ service cloud.firestore {
       allow update: if isAuthenticated() && (
         // Admins/Owners can update any profile
         isAdminOrOwner() ||
+        // Academic Coordinators can update substitute teacher classes (only for class_teacher accounts to prevent privilege escalation)
+        (isCoordinator() && resource.data.role == 'class_teacher') ||
         // Users can update their own profile, BUT they cannot change their role or status
         (request.auth.uid == userId && 
          request.resource.data.role == resource.data.role && 

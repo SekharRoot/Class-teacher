@@ -5,7 +5,6 @@ import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig(() => {
-  // Automatically detect if we are building in GitHub Actions for GitHub Pages
   const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
   const repoName = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split("/")[1] : "";
   const base = isGitHubActions && repoName ? `/${repoName}/` : "/";
@@ -38,9 +37,9 @@ export default defineConfig(() => {
         workbox: {
           cleanupOutdatedCaches: true,
           globPatterns: ["**/*.{js,css,html,ico,png,svg}"],
-          maximumFileSizeToCacheInBytes: 5000000,
+          maximumFileSizeToCacheInBytes: 10000000,
         },
-      }),
+      })
     ],
     build: {
       outDir: "dist",
@@ -53,10 +52,7 @@ export default defineConfig(() => {
     server: {
       port: 3000,
       host: "0.0.0.0",
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== "true",
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === "true" ? null : {},
     },
   };

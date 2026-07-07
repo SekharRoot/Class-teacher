@@ -75,7 +75,6 @@ export default function Dashboard() {
 
   const [loading, setLoading] = useState(true);
   const [todayRecords, setTodayRecords] = useState<Record<string, any> | null>(null);
-  const [historyData, setHistoryData] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalClasses: 0,
     totalStudents: 0,
@@ -115,12 +114,6 @@ export default function Dashboard() {
       let lastProcessedRecords: any = null;
 
       try {
-        // Fetch history for trends
-        const history = await attendanceApi.getHistory(undefined, undefined, 7);
-        if (active && history) {
-          setHistoryData(history);
-        }
-
         const localAttendanceStr = localStorage.getItem(
           `attendance_${todayDateString}`,
         );
@@ -322,7 +315,6 @@ export default function Dashboard() {
       students={students}
       classes={classes}
       authorizedClassIds={authorizedClassIds}
-      historyData={historyData}
     />
   );
 }

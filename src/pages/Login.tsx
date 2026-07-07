@@ -23,17 +23,24 @@ import {
   Select,
   MenuItem,
   Link,
+  InputAdornment,
+  IconButton,
+  useTheme,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Avatar from "@mui/material/Avatar";
 
 export default function Login() {
+  const theme = useTheme();
   const [isRegister, setIsRegister] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<UserRole>("class_teacher");
   const [error, setError] = useState("");
@@ -130,16 +137,22 @@ export default function Login() {
         }}
       >
         <Paper
-          elevation={3}
+          elevation={4}
           sx={{
-            p: 4,
+            p: { xs: 3, sm: 4 },
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             width: "100%",
+            borderRadius: "24px",
+            border: "1px solid",
+            borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+            boxShadow: theme.palette.mode === "dark" 
+              ? "0 12px 40px 0 rgba(0, 0, 0, 0.5)" 
+              : "0 12px 40px 0 rgba(31, 38, 135, 0.08)",
           }}
         >
-          <Avatar sx={{ m: 1, bgcolor: "primary.main" }}>
+          <Avatar sx={{ m: 1.5, bgcolor: "primary.main", width: 48, height: 48 }}>
             {isForgotPassword ? (
               <VpnKeyIcon />
             ) : isRegister ? (
@@ -148,7 +161,11 @@ export default function Login() {
               <LockOutlinedIcon />
             )}
           </Avatar>
-          <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
+          <Typography 
+            component="h1" 
+            variant="h5" 
+            sx={{ mb: 3, fontWeight: 800, letterSpacing: "-0.02em" }}
+          >
             {isForgotPassword
               ? "Reset Password"
               : isRegister
@@ -157,12 +174,12 @@ export default function Login() {
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: "100%", mb: 2 }}>
+            <Alert severity="error" sx={{ width: "100%", mb: 2, borderRadius: "12px" }}>
               {error}
             </Alert>
           )}
           {resetMessage && (
-            <Alert severity="success" sx={{ width: "100%", mb: 2 }}>
+            <Alert severity="success" sx={{ width: "100%", mb: 2, borderRadius: "12px" }}>
               {resetMessage}
             </Alert>
           )}
@@ -179,6 +196,7 @@ export default function Login() {
                 autoComplete="name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
               />
             )}
             <TextField
@@ -188,9 +206,11 @@ export default function Login() {
               id="email"
               label="Email Address"
               name="email"
-              autoComplete="email"
+              type="email"
+              autoComplete="username email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
             />
             {!isForgotPassword && (
               <TextField
@@ -199,15 +219,32 @@ export default function Login() {
                 fullWidth
                 name="password"
                 label="Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 id="password"
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+                slotProps={{
+                  input: {
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => setShowPassword(!showPassword)}
+                          onMouseDown={(e) => e.preventDefault()}
+                          edge="end"
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  },
+                }}
               />
             )}
             {!isForgotPassword && isRegister && (
-              <FormControl fullWidth margin="normal">
+              <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}>
                 <InputLabel id="role-select-label">Requested Role</InputLabel>
                 <Select
                   labelId="role-select-label"
@@ -234,6 +271,7 @@ export default function Login() {
                   variant="body2"
                   type="button"
                   onClick={() => toggleMode("forgotPassword")}
+                  sx={{ textDecoration: "none", fontWeight: 600 }}
                 >
                   Forgot Password?
                 </Link>
@@ -244,8 +282,16 @@ export default function Login() {
               type="submit"
               fullWidth
               variant="contained"
-              sx={{ mt: 3, mb: 2, py: 1.5 }}
               disabled={loading}
+              sx={{ 
+                mt: 3, 
+                mb: 2, 
+                py: 1.5, 
+                borderRadius: "12px", 
+                textTransform: "none", 
+                fontWeight: "bold",
+                fontSize: "1rem",
+              }}
             >
               {isForgotPassword
                 ? "Send Reset Link"
@@ -259,7 +305,7 @@ export default function Login() {
                 textAlign: "center",
                 display: "flex",
                 flexDirection: "column",
-                gap: 1,
+                gap: 1.5,
               }}
             >
               {isForgotPassword ? (
@@ -268,6 +314,7 @@ export default function Login() {
                   variant="body2"
                   type="button"
                   onClick={() => toggleMode("login")}
+                  sx={{ textDecoration: "none", fontWeight: 600 }}
                 >
                   Back to Sign In
                 </Link>
@@ -277,6 +324,7 @@ export default function Login() {
                   variant="body2"
                   type="button"
                   onClick={() => toggleMode(isRegister ? "login" : "register")}
+                  sx={{ textDecoration: "none", fontWeight: 600 }}
                 >
                   {isRegister
                     ? "Already have an account? Sign in"
