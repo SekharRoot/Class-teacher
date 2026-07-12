@@ -1,0 +1,1 @@
+import{t as s,c}from"./format-Bw_hER4B.js";function u(a,r,t){const e=s(a,t==null?void 0:t.in);return isNaN(r)?c(a,NaN):(r&&e.setDate(e.getDate()+r),e)}function n(a,r,t){return u(a,-r,t)}export{u as a,n as s};
