@@ -25,21 +25,10 @@ export function useHierarchyScope() {
     if (
       userProfile.role === "owner" ||
       userProfile.role === "admin" ||
-      userProfile.role === "principal"
+      userProfile.role === "principal" ||
+      userProfile.role === "academic_coordinator"
     ) {
       return allClasses.map((c) => c.id);
-    }
-
-    if (userProfile.role === "academic_coordinator") {
-      const reportingTeachers = allUsers.filter(
-        (u) =>
-          u.role === "class_teacher" &&
-          (u.coordinatorIds?.includes(userProfile.uid) ||
-            u.coordinatorId === userProfile.uid),
-      );
-      return reportingTeachers
-        .map((t) => t.assignedClassId)
-        .filter((id): id is string => !!id);
     }
 
     if (userProfile.role === "class_teacher") {
@@ -65,7 +54,8 @@ export function useHierarchyScope() {
     if (
       userProfile.role === "owner" ||
       userProfile.role === "admin" ||
-      userProfile.role === "principal"
+      userProfile.role === "principal" ||
+      userProfile.role === "academic_coordinator"
     )
       return true;
     return authorizedClassIds.includes(classId);
