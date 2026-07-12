@@ -20,7 +20,6 @@ export default function AppShell() {
   const [localSyncing, setLocalSyncing] = useState(false);
   const syncing = globalLoading || localSyncing;
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSidebarTab, setActiveSidebarTab] = useState("profile");
 
@@ -70,32 +69,11 @@ export default function AppShell() {
     }, 1500);
   };
 
-  const handleMoreClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMoreClose = () => {
-    setAnchorEl(null);
-  };
-
   const { primaryMenuItems, secondaryMenuItems } = useNavigationItems(userProfile);
 
-  // Bottom bar primary items: remove "Dashboard" and "Reports"
-  const bottomBarPrimaryItems = React.useMemo(() => {
-    return primaryMenuItems.filter(
-      (item) => item.text !== "Dashboard" && item.text !== "Reports"
-    );
-  }, [primaryMenuItems]);
-
-  // Bottom bar secondary items (more tab): remove "Settings", "Testing", "User Admin & Approvals"
-  const bottomBarSecondaryItems = React.useMemo(() => {
-    return secondaryMenuItems.filter(
-      (item) =>
-        item.text !== "Settings" &&
-        item.text !== "Testing" &&
-        item.text !== "User Admin & Approvals"
-    );
-  }, [secondaryMenuItems]);
+  // Bottom bar items will be exactly the same as sidebar items
+  const bottomBarPrimaryItems = primaryMenuItems;
+  const bottomBarSecondaryItems = secondaryMenuItems;
 
   return (
     <Box

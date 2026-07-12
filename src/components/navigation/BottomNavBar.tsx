@@ -20,7 +20,6 @@ interface BottomNavBarProps {
   secondaryMenuItems: NavItem[];
   currentPath: string;
   onNavigate: (path: string) => void;
-  onMoreClick?: (event: React.MouseEvent<HTMLElement>) => void;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
@@ -31,8 +30,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
 }) => {
   const theme = useTheme();
   
-  const allItems = React.useMemo(() => {
-    return [...primaryMenuItems, ...secondaryMenuItems];
+  const sortedMenuItems = React.useMemo(() => {
+    const allItems = [...primaryMenuItems, ...secondaryMenuItems];
+    const dashboardItem = allItems.find((item) => item.text === "Dashboard");
+    const otherItems = allItems.filter((item) => item.text !== "Dashboard");
+    otherItems.sort((a, b) => a.text.localeCompare(b.text));
+    return dashboardItem ? [dashboardItem, ...otherItems] : otherItems;
   }, [primaryMenuItems, secondaryMenuItems]);
 
   return (
@@ -44,7 +47,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         transform: "translateX(-50%)",
         zIndex: 1100,
         width: "100%",
-        display: "flex",
+        display: { xs: "flex", md: "none" },
         justifyContent: "center",
         pointerEvents: "none",
       }}
@@ -73,9 +76,15 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
               ? "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
               : "0 8px 32px 0 rgba(31, 38, 135, 0.15)",
           maxWidth: "95%",
+          overflowX: "auto",
+          "&::-webkit-scrollbar": {
+            display: "none",
+          },
+          msOverflowStyle: "none",
+          scrollbarWidth: "none",
         }}
       >
-        {allItems.map((item) => {
+        {sortedMenuItems.map((item) => {
           const active =
             item.path === "/"
               ? currentPath === "/"
@@ -98,6 +107,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                   flexDirection: "column",
                   gap: 0.25,
                   minWidth: { xs: 50, sm: 70 },
+                  flexShrink: 0,
                   transition: "all 0.2s ease",
                   "&:hover": {
                     color: "primary.main",
