@@ -1005,12 +1005,13 @@ export default function AdminPanel() {
     userProfile?.role === "admin" ||
     userProfile?.email === "sekhar.root@gmail.com";
   const isSchoolAdmin = userProfile?.role === "school_admin";
+  const isAcademicCoordinator = userProfile?.role === "academic_coordinator";
 
-  if (!isOwnerOrAdmin && !isSchoolAdmin) {
+  if (!isOwnerOrAdmin && !isSchoolAdmin && !isAcademicCoordinator) {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="error" variant="filled">
-          Access Denied. You must be an administrator, owner, or school administrator to view this
+          Access Denied. You must be an administrator, owner, school administrator, or academic coordinator to view this
           page.
         </Alert>
       </Box>
@@ -1025,8 +1026,12 @@ export default function AdminPanel() {
     if (isSchoolAdmin && userProfile?.schoolId) {
       return users.filter((u) => u.schoolId === userProfile.schoolId);
     }
+    if (isAcademicCoordinator && userProfile?.schoolId) {
+       // Coordinators can only see users in their school
+      return users.filter((u) => u.schoolId === userProfile.schoolId);
+    }
     return [];
-  }, [users, userProfile, isOwnerOrAdmin, isSchoolAdmin]);
+  }, [users, userProfile, isOwnerOrAdmin, isSchoolAdmin, isAcademicCoordinator]);
 
   // Group roles for dropdown select links
   const coordinators = displayUsers.filter((u) => u.role === "academic_coordinator");

@@ -37,7 +37,8 @@ export function useNavigationItems(userProfile: UserProfile | null) {
     if (
       userProfile.role === "admin" ||
       userProfile.role === "owner" ||
-      userProfile.role === "school_admin"
+      userProfile.role === "school_admin" ||
+      userProfile.role === "academic_coordinator"
     ) {
       items.push({
         text: "User Admin & Approvals",

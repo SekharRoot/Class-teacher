@@ -143,13 +143,14 @@ export function useAttendanceData() {
   // 1. Initial cached data load on mount to prevent any flash of loading screen
   useEffect(() => {
     let active = true;
-    async function loadCachedData() {
-      const [cachedAttendance] = await Promise.all([
-        cache.get(`attendance_${dateString}`),
-      ]);
-      if (active) {
-        if (cachedAttendance)
-          unwrapAttendance(cachedAttendance, dateString, true);
+    function loadCachedData() {
+      const cachedAttendance = localStorage.getItem(`attendance_${dateString}`);
+      if (active && cachedAttendance) {
+        try {
+          unwrapAttendance(JSON.parse(cachedAttendance), dateString, true);
+        } catch (e) {
+          // ignore
+        }
       }
     }
     loadCachedData();
@@ -161,13 +162,22 @@ export function useAttendanceData() {
   // 2. Local cache loading on date change (instant)
   useEffect(() => {
     let active = true;
-    async function loadCachedAttendance() {
-      const cached = await cache.get(`attendance_${dateString}`);
-      if (active && cached) {
-        unwrapAttendance(cached, dateString, true);
+    function loadCachedAttendance() {
+      const cached = localStorage.getItem(`attendance_${dateString}`);
+      if (active) {
+        if (cached) {
+          try {
+            unwrapAttendance(JSON.parse(cached), dateString, true);
+          } catch (e) {
+            setAttendance({});
+          }
+        } else {
+          setAttendance({});
+        }
       }
     }
     loadCachedAttendance();
+    return () => { active = false; };
   }, [dateString]);
 
   // 4. Background Real-time sync for selected date attendance
