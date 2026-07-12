@@ -205,7 +205,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
         <TableCell align="center">
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
             <ToggleButtonGroup
-              value={status === "leave" ? "leave" : status}
+              value={status || null}
               exclusive
               disabled={disabled}
               onChange={handleStatusChange}
