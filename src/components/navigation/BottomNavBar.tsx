@@ -20,7 +20,7 @@ interface BottomNavBarProps {
   secondaryMenuItems: NavItem[];
   currentPath: string;
   onNavigate: (path: string) => void;
-  onMoreClick: (event: React.MouseEvent<HTMLElement>) => void;
+  onMoreClick?: (event: React.MouseEvent<HTMLElement>) => void;
 }
 
 export const BottomNavBar: React.FC<BottomNavBarProps> = ({
@@ -28,13 +28,12 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   secondaryMenuItems,
   currentPath,
   onNavigate,
-  onMoreClick,
 }) => {
   const theme = useTheme();
   
-  const isSecondaryActive = secondaryMenuItems.some((item) =>
-    currentPath.startsWith(item.path)
-  );
+  const allItems = React.useMemo(() => {
+    return [...primaryMenuItems, ...secondaryMenuItems];
+  }, [primaryMenuItems, secondaryMenuItems]);
 
   return (
     <Box
@@ -76,7 +75,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           maxWidth: "95%",
         }}
       >
-        {primaryMenuItems.map((item) => {
+        {allItems.map((item) => {
           const active =
             item.path === "/"
               ? currentPath === "/"
@@ -124,47 +123,6 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
             </Tooltip>
           );
         })}
-
-        <Tooltip title="More Options" arrow>
-          <IconButton
-            onClick={onMoreClick}
-            sx={{
-              color: isSecondaryActive ? "primary.main" : "text.secondary",
-              bgcolor: isSecondaryActive
-                ? theme.palette.mode === "dark"
-                  ? "rgba(25, 118, 210, 0.15)"
-                  : "rgba(25, 118, 210, 0.08)"
-                : "transparent",
-              borderRadius: "18px",
-              px: { xs: 1.5, sm: 2 },
-              py: { xs: 1, sm: 1.25 },
-              display: "flex",
-              flexDirection: "column",
-              gap: 0.25,
-              minWidth: { xs: 50, sm: 70 },
-              transition: "all 0.2s ease",
-              "&:hover": {
-                color: "primary.main",
-                bgcolor:
-                  theme.palette.mode === "dark"
-                    ? "rgba(25, 118, 210, 0.1)"
-                    : "rgba(25, 118, 210, 0.04)",
-              },
-            }}
-          >
-            <MoreHorizIcon />
-            <Typography
-              variant="caption"
-              sx={{
-                fontWeight: isSecondaryActive ? 700 : 500,
-                fontSize: { xs: "0.65rem", sm: "0.72rem" },
-                display: { xs: "none", sm: "block" },
-              }}
-            >
-              More
-            </Typography>
-          </IconButton>
-        </Tooltip>
       </Paper>
     </Box>
   );

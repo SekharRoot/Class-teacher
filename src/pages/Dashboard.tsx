@@ -111,6 +111,41 @@ export default function Dashboard() {
       if (!currentUser) return;
 
       const todayDateString = format(new Date(), "yyyy-MM-dd");
+      let summaryLoaded = false;
+
+      // 1. First, check local storage cache for pre-computed summary
+      try {
+        const cachedSummaryStr = localStorage.getItem(`summary_${todayDateString}`);
+        if (cachedSummaryStr) {
+          const cachedSummary = JSON.parse(cachedSummaryStr);
+          if (cachedSummary && cachedSummary.stats && active) {
+            setStats(cachedSummary.stats);
+            setClassStats(cachedSummary.classStats);
+            setLoading(false);
+            summaryLoaded = true;
+          }
+        }
+      } catch (e) {
+        console.warn("Error reading local summary cache:", e);
+      }
+
+      // 2. Fetch fresh online pre-computed summary
+      try {
+        const onlineSummary = await attendanceApi.getSummaryByDate(todayDateString);
+        if (onlineSummary && onlineSummary.stats && active) {
+          setStats(onlineSummary.stats);
+          setClassStats(onlineSummary.classStats);
+          setLoading(false);
+          summaryLoaded = true;
+
+          // Save to local storage cache
+          localStorage.setItem(`summary_${todayDateString}`, JSON.stringify(onlineSummary));
+        }
+      } catch (e) {
+        console.warn("Error reading online summary:", e);
+      }
+
+      // 3. Fallback: If no pre-computed summary is available, run standard cache & calculation sequence
       let lastProcessedRecords: any = null;
 
       try {
@@ -130,7 +165,9 @@ export default function Dashboard() {
           if (todayRecordsLocal) {
             setTodayRecords(todayRecordsLocal);
             lastProcessedRecords = todayRecordsLocal;
-            calculateAndSetStats(todayRecordsLocal);
+            if (!summaryLoaded) {
+              calculateAndSetStats(todayRecordsLocal);
+            }
           }
           setLoading(false);
         }
@@ -149,7 +186,9 @@ export default function Dashboard() {
             
             if (isDifferent) {
               setTodayRecords(todayRecordsOnline);
-              calculateAndSetStats(todayRecordsOnline);
+              if (!summaryLoaded) {
+                calculateAndSetStats(todayRecordsOnline);
+              }
             }
             
             await cache.set(

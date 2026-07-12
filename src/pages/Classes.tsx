@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -13,14 +13,14 @@ import {
 } from "@mui/material";
 import {
   Add,
-  School,
+  School as SchoolIcon,
   CloudOff,
   Search,
   ChevronLeft,
 } from "@mui/icons-material";
-import { classesApi, studentsApi } from "../api";
+import { classesApi, studentsApi, schoolsApi } from "../api";
 import { cache } from "../lib/cache";
-import { ClassItem } from "../types";
+import { ClassItem, School } from "../types";
 import { ClassCard } from "../components/ClassCard";
 import { ClassFormDialog } from "../components/AddClassDialog";
 import { DeleteClassDialog } from "../components/DeleteClassDialog";
@@ -29,6 +29,7 @@ import { StudentDetailDialog } from "../components/StudentDetailDialog";
 import { useClassesData } from "../hooks/useClassesData";
 import { useAuth } from "../contexts/AuthContext";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
+import { TransferClassSchoolDialog } from "../components/TransferClassSchoolDialog";
 
 export default function Classes() {
   const { userProfile } = useAuth();
@@ -44,6 +45,60 @@ export default function Classes() {
   ) => {
     setToastMessage(message);
     setToastSeverity(severity);
+  };
+
+  const [transferSchoolDialogOpen, setTransferSchoolDialogOpen] = useState(false);
+  const [schoolsList, setSchoolsList] = useState<School[]>([]);
+  const [classToTransfer, setClassToTransfer] = useState<ClassItem | null>(null);
+
+  const isOwnerOrSuperAdmin =
+    userProfile?.role === "owner" ||
+    userProfile?.role === "admin" ||
+    userProfile?.email === "sekhar.root@gmail.com";
+
+  useEffect(() => {
+    if (isOwnerOrSuperAdmin) {
+      schoolsApi.getAll().then((data) => {
+        setSchoolsList(data);
+      }).catch((err) => {
+        console.error("Error loading schools in classes", err);
+      });
+    }
+  }, [isOwnerOrSuperAdmin]);
+
+  const handleTransferClass = async (targetSchoolId: string) => {
+    if (!classToTransfer) return;
+    try {
+      // 1. Update the class's schoolId
+      await classesApi.update(classToTransfer.id, {
+        ...classToTransfer,
+        schoolId: targetSchoolId,
+      });
+
+      // 2. Find all students assigned to this class and update their schoolId as well
+      const studentsInClass = studentsList.filter(
+        (s) => s.classId === classToTransfer.id,
+      );
+      if (studentsInClass.length > 0) {
+        await Promise.all(
+          studentsInClass.map((st) =>
+            studentsApi.update(st.id, { ...st, schoolId: targetSchoolId }),
+          ),
+        );
+      }
+
+      showToast(
+        `Successfully transferred class "${classToTransfer.board} ${classToTransfer.classStandard} ${classToTransfer.section}" and its ${studentsInClass.length} student(s) to the target school!`,
+        "success",
+      );
+      
+      setTransferSchoolDialogOpen(false);
+      setClassToTransfer(null);
+      fetchClasses();
+    } catch (err: any) {
+      console.error("Error transferring class:", err);
+      showToast("Failed to transfer class to the target school.", "error");
+    }
   };
 
   const {
@@ -371,7 +426,7 @@ export default function Classes() {
             borderColor: "divider",
           }}
         >
-          <School sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
+          <SchoolIcon sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             {searchQuery
               ? "No classes match your search query."
@@ -422,6 +477,14 @@ export default function Classes() {
                 setEditingClass(c);
                 setOpenDialog(true);
               }}
+              onTransferSchool={
+                isOwnerOrSuperAdmin
+                  ? (c) => {
+                      setClassToTransfer(c);
+                      setTransferSchoolDialogOpen(true);
+                    }
+                  : undefined
+              }
               onClick={(cls) => setSelectedClass(cls)}
               readOnly={isReadOnly}
             />
@@ -454,6 +517,23 @@ export default function Classes() {
         student={selectedStudent}
         classes={classesList}
       />
+
+      {isOwnerOrSuperAdmin && (
+        <TransferClassSchoolDialog
+          open={transferSchoolDialogOpen}
+          onClose={() => {
+            setTransferSchoolDialogOpen(false);
+            setClassToTransfer(null);
+          }}
+          onTransfer={handleTransferClass}
+          schools={schoolsList}
+          className={
+            classToTransfer
+              ? `${classToTransfer.board} ${classToTransfer.classStandard} ${classToTransfer.section}`
+              : ""
+          }
+        />
+      )}
 
       <Snackbar
         open={!!toastMessage}

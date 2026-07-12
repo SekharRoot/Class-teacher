@@ -2,6 +2,7 @@ import {
   collection,
   query,
   getDocs,
+  getDoc,
   doc,
   setDoc,
   deleteDoc,
@@ -10,7 +11,9 @@ import {
   limit,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
 import { LeaveRequest } from "../types";
+import { classesApi } from "./classes";
 
 let leavesCache: LeaveRequest[] | null = null;
 let leavesCacheTime = 0;
@@ -33,20 +36,37 @@ export const leavesApi = {
       return leavesCache;
     }
     try {
-      const q = query(
-        collection(db, "leaves"),
-        orderBy("appliedAt", "desc"),
-        limit(fetchLimit),
-      );
-      const querySnapshot = await getDocs(q);
-      const list: LeaveRequest[] = [];
-      querySnapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as LeaveRequest);
+      const activeSchoolId = getActiveSchoolId();
+      const classesList = await classesApi.getAll();
+      const classIds = ["unassigned", ...classesList.map(c => c.id)];
+
+      const promises = classIds.map(async (cId) => {
+        const q = query(
+          collection(db, "schools", activeSchoolId, "classes", cId, "leaves"),
+          orderBy("appliedAt", "desc"),
+          limit(fetchLimit)
+        );
+        const snapshot = await getDocs(q);
+        const subList: LeaveRequest[] = [];
+        snapshot.forEach((doc) => {
+          subList.push({ id: doc.id, ...doc.data() } as LeaveRequest);
+        });
+        return subList;
       });
 
-      leavesCache = list;
+      const results = await Promise.all(promises);
+      const list = results.flat();
+
+      // Sort by appliedAt desc
+      list.sort((a, b) => {
+        const dateA = a.appliedAt || "";
+        const dateB = b.appliedAt || "";
+        return dateB.localeCompare(dateA);
+      });
+
+      leavesCache = list.slice(0, fetchLimit);
       leavesCacheTime = Date.now();
-      return list;
+      return leavesCache;
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "leaves");
       return [];
@@ -62,8 +82,11 @@ export const leavesApi = {
    */
   async create(leave: LeaveRequest): Promise<void> {
     try {
-      const docRef = doc(db, "leaves", leave.id);
+      const activeSchoolId = (leave as any).schoolId || getActiveSchoolId();
+      const cId = leave.classId || "unassigned";
+      const docRef = doc(db, "schools", activeSchoolId, "classes", cId, "leaves", leave.id);
       await setDoc(docRef, {
+        schoolId: activeSchoolId,
         ...leave,
         appliedAt: leave.appliedAt || new Date().toISOString(),
       });
@@ -78,8 +101,33 @@ export const leavesApi = {
    */
   async update(leaveId: string, leave: Partial<LeaveRequest>): Promise<void> {
     try {
-      const docRef = doc(db, "leaves", leaveId);
+      const activeSchoolId = (leave as any).schoolId || getActiveSchoolId();
+      let cId = leave.classId;
+      if (!cId) {
+        const cached = leavesCache?.find(l => l.id === leaveId);
+        if (cached) {
+          cId = cached.classId || "unassigned";
+        } else {
+          const classesList = await classesApi.getAll();
+          const classIds = ["unassigned", ...classesList.map(c => c.id)];
+          for (const cid of classIds) {
+            const ref = doc(db, "schools", activeSchoolId, "classes", cid, "leaves", leaveId);
+            const snap = await getDoc(ref);
+            if (snap.exists()) {
+              cId = cid;
+              break;
+            }
+          }
+        }
+      }
+
+      if (!cId) {
+        cId = "unassigned";
+      }
+
+      const docRef = doc(db, "schools", activeSchoolId, "classes", cId, "leaves", leaveId);
       await updateDoc(docRef, {
+        schoolId: activeSchoolId,
         ...leave,
         updatedAt: new Date().toISOString(),
       });
@@ -94,7 +142,27 @@ export const leavesApi = {
    */
   async delete(leaveId: string): Promise<void> {
     try {
-      const docRef = doc(db, "leaves", leaveId);
+      const activeSchoolId = getActiveSchoolId();
+      let cId = "";
+      const cached = leavesCache?.find(l => l.id === leaveId);
+      if (cached) {
+        cId = cached.classId || "unassigned";
+      } else {
+        const classesList = await classesApi.getAll();
+        const classIds = ["unassigned", ...classesList.map(c => c.id)];
+        for (const cid of classIds) {
+          const ref = doc(db, "schools", activeSchoolId, "classes", cid, "leaves", leaveId);
+          const snap = await getDoc(ref);
+          if (snap.exists()) {
+            cId = cid;
+            break;
+          }
+        }
+      }
+
+      if (!cId) cId = "unassigned";
+
+      const docRef = doc(db, "schools", activeSchoolId, "classes", cId, "leaves", leaveId);
       await deleteDoc(docRef);
       this.invalidateCache();
     } catch (error) {

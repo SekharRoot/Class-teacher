@@ -30,7 +30,6 @@ export function useAttendanceActions(
       const isObj = typeof val === 'object' && val !== null;
       enriched[sId] = {
         status: (isObj ? val.status : val) || "absent",
-        notes: (isObj ? val.notes : "") ?? "",
         classId: student?.classId ?? "",
         boarderType: student?.boarderType ?? "",
       };
@@ -42,25 +41,14 @@ export function useAttendanceActions(
 
   const markAttendance = useCallback((
     studentId: string,
-    statusOrData: AttendanceStatus | null | { status: AttendanceStatus, notes?: string },
+    status: AttendanceStatus | null,
   ) => {
     setAttendance((prev) => {
       const updated = { ...prev };
-      if (statusOrData === null) {
+      if (status === null) {
         delete updated[studentId];
       } else {
-        const prevData = prev[studentId];
-        const isPrevObj = typeof prevData === 'object' && prevData !== null;
-        
-        if (typeof statusOrData === 'string') {
-          updated[studentId] = isPrevObj 
-            ? { ...(prevData as any), status: statusOrData } 
-            : statusOrData;
-        } else {
-          updated[studentId] = isPrevObj
-            ? { ...(prevData as any), ...(statusOrData as any) }
-            : statusOrData;
-        }
+        updated[studentId] = status;
       }
       
       // Perform side effect in a microtask to keep updater pure

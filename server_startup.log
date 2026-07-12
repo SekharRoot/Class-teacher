@@ -1,0 +1,4 @@
+Starting server in production mode on port 3002...
+Production mode: Serving static files from: /app/applet/dist
+Confirmed: index.html exists.
+Server is listening on http://0.0.0.0:3002

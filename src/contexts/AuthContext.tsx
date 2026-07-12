@@ -7,6 +7,9 @@ import {
 import { auth } from "../lib/firebase";
 import { UserProfile, UserRole } from "../types";
 import { usersApi } from "../api/users";
+import { LoadingOverlay } from "../components/navigation/LoadingOverlay";
+
+import { getActiveSchoolId, setActiveSchoolId } from "../lib/activeSchoolHelper";
 
 interface AuthContextType {
   currentUser: User | null;
@@ -14,6 +17,9 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   reloadProfile: () => Promise<void>;
+  activeSchoolId: string;
+  activeSchoolName: string;
+  setActiveSchool: (schoolId: string, schoolName: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -22,6 +28,9 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   reloadProfile: async () => {},
+  activeSchoolId: "default_school",
+  activeSchoolName: "Default School",
+  setActiveSchool: () => {},
 });
 
 export function useAuth() {
@@ -71,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           let assignedStatus: "active" | "pending" = "active";
           let assignedDisplayName =
             user.displayName || user.email?.split("@")[0] || "Unknown User";
+          let assignedSchoolId = "default_school";
+          let assignedSchoolName = "Default School";
 
           const pendingRegStr = localStorage.getItem("pendingRegistration");
           if (pendingRegStr) {
@@ -80,6 +91,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               assignedStatus = pendingReg.status;
               assignedDisplayName =
                 pendingReg.displayName || assignedDisplayName;
+              assignedSchoolId = pendingReg.schoolId || "default_school";
+              assignedSchoolName = pendingReg.schoolName || "Default School";
               localStorage.removeItem("pendingRegistration");
             } catch (e) {
               console.error("Failed to parse pendingRegistration", e);
@@ -100,6 +113,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             displayName: assignedDisplayName,
             role: assignedRole,
             status: assignedStatus,
+            schoolId: assignedSchoolId,
+            schoolName: assignedSchoolName,
             assignedClassId: null,
             coordinatorIds: [],
             principalId: null,
@@ -133,6 +148,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const [activeSchoolId, setLocalActiveSchoolId] = useState<string>(() => {
+    return localStorage.getItem("activeSchoolId") || localStorage.getItem("adminSelectedSchoolId") || "default_school";
+  });
+  const [activeSchoolName, setActiveSchoolName] = useState<string>(() => {
+    return localStorage.getItem("activeSchoolName") || localStorage.getItem("adminSelectedSchoolName") || "Default School";
+  });
+
+  useEffect(() => {
+    if (userProfile) {
+      const isOwnerOrAdmin =
+        userProfile.role === "owner" ||
+        userProfile.role === "admin" ||
+        userProfile.email === "sekhar.root@gmail.com";
+      if (isOwnerOrAdmin) {
+        const storedId = localStorage.getItem("activeSchoolId") || localStorage.getItem("adminSelectedSchoolId") || "default_school";
+        const storedName = localStorage.getItem("activeSchoolName") || localStorage.getItem("adminSelectedSchoolName") || "Default School";
+        setLocalActiveSchoolId(storedId);
+        setActiveSchoolName(storedName);
+        setActiveSchoolId(storedId);
+      } else {
+        const profileSchoolId = userProfile.schoolId || "default_school";
+        const profileSchoolName = userProfile.schoolName || "Default School";
+        setLocalActiveSchoolId(profileSchoolId);
+        setActiveSchoolName(profileSchoolName);
+        setActiveSchoolId(profileSchoolId);
+      }
+    } else if (!loading && !currentUser) {
+      setLocalActiveSchoolId("default_school");
+      setActiveSchoolName("Default School");
+      setActiveSchoolId("default_school");
+    }
+  }, [userProfile, loading, currentUser]);
+
+  const setActiveSchool = (schoolId: string, schoolName: string) => {
+    setLocalActiveSchoolId(schoolId);
+    setActiveSchoolName(schoolName);
+    setActiveSchoolId(schoolId);
+    localStorage.setItem("activeSchoolId", schoolId);
+    localStorage.setItem("activeSchoolName", schoolName);
+    localStorage.setItem("adminSelectedSchoolId", schoolId);
+    localStorage.setItem("adminSelectedSchoolName", schoolName);
+    
+    // Invalidate the cache to ensure we fetch fresh data on the next load
+    window.dispatchEvent(new CustomEvent("force-sync"));
+    
+    // Reload the page to reset all memory variables and fetch fresh data from the chosen tenant database cleanly
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
@@ -161,43 +227,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ currentUser, userProfile, loading, signOut, reloadProfile }}
+      value={{
+        currentUser,
+        userProfile,
+        loading,
+        signOut,
+        reloadProfile,
+        activeSchoolId,
+        activeSchoolName,
+        setActiveSchool,
+      }}
     >
       {initialLoad ? (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            height: "100vh",
-            justifyContent: "center",
-            alignItems: "center",
-            backgroundColor: "#f9fafb",
-          }}
-        >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              border: "3px solid #e5e7eb",
-              borderTopColor: "#3b82f6",
-              borderRadius: "50%",
-              animation: "spin 1s linear infinite",
-            }}
-          />
-          <style>
-            {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
-          </style>
-          <div
-            style={{
-              marginTop: "16px",
-              color: "#6b7280",
-              fontFamily: "system-ui, sans-serif",
-              fontWeight: 500,
-            }}
-          >
-            Starting Classroom Manager...
-          </div>
-        </div>
+        <LoadingOverlay />
       ) : (
         children
       )}

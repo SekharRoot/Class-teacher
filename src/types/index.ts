@@ -5,6 +5,7 @@ export interface Student {
   lastName: string;
   rollNumber: string;
   classId?: string;
+  schoolId?: string | null;
   gender?: "Male" | "Female" | "Transgender";
   fatherName?: string;
   motherName?: string;
@@ -21,17 +22,23 @@ export interface AttendanceRecord {
   studentId: string;
   date: string; // ISO date string YYYY-MM-DD
   status: AttendanceStatus;
-  notes?: string;
 }
 
 export type UserRole =
-  "owner" | "admin" | "academic_coordinator" | "principal" | "class_teacher";
+  | "owner"
+  | "admin"
+  | "school_admin"
+  | "academic_coordinator"
+  | "principal"
+  | "class_teacher";
 
 export interface UserProfile {
   uid: string;
   email: string | null;
   displayName: string | null;
   role: UserRole;
+  schoolId?: string | null; // Selected school ID
+  schoolName?: string | null; // Selected school name
   assignedClassId?: string | null; // For class_teacher
   alternateClassIds?: string[]; // For alternate/temporary class assignments (substitute teachers)
   coordinatorIds?: string[]; // Links class_teacher -> multiple academic_coordinators
@@ -39,6 +46,14 @@ export interface UserProfile {
   principalId?: string | null; // Links academic_coordinator -> principal
   status: "active" | "pending";
   hasLeaveFeatureAccess?: boolean;
+}
+
+export interface School {
+  id: string;
+  name: string;
+  address?: string;
+  createdAt?: string;
+  isActive?: boolean;
 }
 
 export interface User {
@@ -52,6 +67,7 @@ export interface ClassItem {
   board: string;
   classStandard: string;
   section: string;
+  schoolId?: string | null;
   createdAt?: string;
 }
 

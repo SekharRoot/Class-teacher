@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+import { Link } from "react-router-dom";
 import {
   Box,
   Typography,
@@ -14,6 +15,7 @@ import {
 import {
   Fingerprint,
   CheckCircle,
+  Autorenew,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -84,34 +86,58 @@ export default function Settings() {
         </Grid>
 
         {isAdmin && (
-          <Grid size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 4, borderRadius: 2, height: "100%" }}>
-              <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
-                <Fingerprint sx={{ mr: 1 }} /> Data Integrity
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Automatically generate and assign unique Profile IDs to all student records that are missing one.
-              </Typography>
-              
-              {result.show && (
-                <Alert severity={result.count > 0 ? "success" : "info"} sx={{ mb: 2 }}>
-                  {result.count > 0 
-                    ? `Successfully assigned Profile IDs to ${result.count} students.`
-                    : "All students already have valid Profile IDs."}
-                </Alert>
-              )}
+          <>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 4, borderRadius: 2, height: "100%" }}>
+                <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
+                  <Fingerprint sx={{ mr: 1 }} /> Data Integrity
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Automatically generate and assign unique Profile IDs to all student records that are missing one.
+                </Typography>
+                
+                {result.show && (
+                  <Alert severity={result.count > 0 ? "success" : "info"} sx={{ mb: 2 }}>
+                    {result.count > 0 
+                      ? `Successfully assigned Profile IDs to ${result.count} students.`
+                      : "All students already have valid Profile IDs."}
+                  </Alert>
+                )}
 
-              <Button
-                variant="contained"
-                onClick={handleFixProfileIds}
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
-                sx={{ borderRadius: 2, textTransform: "none" }}
-              >
-                Assign Missing Profile IDs
-              </Button>
-            </Paper>
-          </Grid>
+                <Button
+                  variant="contained"
+                  onClick={handleFixProfileIds}
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
+                  sx={{ borderRadius: 2, textTransform: "none" }}
+                >
+                  Assign Missing Profile IDs
+                </Button>
+              </Paper>
+            </Grid>
+
+            <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 4, borderRadius: 2, height: "100%" }}>
+                <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
+                  <Autorenew sx={{ mr: 1 }} /> Historical Migration
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Safely move classes, students, leaves, and attendance records from root collections into nested tenant collections for this school.
+                </Typography>
+                
+                <Button
+                  variant="outlined"
+                  component={Link}
+                  to="/admin"
+                  state={{ activeTab: 6 }}
+                  startIcon={<Autorenew />}
+                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: "bold" }}
+                >
+                  Go to Migration Tool
+                </Button>
+              </Paper>
+            </Grid>
+          </>
         )}
       </Grid>
     </Box>

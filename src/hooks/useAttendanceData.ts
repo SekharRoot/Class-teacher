@@ -91,7 +91,7 @@ export function useAttendanceData() {
     dateStr: string,
     skipCache = false,
   ) => {
-    // We now keep the full object (including notes etc.) in the state
+    // Keep the attendance mapping in state
     setAttendance(data);
     if (!skipCache) {
       localStorage.setItem(`attendance_${dateStr}`, JSON.stringify(data));

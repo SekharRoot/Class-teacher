@@ -13,6 +13,7 @@
 - **Hooks**: Logic for profile data management and actions is extracted into `src/hooks/useProfilesData.ts` and `src/hooks/useProfileActions.ts`.
 - **Utilities**: CSV import logic is centralized in `src/utils/csvImport.ts`.
 - **Navigation**: The floating navigation bar is extracted into `src/components/navigation/BottomNavBar.tsx`.
+- **Bottom Spacing & Layout Safety (CRITICAL)**: Always preserve a generous vertical white space buffer at the bottom of all views and pages (at least 120px to 160px using padding/margins or an explicit `<Box sx={{ height: { xs: 120, sm: 160 } }} />` spacer at the end of scrollable areas) to prevent layout content, action buttons, table rows, or list items from being obscured by the floating bottom navigation bar.
 - **Dashboard**: Specialized reports like the `DailyStatusReport` are modularized within `src/components/dashboard/`.
 
 ## Multi-Platform Development

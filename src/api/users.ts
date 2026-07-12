@@ -9,6 +9,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
 import { UserProfile, UserRole } from "../types";
 
 export const usersApi = {
@@ -20,8 +21,17 @@ export const usersApi = {
       const q = query(collection(db, "users"));
       const querySnapshot = await getDocs(q);
       const list: UserProfile[] = [];
+      const activeSchoolId = getActiveSchoolId();
       querySnapshot.forEach((doc) => {
-        list.push({ uid: doc.id, ...doc.data() } as UserProfile);
+        const data = doc.data();
+        const isGlobalAdmin =
+          data.role === "admin" ||
+          data.role === "owner" ||
+          data.email === "sekhar.root@gmail.com";
+
+        if (isGlobalAdmin || matchesActiveSchool(data.schoolId, activeSchoolId)) {
+          list.push({ uid: doc.id, ...data } as UserProfile);
+        }
       });
       return list;
     } catch (error) {
@@ -57,6 +67,7 @@ export const usersApi = {
         docRef,
         {
           uid,
+          schoolId: profile.schoolId || getActiveSchoolId(),
           ...profile,
           updatedAt: new Date().toISOString(),
         },

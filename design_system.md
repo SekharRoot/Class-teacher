@@ -1,8 +1,8 @@
-# Classroom Manager - Design System & Architecture
+# School Management System - Design System & Architecture
 
 ## Overview
 
-A modular, scalable React application for class teachers to manage students, track attendance, and handle leave requests.
+A modular, scalable React application for managing student profiles, class rosters, attendance, leave requests, and academic coordination.
 
 ## Architecture
 
@@ -48,13 +48,17 @@ A modular, scalable React application for class teachers to manage students, tra
 2. **Phase 2 (Upcoming)**:
    - Leave requests management.
    - Student roster management (Add/Edit/Remove students).
-3. **Phase 3 (Upcoming)**:
+3. **Phase 3 (Completed & Integrated)**:
    - Monthly attendance reports generation.
    - Export to CSV/PDF functionality.
+4. **Phase 4 (Database Administration)**:
+   - **Databases Management Tab**: Located within the **Admin Panel**, allowing administrators to monitor document metrics, export full school backups (as `.json` downloads), import/merge backups, and safely execute multi-step database deletion purges.
+   - **Dynamic Multi-tenant Support**: Restricts school administrators to viewing and managing only their respective school records, while allowing platform-wide owner roles (including the developer user `sekhar.root@gmail.com`) to manage all school database tenants, including the **Default School**.
 
 ## UI/UX Guidelines
 
 - **Mobile First**: All views must be responsive and optimized for mobile touch interactions (large buttons, readable text).
+- **Floating Navigation Safety**: All content-rendering screens MUST preserve a generous bottom spacing margin (at least 120px to 160px) or include a dedicated vertical spacing element at the bottom to ensure no interactive elements, tables, forms, or actions get hidden under the floating bottom navigation bar.
 - **Color Palette**: MUI default theme (Primary: Blue, Secondary: Pink/Purple), customized for a professional academic look.
 - **Typography**: Roboto (MUI default) for clean readability.
 - **Components**: Use MUI's DataGrid or List components for student rosters. Use Cards for dashboard summaries.

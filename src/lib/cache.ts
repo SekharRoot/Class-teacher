@@ -1,21 +1,28 @@
 import { get, set, del, keys } from "idb-keyval";
+import { getActiveSchoolId } from "./activeSchoolHelper";
 
 export const cache = {
   get: async (key: string) => {
-    return await get(key);
+    const schoolId = getActiveSchoolId();
+    return await get(`${schoolId}_${key}`);
   },
   set: async (key: string, value: any) => {
-    return await set(key, value);
+    const schoolId = getActiveSchoolId();
+    return await set(`${schoolId}_${key}`, value);
   },
   remove: async (key: string) => {
-    return await del(key);
+    const schoolId = getActiveSchoolId();
+    return await del(`${schoolId}_${key}`);
   },
   clearAllOffline: async () => {
     const allKeys = await keys();
     const offlineKeys = allKeys.filter(
       (k) =>
         typeof k === "string" &&
-        (k.startsWith("offline_") || k.startsWith("attendance_")),
+        (k.includes("_offline_") ||
+          k.includes("_attendance_") ||
+          k.startsWith("offline_") ||
+          k.startsWith("attendance_")),
     );
     await Promise.all(offlineKeys.map((k) => del(k)));
   },

@@ -8,6 +8,7 @@ import {
   writeBatch,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
 import { ClassItem } from "../types";
 
 let classesCache: ClassItem[] | null = null;
@@ -27,11 +28,13 @@ export const classesApi = {
       return classesCache;
     }
     try {
-      const classesQuery = query(collection(db, "classes"));
+      const activeSchoolId = getActiveSchoolId();
+      const classesQuery = query(collection(db, "schools", activeSchoolId, "classes"));
       const classesSnapshot = await getDocs(classesQuery);
       const list: ClassItem[] = [];
       classesSnapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as ClassItem);
+        const data = doc.data();
+        list.push({ id: doc.id, ...data } as ClassItem);
       });
 
       // Sort alphabetically by board, class level and section
@@ -61,11 +64,13 @@ export const classesApi = {
    */
   async create(classItem: ClassItem): Promise<void> {
     try {
-      const classRef = doc(db, "classes", classItem.id);
+      const activeSchoolId = classItem.schoolId || getActiveSchoolId();
+      const classRef = doc(db, "schools", activeSchoolId, "classes", classItem.id);
       await setDoc(classRef, {
         board: classItem.board,
         classStandard: classItem.classStandard,
         section: classItem.section,
+        schoolId: activeSchoolId,
         createdAt: classItem.createdAt || new Date().toISOString(),
       });
       this.invalidateCache();
@@ -83,13 +88,15 @@ export const classesApi = {
    */
   async update(classId: string, classItem: ClassItem): Promise<void> {
     try {
-      const classRef = doc(db, "classes", classId);
+      const activeSchoolId = classItem.schoolId || getActiveSchoolId();
+      const classRef = doc(db, "schools", activeSchoolId, "classes", classId);
       await setDoc(
         classRef,
         {
           board: classItem.board,
           classStandard: classItem.classStandard,
           section: classItem.section,
+          schoolId: activeSchoolId,
           createdAt: classItem.createdAt || new Date().toISOString(),
         },
         { merge: true },
@@ -105,7 +112,8 @@ export const classesApi = {
    */
   async delete(classId: string): Promise<void> {
     try {
-      await deleteDoc(doc(db, "classes", classId));
+      const activeSchoolId = getActiveSchoolId();
+      await deleteDoc(doc(db, "schools", activeSchoolId, "classes", classId));
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `classes/${classId}`);
@@ -118,12 +126,14 @@ export const classesApi = {
   async seedDemo(demoList: ClassItem[]): Promise<void> {
     try {
       const batch = writeBatch(db);
+      const activeSchoolId = getActiveSchoolId();
       demoList.forEach((demo) => {
-        const classRef = doc(db, "classes", demo.id);
+        const classRef = doc(db, "schools", activeSchoolId, "classes", demo.id);
         batch.set(classRef, {
           board: demo.board,
           classStandard: demo.classStandard,
           section: demo.section,
+          schoolId: demo.schoolId || activeSchoolId,
           createdAt: new Date().toISOString(),
         });
       });

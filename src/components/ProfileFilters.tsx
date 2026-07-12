@@ -20,6 +20,7 @@ interface ProfileFiltersProps {
   classes: ClassItem[];
   viewType: string;
   setViewType: (val: any) => void;
+  showUnassignedOption?: boolean;
 }
 
 export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
@@ -30,6 +31,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
   classes,
   viewType,
   setViewType,
+  showUnassignedOption = false,
 }) => {
   return (
     <Box sx={{ mb: 4 }}>
@@ -81,6 +83,9 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             sx={{ bgcolor: "background.paper", borderRadius: 2 }}
           >
             <MenuItem value="ALL">Show All Classes</MenuItem>
+            {showUnassignedOption && (
+              <MenuItem value="UNASSIGNED">Unassigned Students</MenuItem>
+            )}
             {classes.map((cls) => (
               <MenuItem key={cls.id} value={cls.id}>
                 {cls.board} {cls.classStandard} {cls.section}

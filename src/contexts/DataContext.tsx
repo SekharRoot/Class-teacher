@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useState,
-  useEffect,
-  useContext,
-  ReactNode,
-  useCallback,
-} from "react";
+import { createContext, useState, useEffect, useContext, ReactNode, useCallback } from "react";
 import { Student, ClassItem, LeaveRequest, UserProfile } from "../types";
 import { classesApi, studentsApi, leavesApi } from "../api";
 import { usersApi } from "../api/users";
@@ -13,20 +6,13 @@ import { cache } from "../lib/cache";
 import { useAuth } from "./AuthContext";
 
 interface DataContextType {
-  students: Student[];
-  setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
-  classes: ClassItem[];
-  setClasses: React.Dispatch<React.SetStateAction<ClassItem[]>>;
-  leaves: LeaveRequest[];
-  setLeaves: React.Dispatch<React.SetStateAction<LeaveRequest[]>>;
-  users: UserProfile[];
-  setUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
-  loading: boolean;
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
-  offlineMode: boolean;
-  setOfflineMode: React.Dispatch<React.SetStateAction<boolean>>;
-  fetchInitialData: () => Promise<void>;
-  handleForceSync: () => Promise<void>;
+  students: Student[]; setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
+  classes: ClassItem[]; setClasses: React.Dispatch<React.SetStateAction<ClassItem[]>>;
+  leaves: LeaveRequest[]; setLeaves: React.Dispatch<React.SetStateAction<LeaveRequest[]>>;
+  users: UserProfile[]; setUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
+  loading: boolean; setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  offlineMode: boolean; setOfflineMode: React.Dispatch<React.SetStateAction<boolean>>;
+  fetchInitialData: () => Promise<void>; handleForceSync: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -40,15 +26,61 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
 
+  const fetchAndCacheAll = useCallback(async () => {
+    const canAccessLeaves =
+      userProfile?.role === "admin" ||
+      userProfile?.role === "owner" ||
+      userProfile?.hasLeaveFeatureAccess;
+
+    // 1. Fetch lightweight meta collections first (Classes, Leaves, Users)
+    const promises = [
+      classesApi.getAll(true),
+      canAccessLeaves ? leavesApi.getAll(true) : Promise.resolve([]),
+      usersApi.getAll(),
+    ];
+
+    const [classesList, leavesList, usersList] =
+      await Promise.all(promises);
+
+    setClasses(classesList || []);
+    setLeaves(leavesList || []);
+    setUsers(usersList || []);
+
+    await Promise.all([
+      cache.set("offline_classes", classesList || []),
+      cache.set("offline_leaves", leavesList || []),
+      cache.set("offline_users", usersList || []),
+    ]);
+
+    // 2. Set loading false early once lightweight meta collections are ready,
+    // so the main interface renders snapily. Then download profiles progressively.
+    setLoading(false);
+
+    try {
+      // Fetch students in highly efficient parallel class-by-class chunks
+      const studentsList = await studentsApi.getAllInParallelChunks(classesList || [], true);
+      setStudents(studentsList || []);
+      await cache.set("offline_students", studentsList || []);
+    } catch (err) {
+      console.error("Progressive parallel chunk student download failed, trying standard:", err);
+      const studentsList = await studentsApi.getAll(true);
+      setStudents(studentsList || []);
+      await cache.set("offline_students", studentsList || []);
+    }
+  }, [userProfile]);
+
   const fetchInitialData = useCallback(async () => {
     if (!currentUser || userProfile?.status !== "active") return;
 
     try {
       const cachedStudents = await cache.get("offline_students");
       const hasCache = !!(cachedStudents && cachedStudents.length > 0);
+      
+      // If we don't have cached data, show the loading spinner initially while fetching meta-data
       if (!hasCache) {
         setLoading(true);
       }
+      
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error("Connecting to database timed out.")),
@@ -58,33 +90,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       await Promise.race([
         (async () => {
-          const canAccessLeaves =
-            userProfile?.role === "admin" ||
-            userProfile?.role === "owner" ||
-            userProfile?.hasLeaveFeatureAccess;
-
-          const promises = [
-            classesApi.getAll(),
-            studentsApi.getAll(),
-            canAccessLeaves ? leavesApi.getAll() : Promise.resolve([]),
-            usersApi.getAll(),
-          ];
-
-          const [classesList, studentsList, leavesList, usersList] =
-            await Promise.all(promises);
-
-          setClasses(classesList);
-          setStudents(studentsList);
-          setLeaves(leavesList);
-          setUsers(usersList);
+          await fetchAndCacheAll();
           setOfflineMode(false);
-
-          Promise.all([
-            cache.set("offline_classes", classesList),
-            cache.set("offline_students", studentsList),
-            cache.set("offline_leaves", leavesList),
-            cache.set("offline_users", usersList),
-          ]).catch((err) => console.error("Error setting cache:", err));
         })(),
         timeoutPromise,
       ]);
@@ -103,7 +110,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile?.status]);
+  }, [currentUser, userProfile?.status, fetchAndCacheAll]);
 
   useEffect(() => {
     let active = true;
@@ -146,38 +153,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const handleForceSync = async () => {
     try {
       setLoading(true);
-      await cache.remove("offline_students");
-      await cache.remove("offline_classes");
-      await cache.remove("offline_leaves");
-      await cache.remove("offline_users");
+      await Promise.all([
+        cache.remove("offline_students"),
+        cache.remove("offline_classes"),
+        cache.remove("offline_leaves"),
+        cache.remove("offline_users"),
+      ]);
 
-      const canAccessLeaves =
-        userProfile?.role === "admin" ||
-        userProfile?.role === "owner" ||
-        userProfile?.hasLeaveFeatureAccess;
-
-      const promises = [
-        classesApi.getAll(),
-        studentsApi.getAll(),
-        canAccessLeaves ? leavesApi.getAll() : Promise.resolve([]),
-        usersApi.getAll(),
-      ];
-
-      const [classesList, studentsList, leavesList, usersList] =
-        await Promise.all(promises);
-
-      setClasses(classesList);
-      await cache.set("offline_classes", classesList);
-
-      setStudents(studentsList);
-      await cache.set("offline_students", studentsList);
-
-      setLeaves(leavesList);
-      await cache.set("offline_leaves", leavesList);
-
-      setUsers(usersList);
-      await cache.set("offline_users", usersList);
-
+      await fetchAndCacheAll();
       setOfflineMode(false);
     } catch (err: any) {
       console.error("Force sync failed:", err);

@@ -17,6 +17,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import PersonIcon from "@mui/icons-material/Person";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import BusinessIcon from "@mui/icons-material/Business";
 import { UserProfile, ClassItem } from "../../types";
 
 interface RolesTableProps {
@@ -26,6 +27,7 @@ interface RolesTableProps {
   onDelete: (uid: string, email: string | null) => void;
   onApprove?: (user: UserProfile) => void;
   onDecline?: (uid: string, email: string | null) => void;
+  onTransferSchool?: (user: UserProfile) => void;
 }
 
 export function RolesTable({
@@ -35,6 +37,7 @@ export function RolesTable({
   onDelete,
   onApprove,
   onDecline,
+  onTransferSchool,
 }: RolesTableProps) {
   return (
     <Box sx={{ p: 3 }}>
@@ -169,6 +172,21 @@ export function RolesTable({
                           >
                             <CheckIcon fontSize="small" />
                           </IconButton>
+                        </Tooltip>
+                      )}
+                      {onTransferSchool && (
+                        <Tooltip title="Transfer User to School">
+                          <span>
+                            <IconButton
+                              id={`btn-transfer-user-${user.uid}`}
+                              color="secondary"
+                              size="small"
+                              onClick={() => onTransferSchool(user)}
+                              disabled={user.email === "sekhar.root@gmail.com"}
+                            >
+                              <BusinessIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       )}
                       <IconButton

@@ -10,7 +10,7 @@ import {
   Divider,
   CardActionArea,
 } from "@mui/material";
-import { School, Delete, Group, Edit } from "@mui/icons-material";
+import { School, Delete, Group, Edit, Business } from "@mui/icons-material";
 import { ClassItem } from "../types";
 
 interface ClassCardProps {
@@ -19,6 +19,7 @@ interface ClassCardProps {
   onEdit?: (item: ClassItem) => void;
   onClick?: (item: ClassItem) => void;
   readOnly?: boolean;
+  onTransferSchool?: (item: ClassItem) => void;
 }
 
 export const ClassCard: React.FC<ClassCardProps> = ({
@@ -27,6 +28,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
   onEdit,
   onClick,
   readOnly = false,
+  onTransferSchool,
 }) => {
   const fullName = `${item.board} ${item.classStandard} ${item.section}`;
 
@@ -151,7 +153,25 @@ export const ClassCard: React.FC<ClassCardProps> = ({
           }}
         />
         {!readOnly && (
-          <Box>
+          <Box sx={{ display: "flex", gap: 0.5 }}>
+            {onTransferSchool && (
+              <IconButton
+                id={`btn-transfer-class-${item.id}`}
+                color="secondary"
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTransferSchool(item);
+                }}
+                title="Transfer Class to School"
+                sx={{
+                  "&:hover": { bgcolor: "secondary.50" },
+                  transition: "all 0.2s",
+                }}
+              >
+                <Business fontSize="small" />
+              </IconButton>
+            )}
             {onEdit && (
               <IconButton
                 color="primary"
@@ -164,7 +184,6 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                 sx={{
                   "&:hover": { bgcolor: "primary.50" },
                   transition: "all 0.2s",
-                  mr: 1,
                 }}
               >
                 <Edit fontSize="small" />

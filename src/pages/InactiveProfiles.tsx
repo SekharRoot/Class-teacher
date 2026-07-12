@@ -11,6 +11,11 @@ import {
   Alert,
   CircularProgress,
   Snackbar,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   RestoreFromTrash,
@@ -24,12 +29,17 @@ import { useAuth } from "../contexts/AuthContext";
 import { StudentCard } from "../components/StudentCard";
 import { studentsApi } from "../api";
 import { Student } from "../types";
+import { cache } from "../lib/cache";
 
 export default function InactiveProfiles() {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
-  const { students, classes, loading, fetchInitialData } = useData();
+  const { students, classes, loading, fetchInitialData, setStudents } = useData();
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
+  
+  // Dialog state for permanent deletion confirmation
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState<{ id: string; name: string } | null>(null);
 
   const inactiveStudents = students.filter(s => s.isActive === false);
 
@@ -52,21 +62,41 @@ export default function InactiveProfiles() {
     try {
       await studentsApi.restore(studentId);
       setToast({ open: true, message: "Profile restored successfully!", severity: "success" });
+      
+      // Optimistically update the state & cache
+      const updatedList = students.map((s) => s.id === studentId ? { ...s, isActive: true } : s);
+      setStudents(updatedList);
+      await cache.set("offline_students", updatedList);
+
       fetchInitialData();
     } catch (error) {
       setToast({ open: true, message: "Failed to restore profile.", severity: "error" });
     }
   };
 
-  const handlePermanentDelete = async (studentId: string, name: string) => {
-    if (window.confirm(`Are you sure you want to PERMANENTLY delete ${name}? This action cannot be undone and all data will be lost forever.`)) {
-      try {
-        await studentsApi.permanentlyDelete(studentId);
-        setToast({ open: true, message: "Profile deleted permanently!", severity: "success" });
-        fetchInitialData();
-      } catch (error) {
-        setToast({ open: true, message: "Failed to delete profile permanently.", severity: "error" });
-      }
+  const handleOpenDeleteConfirm = (studentId: string, name: string) => {
+    setStudentToDelete({ id: studentId, name });
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmPermanentDelete = async () => {
+    if (!studentToDelete) return;
+    setDeleteConfirmOpen(false);
+    const targetId = studentToDelete.id;
+    try {
+      await studentsApi.permanentlyDelete(targetId);
+      setToast({ open: true, message: "Profile deleted permanently!", severity: "success" });
+      
+      // Optimistically update local state & cache
+      const updatedList = students.filter((s) => s.id !== targetId);
+      setStudents(updatedList);
+      await cache.set("offline_students", updatedList);
+
+      fetchInitialData();
+    } catch (error) {
+      setToast({ open: true, message: "Failed to delete profile permanently.", severity: "error" });
+    } finally {
+      setStudentToDelete(null);
     }
   };
 
@@ -141,7 +171,7 @@ export default function InactiveProfiles() {
                   <Tooltip title="Permanently Delete">
                     <IconButton
                       color="error"
-                      onClick={() => handlePermanentDelete(student.id, `${student.firstName} ${student.lastName}`)}
+                      onClick={() => handleOpenDeleteConfirm(student.id, `${student.firstName} ${student.lastName}`)}
                       sx={{ 
                         bgcolor: "error.50",
                         "&:hover": { bgcolor: "error.100" },
@@ -157,6 +187,42 @@ export default function InactiveProfiles() {
           ))}
         </Box>
       )}
+
+      {/* Custom MUI Confirmation Dialog instead of restricted window.confirm */}
+      <Dialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        fullWidth
+        maxWidth="xs"
+      >
+        <DialogTitle sx={{ fontWeight: "bold", pb: 1 }}>
+          Confirm Permanent Deletion
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to PERMANENTLY delete <strong>{studentToDelete?.name}</strong>? This action cannot be undone and all associated student data will be lost forever.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button 
+            onClick={() => setDeleteConfirmOpen(false)} 
+            variant="outlined" 
+            color="inherit"
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleConfirmPermanentDelete} 
+            variant="contained" 
+            color="error"
+            startIcon={<DeleteForever />}
+            sx={{ borderRadius: 2, textTransform: "none" }}
+          >
+            Permanently Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={toast.open}

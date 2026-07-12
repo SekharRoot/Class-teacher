@@ -54,11 +54,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [historyLoading, setHistoryLoading] = React.useState(false);
   const [studentHistory, setStudentHistory] = React.useState<any[]>([]);
-  const [showNotes, setShowNotes] = React.useState(false);
 
   const rawStatusValue = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.status as string) : (rawStatus as string);
   const status = rawStatusValue as AttendanceStatus;
-  const notes = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.notes as string) : "";
 
   const timerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
   const isLongPress = React.useRef(false);
@@ -136,15 +134,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
       return;
     }
     onMarkStatus(student.id, newStatus);
-    if (newStatus === 'absent') {
-      setShowNotes(true);
-    } else {
-      setShowNotes(false);
-    }
-  };
-
-  const handleNotesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onMarkStatus(student.id, { status, notes: e.target.value });
   };
 
   return (
@@ -269,31 +258,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 )}
               </ToggleButton>
             </ToggleButtonGroup>
-
-            {(status === "absent" || showNotes || notes) && (
-              <TextField
-                size="small"
-                placeholder="Reason..."
-                value={notes || ""}
-                onChange={handleNotesChange}
-                disabled={disabled}
-                sx={{
-                  mt: 0.5,
-                  width: "100%",
-                  maxWidth: 150,
-                  "& .MuiInputBase-root": { fontSize: "0.75rem", py: 0 },
-                }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EditIcon sx={{ fontSize: 12 }} />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-            )}
           </Box>
         </TableCell>
       </TableRow>

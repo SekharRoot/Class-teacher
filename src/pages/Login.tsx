@@ -4,11 +4,13 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
+  signOut,
 } from "firebase/auth";
 import { auth } from "../lib/firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { usersApi } from "../api/users";
-import { UserRole } from "../types";
+import { UserRole, School } from "../types";
+import { schoolsApi } from "../api/schools";
 import {
   Box,
   Button,
@@ -43,6 +45,9 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<UserRole>("class_teacher");
+  const [schools, setSchools] = useState<School[]>([]);
+  const [schoolId, setSchoolId] = useState<string>("");
+  const [schoolName, setSchoolName] = useState<string>("");
   const [error, setError] = useState("");
   const [resetMessage, setResetMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,6 +59,21 @@ export default function Login() {
       navigate("/");
     }
   }, [currentUser, navigate]);
+
+  useEffect(() => {
+    schoolsApi.getAll().then((list) => {
+      // Filter out inactive schools for login and registration
+      const activeSchools = list.filter((s) => s.isActive !== false);
+      setSchools(activeSchools);
+      if (activeSchools.length > 0) {
+        setSchoolId(activeSchools[0].id);
+        setSchoolName(activeSchools[0].name);
+      } else {
+        setSchoolId("default_school");
+        setSchoolName("Default School");
+      }
+    });
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,14 +113,48 @@ export default function Login() {
             role: isOwnerEmail ? "owner" : role,
             status: isOwnerEmail ? "active" : "pending",
             displayName: displayName || email.split("@")[0],
+            schoolId: schoolId || "default_school",
+            schoolName: schoolName || "Default School",
           }),
         );
 
         await createUserWithEmailAndPassword(auth, email, password);
         // Navigation is handled by the useEffect above
       } else {
-        await signInWithEmailAndPassword(auth, email, password);
-        // Navigation is handled by the useEffect above
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Fetch user profile to validate their school assignment
+        const profile = await usersApi.getProfile(user.uid);
+        if (profile) {
+          const isOwnerOrAdmin = profile.role === "owner" || profile.role === "admin";
+          
+          if (!isOwnerOrAdmin) {
+            // Check if account schoolId matches the chosen login schoolId
+            if (schoolId && profile.schoolId && profile.schoolId !== schoolId) {
+              await signOut(auth);
+              setError(`Your account belongs to "${profile.schoolName || "another school"}" and cannot log into "${schoolName}". Please select the correct school.`);
+              setLoading(false);
+              return;
+            }
+
+            // Check if their school is inactive
+            const allSchs = await schoolsApi.getAll();
+            const chosenSch = allSchs.find((s) => s.id === (profile.schoolId || schoolId));
+            if (chosenSch && chosenSch.isActive === false) {
+              await signOut(auth);
+              setError(`Your school "${chosenSch.name}" is currently inactive. Please contact your administrator.`);
+              setLoading(false);
+              return;
+            }
+          } else {
+            // Owners/Admins can view any school's context by logging in with it!
+            localStorage.setItem("adminSelectedSchoolId", schoolId || "default_school");
+            localStorage.setItem("adminSelectedSchoolName", schoolName || "Default School");
+          }
+        }
+        localStorage.setItem("loginSelectedSchoolId", schoolId || "default_school");
+        localStorage.setItem("loginSelectedSchoolName", schoolName || "Default School");
       }
     } catch (err: any) {
       setError(
@@ -258,8 +312,45 @@ export default function Login() {
                     Academic Coordinator
                   </MenuItem>
                   <MenuItem value="principal">Principal</MenuItem>
+                  <MenuItem value="school_admin">School Admin</MenuItem>
                   <MenuItem value="admin">Admin</MenuItem>
                   <MenuItem value="owner">Owner</MenuItem>
+                </Select>
+              </FormControl>
+            )}
+
+            {!isForgotPassword && (
+              <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}>
+                <InputLabel id="school-select-label">Select School</InputLabel>
+                <Select
+                  labelId="school-select-label"
+                  id="school"
+                  value={schoolId || "default_school"}
+                  label="Select School"
+                  onChange={(e) => {
+                    const selId = e.target.value;
+                    setSchoolId(selId);
+                    if (selId === "default_school") {
+                      setSchoolName("Default School");
+                    } else {
+                      const found = schools.find((s) => s.id === selId);
+                      if (found) {
+                        setSchoolName(found.name);
+                      }
+                    }
+                  }}
+                >
+                  <MenuItem value="default_school">Default School</MenuItem>
+                  {schoolId && schoolId !== "default_school" && !schools.some((s) => s.id === schoolId) && (
+                    <MenuItem key={schoolId} value={schoolId} style={{ display: "none" }}>
+                      {schoolName || "Loading..."}
+                    </MenuItem>
+                  )}
+                  {schools.map((sch) => (
+                    <MenuItem key={sch.id} value={sch.id}>
+                      {sch.name}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
             )}

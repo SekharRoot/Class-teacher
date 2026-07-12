@@ -19,20 +19,23 @@ import {
   FileUpload,
   PlaylistAddCheck,
   SwapHoriz,
+  Business,
 } from "@mui/icons-material";
-import { studentsApi } from "../api";
-import { Student } from "../types";
+import { studentsApi, schoolsApi } from "../api";
+import { Student, School } from "../types";
 import { imageCache } from "../utils/imageCache";
 import { StudentCard } from "../components/StudentCard";
 import { StudentDetailDialog } from "../components/StudentDetailDialog";
 import { StudentFormDialog } from "../components/StudentFormDialog";
 import { StudentDeleteDialog } from "../components/StudentDeleteDialog";
 import { TransferClassDialog } from "../components/TransferClassDialog";
+import { TransferSchoolDialog } from "../components/TransferSchoolDialog";
 import { ProfileFilters } from "../components/ProfileFilters";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { useProfileActions } from "../hooks/useProfileActions";
 import { processProfileImport } from "../utils/csvImport";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Profiles() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -40,6 +43,26 @@ export default function Profiles() {
   const [massDeleteDialogOpen, setMassDeleteDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+
+  const { userProfile } = useAuth();
+  const [transferSchoolDialogOpen, setTransferSchoolDialogOpen] = useState(false);
+  const [schoolsList, setSchoolsList] = useState<School[]>([]);
+  const [isSchoolTransferring, setIsSchoolTransferring] = useState(false);
+
+  const isOwnerOrSuperAdmin =
+    userProfile?.role === "owner" ||
+    userProfile?.role === "admin" ||
+    userProfile?.email === "sekhar.root@gmail.com";
+
+  useEffect(() => {
+    if (isOwnerOrSuperAdmin) {
+      schoolsApi.getAll().then((data) => {
+        setSchoolsList(data);
+      }).catch((err) => {
+        console.error("Error loading schools in profiles", err);
+      });
+    }
+  }, [isOwnerOrSuperAdmin]);
 
   useEffect(() => {
     // Run image cache cleanup on mount (once a week internally)
@@ -142,6 +165,22 @@ export default function Profiles() {
     }
   }, [selectedIds, showToast, fetchInitialData]);
 
+  const handleTransferSchool = useCallback(async (targetSchoolId: string) => {
+    setIsSchoolTransferring(true);
+    try {
+      await studentsApi.transferSchool(selectedIds, targetSchoolId);
+      showToast(`Successfully transferred ${selectedIds.length} students to the target school!`, "success");
+      setSelectedIds([]);
+      setTransferSchoolDialogOpen(false);
+      fetchInitialData();
+    } catch (error) {
+      console.error("School transfer error", error);
+      showToast("Failed to transfer students to school.", "error");
+    } finally {
+      setIsSchoolTransferring(false);
+    }
+  }, [selectedIds, showToast, fetchInitialData]);
+
   const handleDeleteProfile = useCallback(async (studentId: string, name: string) => {
     setStudentToDelete({ id: studentId, name });
     setDeleteStep(1);
@@ -163,9 +202,10 @@ export default function Profiles() {
   }, []);
 
   const filteredStudents = useMemo(() => students.filter((s) => {
-    // Role-based filtering
+    // Role-based filtering: permit authorized classes, or unassigned students for admins/owners/principals
     const isClassPermitted =
-      s.classId && authorizedClassIds.includes(s.classId);
+      (s.classId && authorizedClassIds.includes(s.classId)) ||
+      ((!s.classId || s.classId === "") && (isOwnerOrSuperAdmin || userProfile?.role === "principal"));
     if (!isClassPermitted) return false;
 
     // Filter out soft-deleted students
@@ -180,7 +220,7 @@ export default function Profiles() {
     const classInfo = classes.find((c) => c.id === s.classId);
     const classString = classInfo
       ? `${classInfo.board} ${classInfo.classStandard} ${classInfo.section}`.toLowerCase()
-      : "";
+      : "unassigned";
 
     const matchesSearch =
       fullName.includes(term) ||
@@ -188,9 +228,14 @@ export default function Profiles() {
       mother.includes(term) ||
       roll.includes(term) ||
       classString.includes(term);
-    const matchesFilter = classFilter === "ALL" || s.classId === classFilter;
+
+    const matchesFilter =
+      classFilter === "ALL" ||
+      (classFilter === "UNASSIGNED" && (!s.classId || s.classId === "")) ||
+      s.classId === classFilter;
+
     return matchesSearch && matchesFilter;
-  }), [students, authorizedClassIds, searchQuery, classes, classFilter]);
+  }), [students, authorizedClassIds, searchQuery, classes, classFilter, isOwnerOrSuperAdmin, userProfile?.role]);
 
   const handleToggleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
@@ -385,6 +430,7 @@ export default function Profiles() {
         classes={filteredClasses}
         viewType={viewType}
         setViewType={setViewType}
+        showUnassignedOption={isOwnerOrSuperAdmin || userProfile?.role === "principal"}
       />
 
       {editMode && (
@@ -401,6 +447,19 @@ export default function Profiles() {
           />
           {selectedIds.length > 0 && (
             <Box sx={{ display: "flex", gap: 1 }}>
+              {isOwnerOrSuperAdmin && (
+                <Button
+                  id="btn-transfer-school"
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<Business />}
+                  onClick={() => setTransferSchoolDialogOpen(true)}
+                  disabled={isSchoolTransferring}
+                  sx={{ borderRadius: 2, textTransform: "none" }}
+                >
+                  Transfer School
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 color="primary"
@@ -564,6 +623,16 @@ export default function Profiles() {
         classes={classes}
         selectedCount={selectedIds.length}
       />
+
+      {isOwnerOrSuperAdmin && (
+        <TransferSchoolDialog
+          open={transferSchoolDialogOpen}
+          onClose={() => setTransferSchoolDialogOpen(false)}
+          onTransfer={handleTransferSchool}
+          schools={schoolsList}
+          selectedCount={selectedIds.length}
+        />
+      )}
 
       <Snackbar
         open={!!toastMessage}

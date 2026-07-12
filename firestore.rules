@@ -36,11 +36,46 @@ service cloud.firestore {
     // Classroom manager collections
     // Only active users can read and write standard collections for now.
     // In a production app, you might restrict this further (e.g. teachers only writing to their own class)
+    match /schools/{schoolId} {
+      // Anyone can read schools (necessary for the registration dropdown)
+      allow read: if true;
+      // Only owners/admins can write (add/remove) schools
+      allow write: if isAdminOrOwner();
+
+      match /attendance_summaries/{date} {
+        allow read, write: if isActive() || isAdminOrOwner();
+      }
+
+      match /classes/{classId} {
+        allow read, write: if isActive() || isAdminOrOwner();
+
+        match /students/{studentId} {
+          allow read, write: if isActive() || isAdminOrOwner();
+        }
+
+        match /leaves/{leaveId} {
+          allow read, write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+        }
+
+        match /attendance/{date} {
+          allow read, write: if isActive() || isAdminOrOwner();
+        }
+      }
+    }
+
     match /students/{studentId} {
       allow read, write: if isActive() || isAdminOrOwner();
     }
     
     match /attendance/{date} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+
+    match /attendance_summaries/{date} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+
+    match /class_daily_attendance/{docId} {
       allow read, write: if isActive() || isAdminOrOwner();
     }
     

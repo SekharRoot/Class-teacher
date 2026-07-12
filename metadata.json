@@ -1,6 +1,6 @@
 {
-  "name": "Classroom Manager",
-  "description": "A productivity app for teachers to track attendance, leave requests, and manage their classroom.",
+  "name": "School Management System",
+  "description": "A comprehensive School Management System for managing student profiles, class rosters, attendance, leave requests, and academic coordination.",
   "requestFramePermissions": ["camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

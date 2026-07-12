@@ -5,17 +5,66 @@ import {
   persistentLocalCache,
   persistentMultipleTabManager,
   setLogLevel,
+  getFirestore,
 } from "firebase/firestore";
+
+// Suppress harmless Firebase SDK clock skew warnings that can happen under rapid updates or local clock mismatches
+const originalError = console.error;
+const originalWarn = console.warn;
+
+console.error = function (...args: any[]) {
+  const msg = args.map((arg) => (arg instanceof Error ? arg.message : String(arg))).join(" ");
+  if (msg.includes("Detected an update time that is in the future")) {
+    return;
+  }
+  originalError.apply(console, args);
+};
+
+console.warn = function (...args: any[]) {
+  const msg = args.map((arg) => (arg instanceof Error ? arg.message : String(arg))).join(" ");
+  if (msg.includes("Detected an update time that is in the future")) {
+    return;
+  }
+  originalWarn.apply(console, args);
+};
 
 // Get config from generated firebase-applet-config.json via import or fetch.
 // In the AI Studio preview environment, this is injected by the platform.
 import firebaseConfig from "../../firebase-applet-config.json";
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+export { firebaseConfig };
+
+const firestoreInstanceCache: Record<string, any> = {};
+
+export function getFirestoreForDbId(databaseId: string): any {
+  const cacheKey = databaseId || "(default)";
+  if (firestoreInstanceCache[cacheKey]) {
+    return firestoreInstanceCache[cacheKey];
+  }
+  try {
+    const secondaryDb = initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    }, cacheKey);
+    firestoreInstanceCache[cacheKey] = secondaryDb;
+    return secondaryDb;
+  } catch (error) {
+    console.warn(`Dynamic initialization of firestore for DB ID '${cacheKey}' failed or already exists. Attempting fallback.`, error);
+    // Fallback: use getFirestore to retrieve or create it
+    try {
+      const instance = getFirestore(app, cacheKey);
+      firestoreInstanceCache[cacheKey] = instance;
+      return instance;
+    } catch (fallbackError) {
+      console.error("Fallback getFirestore failed", fallbackError);
+      return rawDb;
+    }
+  }
+}
 
 // Use custom databaseId if specified in config, otherwise default
-export const db = initializeFirestore(
+export const rawDb = initializeFirestore(
   app,
   {
     localCache: persistentLocalCache({
@@ -25,6 +74,11 @@ export const db = initializeFirestore(
   },
   (firebaseConfig as any).firestoreDatabaseId || "(default)",
 );
+
+import { getDbInstanceForSchool } from "./databaseConfig";
+import { getActiveSchoolId } from "./activeSchoolHelper";
+
+export const db = getDbInstanceForSchool(getActiveSchoolId(), rawDb);
 
 setLogLevel("error");
 
