@@ -51,23 +51,24 @@ async function startServer() {
     const indexPath = import_path.default.join(distPath, "index.html");
     if (!import_fs.default.existsSync(indexPath)) {
       console.error(`CRITICAL ERROR: index.html NOT found at ${indexPath}`);
-      const altPath = import_path.default.join(process.cwd(), "dist", "index.html");
-      console.log(`Checking alternate path: ${altPath}`);
-      if (import_fs.default.existsSync(altPath)) {
-        console.log("Found index.html at alternate path!");
-      }
     } else {
       console.log("Confirmed: index.html exists.");
     }
-    app.use(import_express.default.static(distPath));
+    app.use(import_express.default.static(distPath, { index: false }));
     app.get("*", (req, res) => {
       if (req.path.startsWith("/api/")) {
         return res.status(404).json({ error: "API route not found" });
       }
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+      if (!import_fs.default.existsSync(indexPath)) {
+        return res.status(500).send(`Application Error: Build artifacts not found at ${indexPath}. Please rebuild.`);
+      }
       res.sendFile(indexPath, (err) => {
         if (err) {
           console.error(`Error sending index.html from ${indexPath}:`, err);
-          res.status(500).send("Application Error: Build artifacts not found.");
+          res.status(500).send("Application Error: Failed to serve index.html.");
         }
       });
     });
