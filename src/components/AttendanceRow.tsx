@@ -34,8 +34,8 @@ import { attendanceApi } from "../api";
 
 interface AttendanceRowProps {
   student: Student;
-  status: any | undefined;
-  onMarkStatus: (studentId: string, status: any | null) => void;
+  status: AttendanceStatus | undefined | null;
+  onMarkStatus: (studentId: string, status: AttendanceStatus | null) => void;
   index: number;
   disabled?: boolean;
   leavesList?: LeaveRequest[];
@@ -44,7 +44,7 @@ interface AttendanceRowProps {
 
 const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   student,
-  status: rawStatus,
+  status,
   onMarkStatus,
   index,
   disabled = false,
@@ -54,9 +54,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [historyLoading, setHistoryLoading] = React.useState(false);
   const [studentHistory, setStudentHistory] = React.useState<any[]>([]);
-
-  const rawStatusValue = typeof rawStatus === 'object' && rawStatus !== null ? (rawStatus.status as string) : (rawStatus as string);
-  const status = rawStatusValue as AttendanceStatus;
 
   const timerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
   const isLongPress = React.useRef(false);

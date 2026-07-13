@@ -48,6 +48,7 @@ import { LeaveRequest } from "../types";
 import { TeacherDashboard } from "../components/dashboard/TeacherDashboard";
 import { OversightDashboard } from "../components/dashboard/OversightDashboard";
 import { useData } from "../contexts/DataContext";
+import { DashboardSkeleton } from "../components/dashboard/DashboardSkeleton";
 
 interface ClassStat {
   classId: string;
@@ -303,18 +304,7 @@ export default function Dashboard() {
   }, [classStats]);
 
   if (loading || loadingScope) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "50vh",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
+    return <DashboardSkeleton />;
   }
 
   // --- RENDERING TEACHER DASHBOARD VIEW ---

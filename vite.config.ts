@@ -7,7 +7,8 @@ import { defineConfig } from "vite";
 export default defineConfig(() => {
   const isGitHubActions = process.env.GITHUB_ACTIONS === "true";
   const repoName = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split("/")[1] : "";
-  const base = isGitHubActions && repoName ? `/${repoName}/` : "/";
+  const isCloudRun = !!process.env.K_SERVICE;
+  const base = (isGitHubActions && repoName && !isCloudRun) ? `/${repoName}/` : "/";
 
   return {
     base,
@@ -43,6 +44,16 @@ export default defineConfig(() => {
     ],
     build: {
       outDir: "dist",
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'mui-vendor': ['@mui/material', '@mui/icons-material'],
+            'firebase-vendor': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
+            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          }
+        }
+      },
+      chunkSizeWarningLimit: 1000,
     },
     resolve: {
       alias: {

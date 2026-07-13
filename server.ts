@@ -35,23 +35,18 @@ async function startServer() {
   } else {
     // In production, we serve from the 'dist' directory
     const distPath = path.join(process.cwd(), "dist");
+      
     console.log(`Production mode: Serving static files from: ${distPath}`);
     
     // Verify dist directory and index.html
     const indexPath = path.join(distPath, "index.html");
     if (!fs.existsSync(indexPath)) {
       console.error(`CRITICAL ERROR: index.html NOT found at ${indexPath}`);
-      // Also check one level up just in case of different build structure
-      const altPath = path.join(process.cwd(), "dist", "index.html");
-      console.log(`Checking alternate path: ${altPath}`);
-      if (fs.existsSync(altPath)) {
-        console.log("Found index.html at alternate path!");
-      }
     } else {
       console.log("Confirmed: index.html exists.");
     }
 
-    app.use(express.static(distPath));
+    app.use(express.static(distPath, { index: false }));
     
     // SPA fallback
     app.get("*", (req, res) => {
@@ -60,10 +55,18 @@ async function startServer() {
         return res.status(404).json({ error: "API route not found" });
       }
 
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      if (!fs.existsSync(indexPath)) {
+        return res.status(500).send(`Application Error: Build artifacts not found at ${indexPath}. Please rebuild.`);
+      }
+
       res.sendFile(indexPath, (err) => {
         if (err) {
           console.error(`Error sending index.html from ${indexPath}:`, err);
-          res.status(500).send("Application Error: Build artifacts not found.");
+          res.status(500).send("Application Error: Failed to serve index.html.");
         }
       });
     });

@@ -235,7 +235,11 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                   <AttendanceRow
                     key={student.id}
                     student={student}
-                    status={attendance[student.id]}
+                    status={
+                      typeof attendance[student.id] === 'object' && attendance[student.id] !== null 
+                        ? attendance[student.id].status 
+                        : attendance[student.id]
+                    }
                     onMarkStatus={onMarkAttendance}
                     index={idx}
                     disabled={readOnly}

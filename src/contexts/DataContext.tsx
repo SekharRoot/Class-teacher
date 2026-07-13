@@ -136,11 +136,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       // 2. Sequentially trigger server fetch in background to download fresh data
-      // This completely eliminates any race condition where the old cache overwrites fresh server data.
-      try {
-        await fetchInitialData();
-      } catch (err) {
-        console.error("Background initial load sync failed:", err);
+      // We use a throttle check to avoid hammering the server if the user switches tabs frequently
+      const lastSync = parseInt(localStorage.getItem("last_global_sync") || "0");
+      const now = Date.now();
+      const throttleMs = 60000; // 1 minute throttle
+
+      if (now - lastSync > throttleMs) {
+        try {
+          await fetchInitialData();
+          localStorage.setItem("last_global_sync", now.toString());
+        } catch (err) {
+          console.error("Background initial load sync failed:", err);
+        }
       }
     }
 

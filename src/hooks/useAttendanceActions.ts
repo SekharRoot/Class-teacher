@@ -86,6 +86,7 @@ export function useAttendanceActions(
       return;
     }
     try {
+      setLoading(true);
       const enriched = updateLocalCache(attendance);
       await attendanceApi.saveByDate(dateString, enriched);
       localStorage.removeItem(`unsynced_${dateString}`);
@@ -94,8 +95,10 @@ export function useAttendanceActions(
     } catch (err) {
       console.error(err);
       showToast("Failed to synchronize with server.", "error");
+    } finally {
+      setLoading(false);
     }
-  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache]);
+  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache, setLoading]);
 
   const clearAllData = useCallback(async () => {
     if (
