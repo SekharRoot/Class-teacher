@@ -1,10 +1,8 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
-import { fileURLToPath } from 'url';
 
-const currentFilename = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : (typeof __filename !== 'undefined' ? __filename : '');
-const currentDirname = currentFilename ? path.dirname(currentFilename) : (typeof __dirname !== 'undefined' ? __dirname : process.cwd());
+const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 
 async function startServer() {
   const app = express();
@@ -38,33 +36,48 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // In production, we serve from the 'dist' directory
-    // We try to find index.html in several plausible locations to be resilient to different deployment structures
-    const possiblePaths = [
-      path.join(process.cwd(), "dist"),
-      path.join(currentDirname), // Often /app/dist
-      path.join(process.cwd(), "applet", "dist"),
+    // We try to find index.html in several plausible locations
+    const possibleIndexLocations = [
+      path.join(process.cwd(), "dist", "index.html"),
+      path.join(process.cwd(), "index.html"),
+      path.join(currentDirname, "index.html"),
+      path.join(currentDirname, "..", "index.html"),
+      path.join("/app/applet/dist/index.html"),
+      path.join("/app/dist/index.html"),
     ];
 
     let indexPath = "";
-    for (const p of possiblePaths) {
-      const candidate = path.join(p, "index.html");
-      if (fs.existsSync(candidate)) {
-        indexPath = candidate;
+    for (const loc of possibleIndexLocations) {
+      console.log(`Checking for index.html at: ${loc}`);
+      if (fs.existsSync(loc)) {
+        indexPath = loc;
+        console.log(`Found index.html at: ${loc}`);
         break;
       }
     }
 
     if (!indexPath) {
+      // Fallback/Default
       indexPath = path.join(process.cwd(), "dist", "index.html");
+      console.warn(`Could not find index.html in any known location. Defaulting to: ${indexPath}`);
     }
 
     const distPath = path.dirname(indexPath);
     console.log(`Production mode: Serving static files from: ${distPath}`);
-    console.log(`Resolved index.html path: ${indexPath}`);
 
     // Verify index.html exists
     if (!indexPath || !fs.existsSync(indexPath)) {
       console.error(`CRITICAL ERROR: index.html NOT found at ${indexPath}`);
+      try {
+        console.log(`Current Working Directory: ${process.cwd()}`);
+        console.log(`Directory contents of ${process.cwd()}: ${fs.readdirSync(process.cwd()).join(", ")}`);
+        const distDir = path.join(process.cwd(), "dist");
+        if (fs.existsSync(distDir)) {
+          console.log(`Directory contents of ${distDir}: ${fs.readdirSync(distDir).join(", ")}`);
+        }
+      } catch (err) {
+        console.error("Error listing directories:", err);
+      }
     } else {
       console.log("Confirmed: index.html exists.");
     }

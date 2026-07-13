@@ -232,20 +232,15 @@ export const attendanceApi = {
           totalDB,
           totalDS,
           totalBoarder,
-          presentCount: present,
           present: present,
           presentDB,
           presentDS,
           presentBoarder,
-          absentCount: absent,
           absent: absent,
           absentDB,
           absentDS,
           absentBoarder,
-          leaveCount: leave,
           leave: leave,
-          markedCount: marked,
-          attendanceRate: rate,
         };
       });
 
