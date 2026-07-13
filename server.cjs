@@ -25,10 +25,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
-var import_url = require("url");
-var import_meta = {};
-var currentFilename = typeof import_meta !== "undefined" && import_meta.url ? (0, import_url.fileURLToPath)(import_meta.url) : typeof __filename !== "undefined" ? __filename : "";
-var currentDirname = currentFilename ? import_path.default.dirname(currentFilename) : typeof __dirname !== "undefined" ? __dirname : process.cwd();
+var currentDirname = typeof __dirname !== "undefined" ? __dirname : process.cwd();
 async function startServer() {
   const app = (0, import_express.default)();
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
@@ -50,28 +47,41 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const possiblePaths = [
-      import_path.default.join(process.cwd(), "dist"),
-      import_path.default.join(currentDirname),
-      // Often /app/dist
-      import_path.default.join(process.cwd(), "applet", "dist")
+    const possibleIndexLocations = [
+      import_path.default.join(process.cwd(), "dist", "index.html"),
+      import_path.default.join(process.cwd(), "index.html"),
+      import_path.default.join(currentDirname, "index.html"),
+      import_path.default.join(currentDirname, "..", "index.html"),
+      import_path.default.join("/app/applet/dist/index.html"),
+      import_path.default.join("/app/dist/index.html")
     ];
     let indexPath = "";
-    for (const p of possiblePaths) {
-      const candidate = import_path.default.join(p, "index.html");
-      if (import_fs.default.existsSync(candidate)) {
-        indexPath = candidate;
+    for (const loc of possibleIndexLocations) {
+      console.log(`Checking for index.html at: ${loc}`);
+      if (import_fs.default.existsSync(loc)) {
+        indexPath = loc;
+        console.log(`Found index.html at: ${loc}`);
         break;
       }
     }
     if (!indexPath) {
       indexPath = import_path.default.join(process.cwd(), "dist", "index.html");
+      console.warn(`Could not find index.html in any known location. Defaulting to: ${indexPath}`);
     }
     const distPath = import_path.default.dirname(indexPath);
     console.log(`Production mode: Serving static files from: ${distPath}`);
-    console.log(`Resolved index.html path: ${indexPath}`);
     if (!indexPath || !import_fs.default.existsSync(indexPath)) {
       console.error(`CRITICAL ERROR: index.html NOT found at ${indexPath}`);
+      try {
+        console.log(`Current Working Directory: ${process.cwd()}`);
+        console.log(`Directory contents of ${process.cwd()}: ${import_fs.default.readdirSync(process.cwd()).join(", ")}`);
+        const distDir = import_path.default.join(process.cwd(), "dist");
+        if (import_fs.default.existsSync(distDir)) {
+          console.log(`Directory contents of ${distDir}: ${import_fs.default.readdirSync(distDir).join(", ")}`);
+        }
+      } catch (err) {
+        console.error("Error listing directories:", err);
+      }
     } else {
       console.log("Confirmed: index.html exists.");
     }
