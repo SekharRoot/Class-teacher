@@ -6,8 +6,7 @@ async function startServer() {
   const app = express();
 
   const isProduction =
-    process.env.NODE_ENV === "production" ||
-    (!!process.env.K_SERVICE && process.env.NODE_ENV !== "development");
+    process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
   const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
@@ -35,8 +34,7 @@ async function startServer() {
     app.use(vite.middlewares);
   } else {
     // In production, we serve from the 'dist' directory
-    // Since this file (server.cjs) is inside 'dist/', __dirname is the 'dist' directory.
-    const distPath = __dirname;
+    const distPath = path.join(process.cwd(), "dist");
     console.log(`Production mode: Serving static files from: ${distPath}`);
     
     // Verify dist directory and index.html
