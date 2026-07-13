@@ -29,7 +29,7 @@ export function useAttendanceActions(
       const student = students.find((s) => s.id === sId);
       const isObj = typeof val === 'object' && val !== null;
       enriched[sId] = {
-        status: (isObj ? val.status : val) || "absent",
+        status: (isObj ? val.status : val) || undefined,
         classId: student?.classId ?? "",
         boarderType: student?.boarderType ?? "",
       };

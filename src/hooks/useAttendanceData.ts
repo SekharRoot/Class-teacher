@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { format, subDays, addDays, parseISO } from "date-fns";
-import { collection, doc, onSnapshot } from "firebase/firestore";
+import { collection, doc, onSnapshot, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 import { leavesApi, attendanceApi, studentsApi } from "../api";
 import { AttendanceStatus, LeaveRequest, Student } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
@@ -81,8 +82,16 @@ export function useAttendanceData() {
 
     try {
       setLoading(true);
+      const data = await attendanceApi.getByDate(dateStr);
+      if (data && Object.keys(data).length > 0) {
+        unwrapAttendance(data, dateStr);
+      } else {
+        setAttendance({});
+      }
     } catch (err) {
-      console.error("Cache check error:", err);
+      console.error("Fetch error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -182,26 +191,25 @@ export function useAttendanceData() {
 
   // 4. Background Real-time sync for selected date attendance
   useEffect(() => {
-    if (offlineMode) return;
+    if (offlineMode || !selectedClassId) return;
+
+    const activeSchoolId = getActiveSchoolId();
+    const docRef = doc(db, "schools", activeSchoolId, "classes", selectedClassId, "attendance", dateString);
 
     const unsubAttendance = onSnapshot(
-      doc(db, "attendance", dateString),
+      docRef,
       (docSnap) => {
-        const isUnsynced =
-          localStorage.getItem(`unsynced_${dateString}`) === "true";
-        if (isUnsynced) {
-          // We have local offline changes that haven't been synced yet!
-          // Do not overwrite the UI with server data.
-          setLoading(false);
-          return;
-        }
-
         if (docSnap.exists()) {
           const data = docSnap.data();
-          unwrapAttendance(data, dateString);
-        } else {
-          setAttendance({});
-          localStorage.removeItem(`attendance_${dateString}`);
+          // Merge with existing attendance to preserve data for other classes
+          setAttendance(prev => ({
+            ...data, // Start with server data for the current class
+            ...prev  // Overwrite with existing state (which might have unsynced changes for this or other classes)
+          }));
+          localStorage.setItem(`attendance_${dateString}`, JSON.stringify({
+            ...JSON.parse(localStorage.getItem(`attendance_${dateString}`) || '{}'),
+            ...data
+          }));
         }
         setLoading(false);
       },
@@ -214,7 +222,7 @@ export function useAttendanceData() {
     return () => {
       unsubAttendance();
     };
-  }, [dateString, offlineMode]);
+  }, [dateString, offlineMode, selectedClassId]);
 
   // 5. Run connection check and initial sync
   useEffect(() => {
