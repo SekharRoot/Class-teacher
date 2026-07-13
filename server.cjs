@@ -25,10 +25,14 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express = __toESM(require("express"), 1);
 var import_path = __toESM(require("path"), 1);
 var import_fs = __toESM(require("fs"), 1);
+var import_url = require("url");
+var import_meta = {};
+var currentFilename = typeof import_meta !== "undefined" && import_meta.url ? (0, import_url.fileURLToPath)(import_meta.url) : typeof __filename !== "undefined" ? __filename : "";
+var currentDirname = currentFilename ? import_path.default.dirname(currentFilename) : typeof __dirname !== "undefined" ? __dirname : process.cwd();
 async function startServer() {
   const app = (0, import_express.default)();
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
+  const PORT = 3e3;
   console.log(
     `Starting server in ${isProduction ? "production" : "development"} mode on port ${PORT}...`
   );
@@ -46,10 +50,27 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = import_path.default.join(process.cwd(), "dist");
+    const possiblePaths = [
+      import_path.default.join(process.cwd(), "dist"),
+      import_path.default.join(currentDirname),
+      // Often /app/dist
+      import_path.default.join(process.cwd(), "applet", "dist")
+    ];
+    let indexPath = "";
+    for (const p of possiblePaths) {
+      const candidate = import_path.default.join(p, "index.html");
+      if (import_fs.default.existsSync(candidate)) {
+        indexPath = candidate;
+        break;
+      }
+    }
+    if (!indexPath) {
+      indexPath = import_path.default.join(process.cwd(), "dist", "index.html");
+    }
+    const distPath = import_path.default.dirname(indexPath);
     console.log(`Production mode: Serving static files from: ${distPath}`);
-    const indexPath = import_path.default.join(distPath, "index.html");
-    if (!import_fs.default.existsSync(indexPath)) {
+    console.log(`Resolved index.html path: ${indexPath}`);
+    if (!indexPath || !import_fs.default.existsSync(indexPath)) {
       console.error(`CRITICAL ERROR: index.html NOT found at ${indexPath}`);
     } else {
       console.log("Confirmed: index.html exists.");
