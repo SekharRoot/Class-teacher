@@ -36,6 +36,10 @@ export default function AppShell() {
     imageCache.cleanup();
   }, []);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   if (!currentUser) {
     return <Navigate to="/login" replace />;
   }

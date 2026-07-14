@@ -103,6 +103,8 @@ export default function Profiles() {
     editingStudent,
     setEditingStudent,
     fetchInitialData,
+    loadMore,
+    hasMore,
   } = useProfilesData(showToast);
 
   // Two-step confirmation state
@@ -321,14 +323,18 @@ export default function Profiles() {
       observerRef.current = new IntersectionObserver(
         (entries) => {
           if (entries[0].isIntersecting) {
-            setDisplayCount((prev) => prev + 12);
+            if (displayCount < filteredStudents.length) {
+              setDisplayCount((prev) => prev + 12);
+            } else if (hasMore && !loading) {
+              loadMore();
+            }
           }
         },
-        { threshold: 0.1 }, // Change threshold to 0.1 so it triggers easier
+        { threshold: 0.1 },
       );
       observerRef.current.observe(node);
     }
-  }, []);
+  }, [displayCount, filteredStudents.length, hasMore, loadMore, loading]);
 
   return (
     <Box sx={{ maxWidth: "lg", mx: "auto", pb: 6 }}>
@@ -563,10 +569,10 @@ export default function Profiles() {
               />
             ))}
           </Box>
-          {displayCount < filteredStudents.length && (
+          {(displayCount < filteredStudents.length || hasMore) && (
             <Box
               ref={setLoadMoreRef}
-              sx={{ display: "flex", justifyContent: "center", p: 4 }}
+              sx={{ display: "flex", justifyContent: "center", p: 4, overflowAnchor: "none" }}
             >
               <CircularProgress size={30} />
             </Box>

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Box, Typography, IconButton, Avatar } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import { Student } from "../../types";
-import { fetchAndCacheImage } from "../../utils/imageCache";
+import { resolveStudentImage } from "../../utils/imageCache";
 
 interface StudentDetailHeaderProps {
   student: Student;
@@ -16,15 +16,7 @@ export const StudentDetailHeader: React.FC<StudentDetailHeaderProps> = ({
   const [displayImage, setDisplayImage] = useState<string>("");
 
   useEffect(() => {
-    if (student?.image) {
-      if (student.image.startsWith("http")) {
-        fetchAndCacheImage(student.image).then(setDisplayImage);
-      } else {
-        setDisplayImage(student.image);
-      }
-    } else {
-      setDisplayImage("");
-    }
+    resolveStudentImage(student).then(setDisplayImage);
   }, [student]);
 
   return (

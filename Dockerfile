@@ -1,5 +1,5 @@
 # --- Stage 1: Build the application ---
-FROM node:22-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -16,14 +16,11 @@ COPY . .
 RUN npm run build
 
 # --- Stage 2: Serve the application ---
-FROM node:22-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
-# The server will run on the port specified by the PORT environment variable,
-# which defaults to 3000 for compatibility with the infrastructure.
-ENV PORT=3000
 
 # Copy dependency manifests and compiled outputs from builder
 COPY --from=builder /app/package*.json ./
@@ -31,9 +28,6 @@ COPY --from=builder /app/dist ./dist
 
 # Install production-only dependencies
 RUN npm install --omit=dev
-
-# Expose the application port
-EXPOSE 3000
 
 # Start the application
 CMD ["node", "dist/server.cjs"]

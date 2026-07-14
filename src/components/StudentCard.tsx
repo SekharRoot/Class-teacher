@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Student, ClassItem } from "../types";
-import { fetchAndCacheImage } from "../utils/imageCache";
+import { resolveStudentImage } from "../utils/imageCache";
 import { StudentCardListLayout } from "./student/StudentCardListLayout";
 import { StudentCardGridLayout } from "./student/StudentCardGridLayout";
 
@@ -28,15 +28,11 @@ export const StudentCard = React.memo(({
   layout = "grid",
 }: StudentCardProps) => {
   const fullName = `${item.firstName} ${item.lastName}`;
-  const [displayImage, setDisplayImage] = useState<string>(item.image || "");
+  const [displayImage, setDisplayImage] = useState<string>("");
 
   useEffect(() => {
-    if (item.image && item.image.startsWith("http")) {
-      fetchAndCacheImage(item.image).then(setDisplayImage);
-    } else {
-      setDisplayImage(item.image || "");
-    }
-  }, [item.image]);
+    resolveStudentImage(item).then(setDisplayImage);
+  }, [item]);
 
   const getClassNameFromId = (classId?: string) => {
     if (!classId) return "No Class Assigned";

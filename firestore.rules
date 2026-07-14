@@ -33,6 +33,20 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Collection Group Queries
+    match /{path=**}/students/{studentId} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+    
+    match /{path=**}/leaves/{leaveId} {
+      allow read: if isActive() || isAdminOrOwner();
+      allow write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+    }
+    
+    match /{path=**}/attendance/{date} {
+      allow read, write: if isActive() || isAdminOrOwner();
+    }
+
     // Classroom manager collections
     // Only active users can read and write standard collections for now.
     // In a production app, you might restrict this further (e.g. teachers only writing to their own class)

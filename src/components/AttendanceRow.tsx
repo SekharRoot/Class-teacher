@@ -31,6 +31,7 @@ import { Student, AttendanceStatus, LeaveRequest } from "../types";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { attendanceApi } from "../api";
+import { resolveStudentImage } from "../utils/imageCache";
 
 interface AttendanceRowProps {
   student: Student;
@@ -54,6 +55,11 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [historyLoading, setHistoryLoading] = React.useState(false);
   const [studentHistory, setStudentHistory] = React.useState<any[]>([]);
+  const [displayImage, setDisplayImage] = React.useState("");
+
+  React.useEffect(() => {
+    resolveStudentImage(student).then(setDisplayImage);
+  }, [student]);
 
   const timerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
   const isLongPress = React.useRef(false);
@@ -154,7 +160,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
             <Box sx={{ position: "relative" }}>
               <Avatar
                 variant="rounded"
-                src={student.image}
+                src={displayImage}
                 sx={{
                   width: 60,
                   height: 60,
@@ -276,7 +282,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
         <DialogContent sx={{ px: 2, pb: 3 }}>
           <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar 
-              src={student.image}
+              src={displayImage}
               sx={{ width: 48, height: 48, borderRadius: 2 }}
             >
               {student.firstName[0]}{student.lastName?.[0]}

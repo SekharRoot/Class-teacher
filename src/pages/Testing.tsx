@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -39,8 +39,26 @@ import {
   generateMockLeaves,
 } from "../data/demoData";
 import { cache } from "../lib/cache";
+import { resolveStudentImage } from "../utils/imageCache";
 import { useAuth } from "../contexts/AuthContext";
 import { useData } from "../contexts/DataContext";
+import { Student } from "../types";
+
+const TestingStudentAvatar = ({ student }: { student: Student }) => {
+  const [displayImage, setDisplayImage] = useState("");
+  useEffect(() => {
+    resolveStudentImage(student).then(setDisplayImage);
+  }, [student]);
+
+  return (
+    <Avatar
+      src={displayImage}
+      sx={{ width: 28, height: 28, mr: 1.5, bgcolor: "primary.light", fontSize: "0.875rem" }}
+    >
+      {student.firstName.charAt(0)}
+    </Avatar>
+  );
+};
 
 export default function Testing() {
   const { userProfile } = useAuth();
@@ -397,12 +415,7 @@ export default function Testing() {
                               size="small"
                             />
                           </ListItemIcon>
-                          <Avatar
-                            src={st.image}
-                            sx={{ width: 28, height: 28, mr: 1.5, bgcolor: "primary.light", fontSize: "0.875rem" }}
-                          >
-                            {st.firstName.charAt(0)}
-                          </Avatar>
+                          <TestingStudentAvatar student={st} />
                           <ListItemText
                             primary={
                               <Typography variant="body2" sx={{ fontWeight: "medium" }}>

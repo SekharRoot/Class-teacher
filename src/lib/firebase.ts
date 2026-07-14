@@ -1,5 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
+import { getDatabase } from "firebase/database";
 import {
   initializeFirestore,
   persistentLocalCache,
@@ -133,3 +134,24 @@ export function handleFirestoreError(
   console.error("Firestore Error: ", JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
+
+let rtdbInstance: any = null;
+
+export function getRtdb(): any {
+  if (rtdbInstance) return rtdbInstance;
+  try {
+    const dbUrl = (firebaseConfig as any).databaseURL || `https://${firebaseConfig.projectId}-default-rtdb.firebaseio.com/`;
+    rtdbInstance = getDatabase(app, dbUrl);
+    return rtdbInstance;
+  } catch (err) {
+    console.error("Failed to initialize Realtime Database with custom URL:", err);
+    try {
+      rtdbInstance = getDatabase(app);
+      return rtdbInstance;
+    } catch (err2) {
+      console.error("Fallback initialization of Realtime Database failed:", err2);
+      return null;
+    }
+  }
+}
+

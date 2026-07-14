@@ -8,8 +8,12 @@ import {
   deleteDoc,
   writeBatch,
   where,
+  limit,
+  startAfter,
+  collectionGroup,
 } from "firebase/firestore";
-import { db, handleFirestoreError, OperationType } from "../lib/firebase";
+import { db, handleFirestoreError, OperationType, getRtdb } from "../lib/firebase";
+import { ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove } from "firebase/database";
 import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
 import { Student } from "../types";
 import { classesApi } from "./classes";
@@ -46,15 +50,86 @@ export const studentsApi = {
    * Fetches all registered student profiles.
    */
   async getAll(forceRefresh = false): Promise<Student[]> {
-    if (
-      !forceRefresh &&
-      studentsCache &&
-      Date.now() - studentsCacheTime < CACHE_DURATION
-    ) {
-      return studentsCache;
-    }
     const classesList = await classesApi.getAll();
     return this.getAllInParallelChunks(classesList, forceRefresh);
+  },
+
+  /**
+   * Fetches a paginated list of students from Firestore.
+   */
+  async getPaginated(pageSize: number, lastVisible: any = null): Promise<{ students: Student[], lastVisible: any }> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      let q = query(
+        collectionGroup(db, "students"),
+        where("schoolId", "==", activeSchoolId),
+        where("isActive", "==", true),
+        limit(pageSize)
+      );
+      if (lastVisible) {
+        q = query(q, startAfter(lastVisible));
+      }
+      const snapshot = await getDocs(q);
+      const students: Student[] = [];
+      snapshot.forEach((doc) => {
+        students.push({ id: doc.id, ...doc.data() } as Student);
+      });
+      return { students, lastVisible: snapshot.docs[snapshot.docs.length - 1] || null };
+    } catch (error: any) {
+      console.warn("Paginated fetch failed (likely missing index). Falling back to manual pagination.", error.message);
+      // Fallback: Fetch all active students and paginate manually
+      const classesList = await classesApi.getAll();
+      const allStudents = await this.getAllInParallelChunks(classesList);
+      const activeStudents = allStudents.filter(s => s.isActive !== false && s.schoolId === getActiveSchoolId());
+      
+      let startIndex = 0;
+      if (lastVisible && typeof lastVisible === 'number') {
+        startIndex = lastVisible;
+      }
+      
+      const endIndex = startIndex + pageSize;
+      const paginatedStudents = activeStudents.slice(startIndex, endIndex);
+      
+      const nextLastVisible = endIndex < activeStudents.length ? endIndex : null;
+      
+      return { students: paginatedStudents, lastVisible: nextLastVisible };
+    }
+  },
+
+  /**
+   * Performs server-side search for students.
+   */
+  async search(searchTerm: string): Promise<Student[]> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      // Prefix search on firstName
+      const q = query(
+        collectionGroup(db, "students"),
+        where("schoolId", "==", activeSchoolId),
+        where("firstName", ">=", searchTerm),
+        where("firstName", "<=", searchTerm + "\uf8ff"),
+        limit(50)
+      );
+      const snapshot = await getDocs(q);
+      const students: Student[] = [];
+      snapshot.forEach((doc) => {
+        students.push({ id: doc.id, ...doc.data() } as Student);
+      });
+      return students;
+    } catch (error: any) {
+      console.warn("Server-side search failed (likely missing index). Falling back to manual filtering.", error.message);
+      // Fallback: Fetch all active students and filter manually
+      const classesList = await classesApi.getAll();
+      const allStudents = await this.getAllInParallelChunks(classesList);
+      const activeStudents = allStudents.filter(s => s.isActive !== false && s.schoolId === getActiveSchoolId());
+      
+      const termLower = searchTerm.toLowerCase();
+      const filtered = activeStudents.filter(s => 
+        s.firstName.toLowerCase().startsWith(termLower)
+      ).slice(0, 50);
+      
+      return filtered;
+    }
   },
 
   /**
@@ -130,6 +205,46 @@ export const studentsApi = {
   },
 
   /**
+   * Saves a student profile picture to Firebase Realtime Database.
+   */
+  async saveStudentImageInRtdb(schoolId: string, studentId: string, base64Image: string): Promise<void> {
+    const rtdb = getRtdb();
+    if (!rtdb) throw new Error("Realtime Database not initialized");
+    const path = `schools/${schoolId}/students/${studentId}/image`;
+    await rtdbSet(rtdbRef(rtdb, path), base64Image);
+  },
+
+  /**
+   * Fetches a student profile picture from Firebase Realtime Database.
+   */
+  async getStudentImageFromRtdb(schoolId: string, studentId: string): Promise<string> {
+    const rtdb = getRtdb();
+    if (!rtdb) return "";
+    const path = `schools/${schoolId}/students/${studentId}/image`;
+    try {
+      const snapshot = await rtdbGet(rtdbRef(rtdb, path));
+      return snapshot.val() || "";
+    } catch (err) {
+      console.error(`Failed to get student image from RTDB for student ${studentId}:`, err);
+      return "";
+    }
+  },
+
+  /**
+   * Deletes a student profile picture from Firebase Realtime Database.
+   */
+  async deleteStudentImageFromRtdb(schoolId: string, studentId: string): Promise<void> {
+    const rtdb = getRtdb();
+    if (!rtdb) return;
+    const path = `schools/${schoolId}/students/${studentId}/image`;
+    try {
+      await rtdbRemove(rtdbRef(rtdb, path));
+    } catch (err) {
+      console.error(`Failed to delete student image from RTDB for student ${studentId}:`, err);
+    }
+  },
+
+  /**
    * Creates or updates a student profile.
    */
   async create(student: Student): Promise<void> {
@@ -137,6 +252,23 @@ export const studentsApi = {
       const activeSchoolId = (student as any).schoolId || getActiveSchoolId();
       const classId = student.classId || "";
       const studentRef = getStudentDocRef(activeSchoolId, classId, student.id);
+
+      let rtdbImageUrl = student.image || "";
+      if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
+        try {
+          await this.saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
+          rtdbImageUrl = "rtdb";
+        } catch (rtdbErr) {
+          console.error("Failed to save image in Realtime Database during create:", rtdbErr);
+        }
+      } else if (!rtdbImageUrl) {
+        try {
+          await this.deleteStudentImageFromRtdb(activeSchoolId, student.id);
+        } catch (rtdbErr) {
+          console.error("Failed to delete image from Realtime Database during create:", rtdbErr);
+        }
+      }
+
       const data = {
         firstName: student.firstName,
         lastName: student.lastName,
@@ -147,7 +279,7 @@ export const studentsApi = {
         motherName: student.motherName || "",
         phoneNumber: student.phoneNumber || "",
         boarderType: student.boarderType || "Day Scholar",
-        image: student.image || "",
+        image: rtdbImageUrl,
         profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         isActive: student.isActive !== undefined ? student.isActive : true,
         schoolId: activeSchoolId,
@@ -175,6 +307,24 @@ export const studentsApi = {
       const studentInfo = await findStudentClass(studentId);
       if (!studentInfo) {
         throw new Error(`Student not found: ${studentId}`);
+      }
+
+      let rtdbImageUrl = studentData.image;
+      if (rtdbImageUrl !== undefined) {
+        if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
+          try {
+            await this.saveStudentImageInRtdb(activeSchoolId, studentId, rtdbImageUrl);
+            studentData.image = "rtdb";
+          } catch (rtdbErr) {
+            console.error("Failed to save image in Realtime Database during update:", rtdbErr);
+          }
+        } else if (!rtdbImageUrl) {
+          try {
+            await this.deleteStudentImageFromRtdb(activeSchoolId, studentId);
+          } catch (rtdbErr) {
+            console.error("Failed to delete image from Realtime Database during update:", rtdbErr);
+          }
+        }
       }
 
       const oldClassId = studentInfo.classId;
@@ -325,6 +475,11 @@ export const studentsApi = {
       if (studentInfo) {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
         await deleteDoc(studentRef);
+        try {
+          await this.deleteStudentImageFromRtdb(activeSchoolId, studentId);
+        } catch (rtdbErr) {
+          console.error("Failed to delete image from Realtime Database during permanentlyDelete:", rtdbErr);
+        }
       }
       this.invalidateCache();
     } catch (error) {
@@ -378,6 +533,17 @@ export const studentsApi = {
       for (const student of studentsList) {
         const classId = student.classId || "";
         const studentRef = getStudentDocRef(activeSchoolId, classId, student.id);
+
+        let rtdbImageUrl = student.image || "";
+        if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
+          try {
+            await this.saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
+            rtdbImageUrl = "rtdb";
+          } catch (rtdbErr) {
+            console.error("Failed to save image in Realtime Database during seedDemo:", rtdbErr);
+          }
+        }
+
         await setDoc(studentRef, {
           firstName: student.firstName,
           lastName: student.lastName,
@@ -388,7 +554,7 @@ export const studentsApi = {
           motherName: student.motherName || "",
           phoneNumber: student.phoneNumber || "",
           boarderType: student.boarderType || "Day Scholar",
-          image: student.image || "",
+          image: rtdbImageUrl,
           profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
           isActive: student.isActive !== undefined ? student.isActive : true,
           schoolId: student.schoolId || activeSchoolId,
