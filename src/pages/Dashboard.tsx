@@ -178,18 +178,20 @@ export default function Dashboard() {
 
       // Fetch fresh online attendance
       try {
+        // Optimization: Use role-based authorizedClassIds to fetch only relevant records.
+        // This is the "correct API" access pattern for different user roles.
         const todayRecordsOnline =
-          await attendanceApi.getByDate(todayDateString);
+          await attendanceApi.getByDate(todayDateString, authorizedClassIds);
 
         if (active) {
           if (todayRecordsOnline) {
             const isDifferent = JSON.stringify(todayRecordsOnline) !== JSON.stringify(lastProcessedRecords);
             
-            if (isDifferent) {
+            if (isDifferent || summaryLoaded) {
               setTodayRecords(todayRecordsOnline);
-              if (!summaryLoaded) {
-                calculateAndSetStats(todayRecordsOnline);
-              }
+              // Always recalculate stats when fresh raw data arrives to ensure accuracy,
+              // correcting any potential stale or partial state from the pre-computed summary.
+              calculateAndSetStats(todayRecordsOnline);
             }
             
             await cache.set(

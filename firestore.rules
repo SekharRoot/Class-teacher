@@ -54,7 +54,8 @@ service cloud.firestore {
         }
 
         match /leaves/{leaveId} {
-          allow read, write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+          allow read: if isActive() || isAdminOrOwner();
+          allow write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
         }
 
         match /attendance/{date} {
@@ -84,8 +85,10 @@ service cloud.firestore {
     }
 
     match /leaves/{leaveId} {
-      // Allow read/write if the authenticated user has hasLeaveFeatureAccess set to true in their profile or is an admin/owner
-      allow read, write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      // Allow read for all active users so they can see their relevant data
+      // Write remains restricted to admin/owner or those with explicit access
+      allow read: if isActive() || isAdminOrOwner();
+      allow write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
     }
 
     match /users/{userId} {

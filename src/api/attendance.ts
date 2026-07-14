@@ -28,12 +28,19 @@ export interface AttendanceRecordSummary {
 export const attendanceApi = {
   /**
    * Fetches attendance statuses mapped by student ID for a given date.
+   * Optionally filtered by authorized class IDs.
    */
-  async getByDate(dateString: string): Promise<Record<string, any>> {
+  async getByDate(dateString: string, authorizedClassIds?: string[]): Promise<Record<string, any>> {
     try {
       const activeSchoolId = getActiveSchoolId();
-      const classesList = await classesApi.getAll();
-      const classIds = ["unassigned", ...classesList.map(c => c.id)];
+      let classIds: string[] = [];
+
+      if (authorizedClassIds && authorizedClassIds.length > 0) {
+        classIds = authorizedClassIds;
+      } else {
+        const classesList = await classesApi.getAll();
+        classIds = ["unassigned", ...classesList.map(c => c.id)];
+      }
 
       const promises = classIds.map(async (cId) => {
         const ref = doc(db, "schools", activeSchoolId, "classes", cId, "attendance", dateString);
@@ -148,19 +155,24 @@ export const attendanceApi = {
    */
   async generateAndSaveSummary(
     dateString: string,
-    records: Record<string, any>,
+    partialRecords: Record<string, any>,
   ): Promise<void> {
     try {
       const activeSchoolId = getActiveSchoolId();
 
-      // 1. Fetch classes
+      // 1. Fetch existing records for this date and merge with the newly saved partial records.
+      // This ensures the summary is complete and doesn't get "wiped" when different teachers save different classes.
+      const existingRecords = await this.getByDate(dateString);
+      const records = { ...existingRecords, ...partialRecords };
+
+      // 2. Fetch classes
       const classesList = await classesApi.getAll(true);
 
-      // 2. Fetch active students
+      // 3. Fetch active students
       const studentsList = await studentsApi.getAll(true);
       const activeStudentsList = studentsList.filter(s => s.isActive !== false);
 
-      // 3. Compute stats
+      // 4. Compute stats
       const classesCount = classesList.length;
       const studentsCount = activeStudentsList.length;
       let todayPresent = 0;

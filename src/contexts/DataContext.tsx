@@ -30,6 +30,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const canAccessLeaves =
       userProfile?.role === "admin" ||
       userProfile?.role === "owner" ||
+      userProfile?.role === "academic_coordinator" ||
+      userProfile?.role === "class_teacher" ||
       userProfile?.hasLeaveFeatureAccess;
 
     // 1. Fetch lightweight meta collections first (Classes, Leaves, Users)
