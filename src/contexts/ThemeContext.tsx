@@ -11,6 +11,7 @@ import {
   responsiveFontSizes,
   CssBaseline,
   useMediaQuery,
+  Box,
 } from "@mui/material";
 
 type ThemeMode = "light" | "dark";
@@ -18,11 +19,15 @@ type ThemeMode = "light" | "dark";
 interface ThemeContextType {
   mode: ThemeMode;
   toggleTheme: () => void;
+  translucencyEnabled: boolean;
+  toggleTranslucency: () => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType>({
   mode: "light",
   toggleTheme: () => {},
+  translucencyEnabled: false,
+  toggleTranslucency: () => {},
 });
 
 export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -35,12 +40,25 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     return prefersDarkMode ? "dark" : "light";
   });
 
+  const [translucencyEnabled, setTranslucencyEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem("translucencyEnabled");
+    return saved === "true";
+  });
+
   useEffect(() => {
     localStorage.setItem("themeMode", mode);
   }, [mode]);
 
+  useEffect(() => {
+    localStorage.setItem("translucencyEnabled", translucencyEnabled ? "true" : "false");
+  }, [translucencyEnabled]);
+
   const toggleTheme = () => {
     setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
+  };
+
+  const toggleTranslucency = () => {
+    setTranslucencyEnabled((prev) => !prev);
   };
 
   const theme = useMemo(
@@ -60,15 +78,125 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
           typography: {
             fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
           },
+          components: {
+            MuiPaper: {
+              styleOverrides: {
+                root: {
+                  transition: "background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+                  ...(translucencyEnabled && {
+                    backdropFilter: "blur(16px) saturate(140%)",
+                    WebkitBackdropFilter: "blur(16px) saturate(140%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.45)" : "rgba(30, 30, 30, 0.45)",
+                    backgroundImage: "none",
+                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    boxShadow: mode === "light" ? "0 8px 32px 0 rgba(31, 38, 135, 0.06)" : "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
+                  }),
+                },
+              },
+            },
+            MuiAppBar: {
+              styleOverrides: {
+                root: {
+                  transition: "background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+                  ...(translucencyEnabled && {
+                    backdropFilter: "blur(16px) saturate(140%)",
+                    WebkitBackdropFilter: "blur(16px) saturate(140%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.45)" : "rgba(18, 18, 18, 0.45)",
+                    color: mode === "light" ? "#121212" : "#ffffff",
+                    backgroundImage: "none",
+                    borderBottom: mode === "light" ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    boxShadow: "none",
+                  }),
+                },
+              },
+            },
+            MuiDrawer: {
+              styleOverrides: {
+                paper: {
+                  transition: "background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease",
+                  ...(translucencyEnabled && {
+                    backdropFilter: "blur(16px) saturate(140%)",
+                    WebkitBackdropFilter: "blur(16px) saturate(140%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.45)" : "rgba(18, 18, 18, 0.45)",
+                    backgroundImage: "none",
+                    borderRight: mode === "light" ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  }),
+                },
+              },
+            },
+          },
         }),
       ),
-    [mode],
+    [mode, translucencyEnabled],
   );
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme }}>
+    <ThemeContext.Provider value={{ mode, toggleTheme, translucencyEnabled, toggleTranslucency }}>
       <MuiThemeProvider theme={theme}>
         <CssBaseline />
+        {translucencyEnabled && (
+          <Box
+            sx={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: -1,
+              overflow: "hidden",
+              pointerEvents: "none",
+              background: mode === "light"
+                ? "radial-gradient(circle at 50% 50%, #f4f6f8 0%, #e9edf1 100%)"
+                : "radial-gradient(circle at 50% 50%, #121212 0%, #0a0a0a 100%)",
+            }}
+          >
+            {/* Top-Right Blob */}
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-15%",
+                right: "-15%",
+                width: { xs: "350px", sm: "600px" },
+                height: { xs: "350px", sm: "600px" },
+                borderRadius: "50%",
+                background: mode === "light"
+                  ? "radial-gradient(circle, rgba(25, 118, 210, 0.15) 0%, rgba(25, 118, 210, 0) 70%)"
+                  : "radial-gradient(circle, rgba(144, 202, 249, 0.15) 0%, rgba(144, 202, 249, 0) 70%)",
+                filter: "blur(70px)",
+              }}
+            />
+            {/* Bottom-Left Blob */}
+            <Box
+              sx={{
+                position: "absolute",
+                bottom: "-15%",
+                left: "-15%",
+                width: { xs: "350px", sm: "600px" },
+                height: { xs: "350px", sm: "600px" },
+                borderRadius: "50%",
+                background: mode === "light"
+                  ? "radial-gradient(circle, rgba(156, 39, 176, 0.12) 0%, rgba(156, 39, 176, 0) 70%)"
+                  : "radial-gradient(circle, rgba(206, 147, 216, 0.12) 0%, rgba(206, 147, 216, 0) 70%)",
+                filter: "blur(70px)",
+              }}
+            />
+            {/* Mid-Right Warm Accent Blob */}
+            <Box
+              sx={{
+                position: "absolute",
+                top: "35%",
+                right: "10%",
+                width: { xs: "300px", sm: "500px" },
+                height: { xs: "300px", sm: "500px" },
+                borderRadius: "50%",
+                background: mode === "light"
+                  ? "radial-gradient(circle, rgba(255, 152, 0, 0.08) 0%, rgba(255, 152, 0, 0) 70%)"
+                  : "radial-gradient(circle, rgba(255, 171, 64, 0.08) 0%, rgba(255, 171, 64, 0) 70%)",
+                filter: "blur(60px)",
+              }}
+            />
+          </Box>
+        )}
         {children}
       </MuiThemeProvider>
     </ThemeContext.Provider>

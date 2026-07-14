@@ -60,7 +60,8 @@ export function useNavigationItems(userProfile: UserProfile | null) {
       userProfile.role === "owner" ||
       userProfile.role === "school_admin" ||
       userProfile.role === "academic_coordinator" ||
-      userProfile.role === "principal"
+      userProfile.role === "principal" ||
+      userProfile.role === "class_teacher"
     ) {
       items.push({
         text: "Inactive Profiles",

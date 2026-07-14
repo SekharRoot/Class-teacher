@@ -89,6 +89,7 @@ export default function Dashboard() {
     if (loadingScope || globalLoading) return;
 
     let active = true;
+    let summaryLoaded = false;
 
     const calculateAndSetStats = async (records: any) => {
       if (!active) return;
@@ -102,6 +103,21 @@ export default function Dashboard() {
         if (active) {
           setStats(result.stats);
           setClassStats(result.classStats);
+
+          // Self-healing: If we calculated the full school-wide stats and didn't find a pre-computed online summary,
+          // background-save the computed summary so other devices can load it instantly in 1 request.
+          const isOversight =
+            userProfile?.role === "owner" ||
+            userProfile?.role === "admin" ||
+            userProfile?.role === "principal" ||
+            userProfile?.role === "academic_coordinator";
+
+          if (isOversight && !summaryLoaded) {
+            const todayDateString = format(new Date(), "yyyy-MM-dd");
+            attendanceApi.saveSummaryOnly(todayDateString, result.stats, result.classStats).catch(err => {
+              console.warn("Background summary save failed:", err);
+            });
+          }
         }
       } catch (err) {
         console.error("Worker calculation error:", err);
@@ -112,7 +128,6 @@ export default function Dashboard() {
       if (!currentUser) return;
 
       const todayDateString = format(new Date(), "yyyy-MM-dd");
-      let summaryLoaded = false;
 
       // 1. First, check local storage cache for pre-computed summary
       try {

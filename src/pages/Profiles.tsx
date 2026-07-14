@@ -20,7 +20,9 @@ import {
   PlaylistAddCheck,
   SwapHoriz,
   Business,
+  Sync,
 } from "@mui/icons-material";
+import { studentSyncManager } from "../utils/studentSyncManager";
 import { studentsApi, schoolsApi } from "../api";
 import { Student, School } from "../types";
 import { imageCache } from "../utils/imageCache";
@@ -34,7 +36,6 @@ import { ProfileFilters } from "../components/ProfileFilters";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { useProfileActions } from "../hooks/useProfileActions";
-import { processProfileImport } from "../utils/csvImport";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Profiles() {
@@ -43,6 +44,9 @@ export default function Profiles() {
   const [massDeleteDialogOpen, setMassDeleteDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   const { userProfile } = useAuth();
   const [transferSchoolDialogOpen, setTransferSchoolDialogOpen] = useState(false);
@@ -107,6 +111,35 @@ export default function Profiles() {
     hasMore,
   } = useProfilesData(showToast);
 
+  useEffect(() => {
+    studentSyncManager.getLastSyncTime().then(setLastSyncTime);
+  }, []);
+
+  const handleSync = useCallback(async (forceFull = false) => {
+    setIsSyncing(true);
+    try {
+      const res = await studentSyncManager.performSync(forceFull);
+      if (res.success) {
+        showToast(
+          res.type === "full"
+            ? `Successfully downloaded all profiles (${res.syncedCount} profiles cached offline)!`
+            : `Successfully refreshed profiles (${res.syncedCount} updated, ${res.deletedCount} deleted)!`,
+          "success"
+        );
+        fetchInitialData();
+        const updatedTime = await studentSyncManager.getLastSyncTime();
+        setLastSyncTime(updatedTime);
+      } else {
+        showToast("Failed to sync student profiles. Please check connection.", "error");
+      }
+    } catch (err) {
+      console.error("Manual sync failed:", err);
+      showToast("Error during profile synchronization.", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [showToast, fetchInitialData]);
+
   // Two-step confirmation state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState<{
@@ -116,6 +149,15 @@ export default function Profiles() {
   const [deleteStep, setDeleteStep] = useState(1);
 
   const { authorizedClassIds, isReadOnly } = useHierarchyScope();
+
+  const isStudentReadOnly = useCallback((student: Student) => {
+    return (
+      isReadOnly ||
+      (userProfile?.role === "class_teacher" &&
+        (!student.classId || !authorizedClassIds.includes(student.classId)))
+    );
+  }, [isReadOnly, userProfile?.role, authorizedClassIds]);
+
   const [viewType, setViewType] = useState<"grid" | "grid_compact" | "list_image" | "list_details">("list_details");
 
   const filteredClasses = useMemo(() => classes.filter((c) =>
@@ -189,23 +231,10 @@ export default function Profiles() {
     setDeleteDialogOpen(true);
   }, []);
 
-  const handleDownloadTemplate = useCallback(() => {
-    const csvContent =
-      "Roll No,First Name,Last Name,Class ID,Gender,Phone,Boarder Type\n001,John,Doe,class_123,Male,1234567890,Full Boarder";
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", "Student_Profiles_Template.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, []);
-
   const filteredStudents = useMemo(() => students.filter((s) => {
-    // Role-based filtering: permit authorized classes, or unassigned students for admins/owners/principals
+    // Role-based filtering: permit authorized classes, or unassigned students for admins/owners/principals/class_teachers
     const isClassPermitted =
+      userProfile?.role === "class_teacher" ||
       (s.classId && authorizedClassIds.includes(s.classId)) ||
       ((!s.classId || s.classId === "") && (isOwnerOrSuperAdmin || userProfile?.role === "principal"));
     if (!isClassPermitted) return false;
@@ -241,11 +270,12 @@ export default function Profiles() {
 
   const handleToggleSelectAll = useCallback((checked: boolean) => {
     if (checked) {
-      setSelectedIds(filteredStudents.map((s) => s.id));
+      const editableStudents = filteredStudents.filter((s) => !isStudentReadOnly(s));
+      setSelectedIds(editableStudents.map((s) => s.id));
     } else {
       setSelectedIds([]);
     }
-  }, [filteredStudents]);
+  }, [filteredStudents, isStudentReadOnly]);
 
   const handleSelectStudent = useCallback((studentId: string, selected: boolean) => {
     if (selected) {
@@ -254,58 +284,6 @@ export default function Profiles() {
       setSelectedIds((prev) => prev.filter((id) => id !== studentId));
     }
   }, []);
-
-  const handleImportData = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const text = event.target?.result as string;
-      if (!text) return;
-
-      try {
-        const { newStudents, importedCount } = await processProfileImport(
-          text,
-          classes,
-          students,
-          offlineMode
-        );
-
-        if (newStudents.length > 0) {
-          const updatedList = [...students, ...newStudents];
-          setStudents(updatedList);
-          showToast(
-            `Imported ${importedCount} profiles locally! Syncing with server...`,
-            "info"
-          );
-
-          if (!offlineMode) {
-            try {
-              if ((studentsApi as any).batchCreate) {
-                await (studentsApi as any).batchCreate(newStudents);
-              } else {
-                await studentsApi.seedDemo(newStudents);
-              }
-              showToast(`Successfully imported ${importedCount} profiles!`, "success");
-              fetchInitialData();
-            } catch (error: any) {
-              console.error("Import sync error", error);
-              showToast(
-                "Failed to upload imported profiles to cloud. Saved in local cache.",
-                "warning"
-              );
-            }
-          }
-        }
-      } catch (error: any) {
-        console.error("Import error", error);
-        showToast(error.message || "Error importing profiles.", "error");
-      }
-      e.target.value = "";
-    };
-    reader.readAsText(file);
-  }, [classes, students, offlineMode, setStudents, showToast, fetchInitialData]);
 
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
@@ -374,58 +352,47 @@ export default function Profiles() {
             directories.
           </Typography>
         </Box>
-        {!isReadOnly && (
-          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-            <Button
-              variant={editMode ? "contained" : "outlined"}
-              color="info"
-              startIcon={<PlaylistAddCheck />}
-              onClick={() => {
-                setEditMode(!editMode);
-                if (!editMode === false) setSelectedIds([]);
-              }}
-              sx={{ textTransform: "none", borderRadius: 2 }}
-            >
-              {editMode ? "Exit Edit Mode" : "Edit Mode"}
-            </Button>
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={<FileDownload />}
-              onClick={handleDownloadTemplate}
-              sx={{ textTransform: "none", borderRadius: 2 }}
-            >
-              Template
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              component="label"
-              startIcon={<FileUpload />}
-              sx={{ textTransform: "none", borderRadius: 2 }}
-            >
-              Import
-              <input
-                type="file"
-                accept=".csv"
-                hidden
-                onChange={handleImportData}
-              />
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              startIcon={<Add />}
-              onClick={() => {
-                setEditingStudent(null);
-                setOpenDialog(true);
-              }}
-              sx={{ textTransform: "none", px: 3, py: 1, borderRadius: 2 }}
-            >
-              Add Student
-            </Button>
-          </Box>
-        )}
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            disabled={isSyncing}
+            startIcon={isSyncing ? <CircularProgress size={20} color="inherit" /> : <Sync />}
+            onClick={() => handleSync(!lastSyncTime)}
+            sx={{ textTransform: "none", borderRadius: 2 }}
+          >
+            {lastSyncTime ? "Refresh Profiles" : "Download All Profiles"}
+          </Button>
+
+          {!isReadOnly && (
+            <>
+              <Button
+                variant={editMode ? "contained" : "outlined"}
+                color="info"
+                startIcon={<PlaylistAddCheck />}
+                onClick={() => {
+                  setEditMode(!editMode);
+                  if (!editMode === false) setSelectedIds([]);
+                }}
+                sx={{ textTransform: "none", borderRadius: 2 }}
+              >
+                {editMode ? "Exit Edit Mode" : "Edit Mode"}
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Add />}
+                onClick={() => {
+                  setEditingStudent(null);
+                  setOpenDialog(true);
+                }}
+                sx={{ textTransform: "none", px: 3, py: 1, borderRadius: 2 }}
+              >
+                Add Student
+              </Button>
+            </>
+          )}
+        </Box>
       </Box>
 
       <ProfileFilters
@@ -433,10 +400,10 @@ export default function Profiles() {
         setSearchQuery={setSearchQuery}
         classFilter={classFilter}
         setClassFilter={setClassFilter}
-        classes={filteredClasses}
+        classes={userProfile?.role === "class_teacher" ? classes : filteredClasses}
         viewType={viewType}
         setViewType={setViewType}
-        showUnassignedOption={isOwnerOrSuperAdmin || userProfile?.role === "principal"}
+        showUnassignedOption={isOwnerOrSuperAdmin || userProfile?.role === "principal" || userProfile?.role === "class_teacher"}
       />
 
       {editMode && (
@@ -558,11 +525,11 @@ export default function Profiles() {
               <StudentCard
                 key={item.id}
                 item={item}
-                classes={filteredClasses}
+                classes={classes}
                 onViewDetails={handleOpenDetail}
                 onEdit={handleOpenEditDialog}
                 onDelete={handleDeleteProfile}
-                readOnly={isReadOnly}
+                readOnly={isStudentReadOnly(item)}
                 selected={selectedIds.includes(item.id)}
                 onSelect={editMode ? handleSelectStudent : undefined}
                 layout={viewType}
@@ -598,7 +565,7 @@ export default function Profiles() {
           setSelectedStudent(null);
         }}
         student={selectedStudent}
-        classes={filteredClasses}
+        classes={classes}
       />
 
       <StudentDeleteDialog

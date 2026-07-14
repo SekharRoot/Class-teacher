@@ -145,7 +145,35 @@ export const studentsApi = {
     }
     try {
       const activeSchoolId = getActiveSchoolId();
-      const classIds = ["unassigned", ...classesList.map(c => c.id)];
+
+      // Performance Optimization: If we have many classes to fetch, it's highly inefficient
+      // to make N+1 parallel requests. Fetch all students in a single collectionGroup query instead!
+      // But if we only need a few classes (e.g., for a class_teacher), direct class collection queries are faster and cheaper.
+      if (classesList.length > 5) {
+        const q = query(
+          collectionGroup(db, "students"),
+          where("schoolId", "==", activeSchoolId)
+        );
+        const snapshot = await getDocs(q);
+        const list: Student[] = [];
+        snapshot.forEach((doc) => {
+          list.push({ id: doc.id, ...doc.data() } as Student);
+        });
+
+        // Sort alphabetically by first name
+        list.sort((a, b) => {
+          const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+          const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+
+        studentsCache = list;
+        studentsCacheTime = Date.now();
+        return list;
+      }
+
+      // Otherwise, query only the requested classes directly.
+      const classIds = classesList.length === 0 ? ["unassigned"] : ["unassigned", ...classesList.map(c => c.id)];
       const promises = classIds.map(async (cId) => {
         const q = query(collection(db, "schools", activeSchoolId, "classes", cId, "students"));
         const snapshot = await getDocs(q);
@@ -170,8 +198,36 @@ export const studentsApi = {
       studentsCacheTime = Date.now();
       return list;
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "students");
-      return [];
+      console.warn("CollectionGroup student fetch failed. Attempting fallback.", error);
+      try {
+        const activeSchoolId = getActiveSchoolId();
+        const classIds = ["unassigned", ...classesList.map(c => c.id)];
+        const promises = classIds.map(async (cId) => {
+          const q = query(collection(db, "schools", activeSchoolId, "classes", cId, "students"));
+          const snapshot = await getDocs(q);
+          const subList: Student[] = [];
+          snapshot.forEach((doc) => {
+            subList.push({ id: doc.id, ...doc.data() } as Student);
+          });
+          return subList;
+        });
+
+        const results = await Promise.all(promises);
+        const list: Student[] = results.flat();
+
+        list.sort((a, b) => {
+          const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+          const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+          return nameA.localeCompare(nameB);
+        });
+
+        studentsCache = list;
+        studentsCacheTime = Date.now();
+        return list;
+      } catch (fallbackError) {
+        handleFirestoreError(fallbackError, OperationType.LIST, "students");
+        return [];
+      }
     }
   },
 
@@ -283,6 +339,7 @@ export const studentsApi = {
         profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         isActive: student.isActive !== undefined ? student.isActive : true,
         schoolId: activeSchoolId,
+        updatedAt: new Date().toISOString(),
       };
       await setDoc(studentRef, data);
       this.invalidateCache();
@@ -340,11 +397,15 @@ export const studentsApi = {
           ...(studentInfo.data || {}),
           ...studentData,
           classId: targetClassId,
+          updatedAt: new Date().toISOString(),
         };
         await setDoc(newRef, mergedData);
       } else {
         const ref = getStudentDocRef(activeSchoolId, oldClassId, studentId);
-        await setDoc(ref, studentData, { merge: true });
+        await setDoc(ref, {
+          ...studentData,
+          updatedAt: new Date().toISOString(),
+        }, { merge: true });
       }
       this.invalidateCache();
     } catch (error) {
@@ -361,7 +422,7 @@ export const studentsApi = {
       const studentInfo = await findStudentClass(studentId);
       if (studentInfo) {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
-        await setDoc(studentRef, { isActive: false }, { merge: true });
+        await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
       }
       this.invalidateCache();
     } catch (error) {
@@ -383,7 +444,7 @@ export const studentsApi = {
         const studentInfo = await findStudentClass(id);
         if (studentInfo) {
           const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, id);
-          await setDoc(studentRef, { isActive: false }, { merge: true });
+          await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
         }
       }
       this.invalidateCache();
@@ -401,7 +462,7 @@ export const studentsApi = {
       const studentInfo = await findStudentClass(studentId);
       if (studentInfo) {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
-        await setDoc(studentRef, { isActive: true }, { merge: true });
+        await setDoc(studentRef, { isActive: true, updatedAt: new Date().toISOString() }, { merge: true });
       }
       this.invalidateCache();
     } catch (error) {
@@ -427,6 +488,7 @@ export const studentsApi = {
             const mergedData = {
               ...(studentInfo.data || {}),
               classId: targetClassId,
+              updatedAt: new Date().toISOString(),
             };
             await setDoc(newRef, mergedData);
           }
@@ -455,6 +517,7 @@ export const studentsApi = {
             ...(studentInfo.data || {}),
             schoolId: targetSchoolId,
             classId: "",
+            updatedAt: new Date().toISOString(),
           };
           await setDoc(newRef, mergedData);
         }
@@ -505,7 +568,8 @@ export const studentsApi = {
       missing.forEach(s => {
         const ref = getStudentDocRef(activeSchoolId, s.classId || "", s.id);
         batch.update(ref, { 
-          profileId: `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}` 
+          profileId: `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          updatedAt: new Date().toISOString()
         });
       });
       await batch.commit();
@@ -558,6 +622,7 @@ export const studentsApi = {
           profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
           isActive: student.isActive !== undefined ? student.isActive : true,
           schoolId: student.schoolId || activeSchoolId,
+          updatedAt: new Date().toISOString(),
         });
       }
       this.invalidateCache();
@@ -565,4 +630,69 @@ export const studentsApi = {
       handleFirestoreError(error, OperationType.WRITE, "students");
     }
   },
+
+  /**
+   * Performs an incremental or full sync of student profiles based on a last-synced timestamp.
+   */
+  async syncProfiles(lastSyncTime?: string | null, fullSync = false): Promise<{
+    syncedStudents: Student[];
+    deletedIds: string[];
+    timestamp: string;
+  }> {
+    const activeSchoolId = getActiveSchoolId();
+    const currentTimestamp = new Date().toISOString();
+    
+    if (fullSync || !lastSyncTime) {
+      // Full Sync: Fetch ALL students from server
+      const classesList = await classesApi.getAll();
+      const allServerStudents = await this.getAllInParallelChunks(classesList, true);
+      const activeServerStudents = allServerStudents.filter(s => s.schoolId === activeSchoolId);
+      
+      return {
+        syncedStudents: activeServerStudents,
+        deletedIds: [],
+        timestamp: currentTimestamp,
+      };
+    } else {
+      // Incremental Sync
+      try {
+        const q = query(
+          collectionGroup(db, "students"),
+          where("schoolId", "==", activeSchoolId),
+          where("updatedAt", ">", lastSyncTime)
+        );
+        const snapshot = await getDocs(q);
+        const syncedStudents: Student[] = [];
+        const deletedIds: string[] = [];
+        
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const student = { id: doc.id, ...data } as Student;
+          if (data.isActive === false) {
+            deletedIds.push(doc.id);
+          } else {
+            syncedStudents.push(student);
+          }
+        });
+        
+        return {
+          syncedStudents,
+          deletedIds,
+          timestamp: currentTimestamp,
+        };
+      } catch (error: any) {
+        console.warn("Incremental sync via collectionGroup failed (likely missing index). Falling back to full sync.", error.message);
+        const classesList = await classesApi.getAll();
+        const allServerStudents = await this.getAllInParallelChunks(classesList, true);
+        const activeServerStudents = allServerStudents.filter(s => s.schoolId === activeSchoolId);
+        
+        const syncedStudents = activeServerStudents.filter(s => (s as any).updatedAt && (s as any).updatedAt > lastSyncTime);
+        return {
+          syncedStudents,
+          deletedIds: [],
+          timestamp: currentTimestamp,
+        };
+      }
+    }
+  }
 };

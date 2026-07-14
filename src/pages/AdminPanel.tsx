@@ -1063,15 +1063,6 @@ export default function AdminPanel() {
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           <Button
-            variant="outlined"
-            onClick={handleSeedDemoUsers}
-            disabled={loading}
-            startIcon={<StarIcon />}
-            sx={{ textTransform: "none", fontWeight: "bold" }}
-          >
-            Seed Demo Accounts
-          </Button>
-          <Button
             variant="contained"
             onClick={handleOpenCreateDialog}
             startIcon={<AddIcon />}

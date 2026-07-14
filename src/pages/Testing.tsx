@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Box,
   Button,
@@ -24,6 +24,7 @@ import {
   ListItemIcon,
   Avatar,
   Divider,
+  Switch,
 } from "@mui/material";
 import {
   Storage,
@@ -31,14 +32,17 @@ import {
   DeleteSweep,
   Warning,
   SwapHoriz,
+  Science,
 } from "@mui/icons-material";
-import { classesApi, studentsApi, attendanceApi, leavesApi } from "../api";
+import { ThemeContext } from "../contexts/ThemeContext";
+import { classesApi, studentsApi, attendanceApi, leavesApi, usersApi } from "../api";
 import {
   MOCK_STUDENTS,
   generateMockHistory,
   generateMockLeaves,
 } from "../data/demoData";
 import { cache } from "../lib/cache";
+import { studentCache } from "../utils/studentCache";
 import { resolveStudentImage } from "../utils/imageCache";
 import { useAuth } from "../contexts/AuthContext";
 import { useData } from "../contexts/DataContext";
@@ -62,6 +66,7 @@ const TestingStudentAvatar = ({ student }: { student: Student }) => {
 
 export default function Testing() {
   const { userProfile } = useAuth();
+  const { translucencyEnabled, toggleTranslucency } = useContext(ThemeContext);
   const [loading, setLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [toastSeverity, setToastSeverity] = useState<
@@ -149,6 +154,7 @@ export default function Testing() {
       ];
       await cache.set("offline_classes", seedClasses);
       await cache.set("offline_students", MOCK_STUDENTS);
+      await studentCache.clearAndSet(MOCK_STUDENTS);
 
       const mockHistory = generateMockHistory();
       for (const [dateKey, attendanceObj] of Object.entries(mockHistory)) {
@@ -179,6 +185,21 @@ export default function Testing() {
         "Failed to upload demo data to cloud. Created in local cache instead.",
         "warning",
       );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSeedDemoUsers = async () => {
+    try {
+      setLoading(true);
+      const classesList = await classesApi.getAll();
+      const classIds = classesList.map((c) => c.id);
+      await usersApi.seedDemoUsers(classIds);
+      showToast("Demo user accounts successfully created and populated!", "success");
+    } catch (err: any) {
+      console.error("Seeding users failed:", err);
+      showToast("Failed to seed demo users: " + err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -268,6 +289,33 @@ export default function Testing() {
       </Typography>
 
       <Stack spacing={4}>
+        {/* Experimental Translucency Testing Card */}
+        <Paper sx={{ p: 4, borderRadius: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+            <Science color="primary" sx={{ mr: 2, fontSize: 32 }} />
+            <Typography variant="h6" sx={{ fontWeight: "bold" }}>
+              Experimental Features (Testing)
+            </Typography>
+          </Box>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+            Enable modern translucency (glassmorphism) across the entire application. This feature works beautifully in both Light and Dark modes.
+          </Typography>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={translucencyEnabled}
+                onChange={toggleTranslucency}
+                color="primary"
+              />
+            }
+            label={
+              <Typography variant="body1" sx={{ fontWeight: "medium" }}>
+                Enable Glassmorphic Translucency ({translucencyEnabled ? "Active" : "Disabled"})
+              </Typography>
+            }
+          />
+        </Paper>
+
         {/* Load Demo Data Card */}
         <Paper sx={{ p: 4, borderRadius: 3 }}>
           <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -282,28 +330,47 @@ export default function Testing() {
             testing charts, history, and offline sync functionality.
           </Typography>
 
-          <Button
-            variant="contained"
-            startIcon={
-              loading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                <CloudUpload />
-              )
-            }
-            onClick={() => setSeedConfirmOpen(true)}
-            disabled={loading}
-            size="large"
-            sx={{
-              px: 4,
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: "none",
-              fontWeight: "bold",
-            }}
-          >
-            {loading ? "Processing..." : "Load Demo Data"}
-          </Button>
+          <Stack direction="row" spacing={2} sx={{ mt: 1, flexWrap: "wrap", gap: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <CloudUpload />
+                )
+              }
+              onClick={() => setSeedConfirmOpen(true)}
+              disabled={loading}
+              size="large"
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: "bold",
+              }}
+            >
+              {loading ? "Processing..." : "Load Demo Data"}
+            </Button>
+
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={handleSeedDemoUsers}
+              disabled={loading}
+              size="large"
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: "bold",
+              }}
+            >
+              Seed Demo Accounts
+            </Button>
+          </Stack>
         </Paper>
 
         {/* Bulk Student Transfer Card */}

@@ -2,6 +2,7 @@ import React, { useCallback, useMemo } from "react";
 import { AttendanceStatus, Student } from "../types";
 import { attendanceApi, classesApi, studentsApi } from "../api";
 import { cache } from "../lib/cache";
+import { useAuth } from "../contexts/AuthContext";
 
 export function useAttendanceActions(
   attendance: Record<string, AttendanceStatus>,
@@ -22,6 +23,7 @@ export function useAttendanceActions(
   setHistoryDates: (hd: any[]) => void,
   fetchBaseData: () => void,
 ) {
+  const { userProfile } = useAuth();
   const updateLocalCache = useCallback((clientAtt: Record<string, any>) => {
     // Generate enriched records to save
     const enriched: Record<string, any> = {};
@@ -88,7 +90,8 @@ export function useAttendanceActions(
     try {
       setLoading(true);
       const enriched = updateLocalCache(attendance);
-      await attendanceApi.saveByDate(dateString, enriched);
+      const isClassTeacher = userProfile?.role === "class_teacher";
+      await attendanceApi.saveByDate(dateString, enriched, isClassTeacher);
       localStorage.removeItem(`unsynced_${dateString}`);
       showToast("Attendance successfully synced with server!", "success");
       fetchHistory();
@@ -98,7 +101,7 @@ export function useAttendanceActions(
     } finally {
       setLoading(false);
     }
-  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache, setLoading]);
+  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache, setLoading, userProfile]);
 
   const clearAllData = useCallback(async () => {
     if (

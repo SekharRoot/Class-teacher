@@ -73,6 +73,7 @@ export const attendanceApi = {
   async saveByDate(
     dateString: string,
     records: Record<string, any>,
+    skipSummaryUpdate = false,
   ): Promise<void> {
     try {
       const activeSchoolId = getActiveSchoolId();
@@ -122,13 +123,39 @@ export const attendanceApi = {
       await Promise.all(savePromises);
 
       // Automatically pre-compute and save lightweight summary doc for the oversight dashboard
-      await this.generateAndSaveSummary(dateString, cleanRecords);
+      // Performance Optimization: Skip this for class_teachers who only have local class data context!
+      if (!skipSummaryUpdate) {
+        await this.generateAndSaveSummary(dateString, cleanRecords);
+      }
     } catch (error) {
       handleFirestoreError(
         error,
         OperationType.WRITE,
         `attendance/${dateString}`,
       );
+    }
+  },
+
+  /**
+   * Directly saves a pre-computed attendance summary to Firestore.
+   */
+  async saveSummaryOnly(
+    dateString: string,
+    stats: any,
+    classStats: any[]
+  ): Promise<void> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const summaryDocRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
+      await setDoc(summaryDocRef, {
+        date: dateString,
+        schoolId: activeSchoolId,
+        stats,
+        classStats,
+        updatedAt: new Date().toISOString(),
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Direct summary write failed:", err);
     }
   },
 
@@ -236,6 +263,7 @@ export const attendanceApi = {
 
         const rate = marked > 0 ? Math.round((present / marked) * 100) : null;
 
+        // Unified Schema containing keys expected by BOTH OversightDashboard/Worker AND DailyStatusReport
         return {
           classId: cls.id,
           className: `${cls.classStandard} ${cls.section} (${cls.board})`,
@@ -245,14 +273,19 @@ export const attendanceApi = {
           totalDS,
           totalBoarder,
           present: present,
+          presentCount: present,
           presentDB,
           presentDS,
           presentBoarder,
           absent: absent,
+          absentCount: absent,
           absentDB,
           absentDS,
           absentBoarder,
           leave: leave,
+          leaveCount: leave,
+          markedCount: marked,
+          attendanceRate: rate,
         };
       });
 

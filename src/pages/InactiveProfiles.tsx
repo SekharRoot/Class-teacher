@@ -30,11 +30,14 @@ import { StudentCard } from "../components/StudentCard";
 import { studentsApi } from "../api";
 import { Student } from "../types";
 import { cache } from "../lib/cache";
+import { studentCache } from "../utils/studentCache";
+import { useHierarchyScope } from "../hooks/useHierarchyScope";
 
 export default function InactiveProfiles() {
   const navigate = useNavigate();
   const { userProfile } = useAuth();
   const { students, classes, loading, fetchInitialData, setStudents } = useData();
+  const { authorizedClassIds, isReadOnly } = useHierarchyScope();
   const [toast, setToast] = useState({ open: false, message: "", severity: "success" as "success" | "error" });
   
   // Dialog state for permanent deletion confirmation
@@ -43,20 +46,16 @@ export default function InactiveProfiles() {
 
   const inactiveStudents = students.filter(s => s.isActive === false);
 
-  const canRestore = ["owner", "admin", "academic_coordinator", "principal"].includes(userProfile?.role || "");
+  const canRestoreGlobal = ["owner", "admin", "academic_coordinator"].includes(userProfile?.role || "");
 
-  if (userProfile?.role === "class_teacher") {
-    return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="error">
-          Access Denied. You do not have permission to view this page.
-        </Alert>
-        <Button startIcon={<ArrowBack />} onClick={() => navigate("/")} sx={{ mt: 2 }}>
-          Back to Dashboard
-        </Button>
-      </Container>
-    );
-  }
+  const canManageStudent = (student: Student) => {
+    if (isReadOnly) return false;
+    if (canRestoreGlobal) return true;
+    if (userProfile?.role === "class_teacher" && student.classId && authorizedClassIds.includes(student.classId)) {
+      return true;
+    }
+    return false;
+  };
 
   const handleRestore = async (studentId: string) => {
     try {
@@ -67,6 +66,10 @@ export default function InactiveProfiles() {
       const updatedList = students.map((s) => s.id === studentId ? { ...s, isActive: true } : s);
       setStudents(updatedList);
       await cache.set("offline_students", updatedList);
+      const restored = students.find((s) => s.id === studentId);
+      if (restored) {
+        await studentCache.setBatch([{ ...restored, isActive: true }]);
+      }
 
       fetchInitialData();
     } catch (error) {
@@ -91,6 +94,7 @@ export default function InactiveProfiles() {
       const updatedList = students.filter((s) => s.id !== targetId);
       setStudents(updatedList);
       await cache.set("offline_students", updatedList);
+      await studentCache.deleteBatch([targetId]);
 
       fetchInitialData();
     } catch (error) {
@@ -156,7 +160,7 @@ export default function InactiveProfiles() {
                   readOnly={true}
                 />
               </Box>
-              {canRestore && (
+              {canManageStudent(student) && (
                 <Box sx={{ display: "flex", gap: 1 }}>
                   <Button
                     fullWidth

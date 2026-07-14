@@ -4,6 +4,7 @@ import { classesApi, studentsApi, leavesApi } from "../api";
 import { usersApi } from "../api/users";
 import { cache } from "../lib/cache";
 import { useAuth } from "./AuthContext";
+import { studentSyncManager } from "../utils/studentSyncManager";
 
 interface DataContextType {
   students: Student[]; setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
@@ -26,7 +27,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [offlineMode, setOfflineMode] = useState(false);
 
-  const fetchAndCacheAll = useCallback(async () => {
+  const fetchAndCacheAll = useCallback(async (forceRefreshStudents: boolean = false) => {
     const canAccessLeaves =
       userProfile?.role === "admin" ||
       userProfile?.role === "owner" ||
@@ -58,16 +59,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // so the main interface renders snapily. Then download profiles progressively.
     setLoading(false);
 
-    try {
-      // Fetch students in highly efficient parallel class-by-class chunks
-      const studentsList = await studentsApi.getAllInParallelChunks(classesList || [], true);
-      setStudents(studentsList || []);
-      await cache.set("offline_students", studentsList || []);
-    } catch (err) {
-      console.error("Progressive parallel chunk student download failed, trying standard:", err);
-      const studentsList = await studentsApi.getAll(true);
-      setStudents(studentsList || []);
-      await cache.set("offline_students", studentsList || []);
+    // Only download student profiles if forced, OR if we don't have any students in our cache/state.
+    const cachedStudents = await cache.get("offline_students");
+    const hasCachedStudents = !!(cachedStudents && cachedStudents.length > 0);
+
+    if (forceRefreshStudents || !hasCachedStudents) {
+      try {
+        // Fetch students in highly efficient parallel class-by-class chunks
+        // Since class teachers are now allowed complete read-only access to all profiles,
+        // we download the entire school's student profiles.
+        const targetClasses = classesList || [];
+
+        const studentsList = await studentsApi.getAllInParallelChunks(targetClasses, true);
+        setStudents(studentsList || []);
+        await cache.set("offline_students", studentsList || []);
+      } catch (err) {
+        console.error("Progressive parallel chunk student download failed, trying standard:", err);
+        const studentsList = await studentsApi.getAll(true);
+        setStudents(studentsList || []);
+        await cache.set("offline_students", studentsList || []);
+      }
+    } else {
+      console.log("Skipping automatic student profiles re-download as they are already cached offline.");
+      if (cachedStudents) {
+        setStudents(cachedStudents);
+      }
     }
   }, [userProfile]);
 
@@ -151,6 +167,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           console.error("Background initial load sync failed:", err);
         }
       }
+
+      // 3. Check and auto-trigger offline student profiles sync (initial login & weekly scheduled)
+      try {
+        const triggered = await studentSyncManager.checkAndAutoTriggerSync();
+        if (triggered && active) {
+          const cachedStudentsAfterSync = await cache.get("offline_students");
+          if (cachedStudentsAfterSync) setStudents(cachedStudentsAfterSync);
+        }
+      } catch (syncErr) {
+        console.error("Background student profile sync check failed:", syncErr);
+      }
     }
 
     if (currentUser && userProfile?.status === "active") {
@@ -179,7 +206,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         cache.remove("offline_users"),
       ]);
 
-      await fetchAndCacheAll();
+      await fetchAndCacheAll(true);
       setOfflineMode(false);
     } catch (err: any) {
       console.error("Force sync failed:", err);

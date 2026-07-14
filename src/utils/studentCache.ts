@@ -35,6 +35,25 @@ export const studentCache = {
     await tx.done;
   },
 
+  async clearAndSet(students: Student[]) {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    await tx.store.clear();
+    for (const student of students) {
+      tx.store.put(student);
+    }
+    await tx.done;
+  },
+
+  async deleteBatch(ids: string[]) {
+    const db = await getDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    for (const id of ids) {
+      tx.store.delete(id);
+    }
+    await tx.done;
+  },
+
   async searchLocal(query: string): Promise<Student[]> {
     const students = await this.getAll();
     const lowerQuery = query.toLowerCase();

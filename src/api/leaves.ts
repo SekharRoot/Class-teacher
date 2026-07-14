@@ -9,6 +9,8 @@ import {
   updateDoc,
   orderBy,
   limit,
+  collectionGroup,
+  where,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
@@ -37,39 +39,62 @@ export const leavesApi = {
     }
     try {
       const activeSchoolId = getActiveSchoolId();
-      const classesList = await classesApi.getAll();
-      const classIds = ["unassigned", ...classesList.map(c => c.id)];
 
-      const promises = classIds.map(async (cId) => {
-        const q = query(
-          collection(db, "schools", activeSchoolId, "classes", cId, "leaves"),
-          orderBy("appliedAt", "desc"),
-          limit(fetchLimit)
-        );
-        const snapshot = await getDocs(q);
-        const subList: LeaveRequest[] = [];
-        snapshot.forEach((doc) => {
-          subList.push({ id: doc.id, ...doc.data() } as LeaveRequest);
-        });
-        return subList;
+      // Performance Optimization: Use a single collectionGroup query to fetch all leaves across classes,
+      // avoiding N+1 requests.
+      const q = query(
+        collectionGroup(db, "leaves"),
+        where("schoolId", "==", activeSchoolId),
+        orderBy("appliedAt", "desc"),
+        limit(fetchLimit)
+      );
+      const snapshot = await getDocs(q);
+      const list: LeaveRequest[] = [];
+      snapshot.forEach((doc) => {
+        list.push({ id: doc.id, ...doc.data() } as LeaveRequest);
       });
 
-      const results = await Promise.all(promises);
-      const list = results.flat();
-
-      // Sort by appliedAt desc
-      list.sort((a, b) => {
-        const dateA = a.appliedAt || "";
-        const dateB = b.appliedAt || "";
-        return dateB.localeCompare(dateA);
-      });
-
-      leavesCache = list.slice(0, fetchLimit);
+      leavesCache = list;
       leavesCacheTime = Date.now();
       return leavesCache;
     } catch (error) {
-      handleFirestoreError(error, OperationType.LIST, "leaves");
-      return [];
+      console.warn("CollectionGroup leaves query failed or needs index. Retrying with parallel fallback.", error);
+      try {
+        const activeSchoolId = getActiveSchoolId();
+        const classesList = await classesApi.getAll();
+        const classIds = ["unassigned", ...classesList.map(c => c.id)];
+
+        const promises = classIds.map(async (cId) => {
+          const q = query(
+            collection(db, "schools", activeSchoolId, "classes", cId, "leaves"),
+            orderBy("appliedAt", "desc"),
+            limit(fetchLimit)
+          );
+          const snapshot = await getDocs(q);
+          const subList: LeaveRequest[] = [];
+          snapshot.forEach((doc) => {
+            subList.push({ id: doc.id, ...doc.data() } as LeaveRequest);
+          });
+          return subList;
+        });
+
+        const results = await Promise.all(promises);
+        const list = results.flat();
+
+        // Sort by appliedAt desc
+        list.sort((a, b) => {
+          const dateA = a.appliedAt || "";
+          const dateB = b.appliedAt || "";
+          return dateB.localeCompare(dateA);
+        });
+
+        leavesCache = list.slice(0, fetchLimit);
+        leavesCacheTime = Date.now();
+        return leavesCache;
+      } catch (fallbackError) {
+        handleFirestoreError(fallbackError, OperationType.LIST, "leaves");
+        return [];
+      }
     }
   },
 

@@ -34,6 +34,7 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import SchoolIcon from "@mui/icons-material/School";
 import Avatar from "@mui/material/Avatar";
 
 export default function Login() {
@@ -206,13 +207,21 @@ export default function Login() {
               : "0 12px 40px 0 rgba(31, 38, 135, 0.08)",
           }}
         >
-          <Avatar sx={{ m: 1.5, bgcolor: "primary.main", width: 48, height: 48 }}>
+          <Avatar 
+            sx={{ 
+              m: 1.5, 
+              background: "linear-gradient(135deg, #2196F3 0%, #E91E63 100%)", 
+              width: 54, 
+              height: 54,
+              boxShadow: "0 4px 15px rgba(233, 30, 99, 0.3)"
+            }}
+          >
             {isForgotPassword ? (
               <VpnKeyIcon />
             ) : isRegister ? (
               <PersonAddIcon />
             ) : (
-              <LockOutlinedIcon />
+              <SchoolIcon sx={{ fontSize: 32, color: "#ffffff" }} />
             )}
           </Avatar>
           <Typography 
@@ -224,7 +233,7 @@ export default function Login() {
               ? "Reset Password"
               : isRegister
                 ? "Create Account"
-                : "Teacher Login"}
+                : "SMS Login"}
           </Typography>
 
           {error && (

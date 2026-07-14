@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Student } from "../types";
 import { studentsApi } from "../api";
 import { cache } from "../lib/cache";
+import { studentCache } from "../utils/studentCache";
 
 export const useProfileActions = (
   students: Student[],
@@ -62,6 +63,7 @@ export const useProfileActions = (
 
     setStudents(updatedList);
     cache.set("offline_students", updatedList);
+    await studentCache.setBatch([savedStudent]);
 
     if (offlineMode) {
       showToast(`Profile for "${formData.studentName}" saved offline!`, "success");
@@ -100,6 +102,7 @@ export const useProfileActions = (
     const updatedList = students.filter((s) => s.id !== studentId);
     setStudents(updatedList);
     cache.set("offline_students", updatedList);
+    await studentCache.deleteBatch([studentId]);
     setStudentToDelete(null);
 
     if (offlineMode) {
@@ -132,6 +135,7 @@ export const useProfileActions = (
     const updatedList = students.filter((s) => !idsToDelete.includes(s.id));
     setStudents(updatedList);
     cache.set("offline_students", updatedList);
+    await studentCache.deleteBatch(idsToDelete);
     setSelectedIds([]);
 
     if (!offlineMode) {
