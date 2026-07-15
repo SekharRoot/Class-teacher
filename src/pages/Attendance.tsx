@@ -29,6 +29,7 @@ import { AttendanceHistory } from "../components/AttendanceHistory";
 import { AttendanceSummary } from "../components/AttendanceSummary";
 import { ClassSelectionGrid } from "../components/ClassSelectionGrid";
 import { AttendanceStudentList } from "../components/AttendanceStudentList";
+import { ClasswiseAbsenteeExport } from "../components/ClasswiseAbsenteeExport";
 import { useAttendanceData } from "../hooks/useAttendanceData";
 import { useAttendanceActions } from "../hooks/useAttendanceActions";
 import { useAuth } from "../contexts/AuthContext";
@@ -327,6 +328,16 @@ export default function Attendance() {
             classes={filteredClasses}
             onSelectClass={handleClassSelect}
           />
+          <Box sx={{ mt: 4 }}>
+            <ClasswiseAbsenteeExport
+              classes={filteredClasses}
+              students={students}
+              attendance={attendance}
+              dateString={dateString}
+              onDateChange={setSelectedDate}
+              loading={loading}
+            />
+          </Box>
         </>
       ) : (
         <Box>
@@ -546,6 +557,8 @@ export default function Attendance() {
           {toastMessage}
         </Alert>
       </Snackbar>
+      {/* Generous bottom spacing safety buffer for floating navigation bar */}
+      <Box sx={{ height: { xs: 120, sm: 160 } }} />
     </Box>
   );
 }

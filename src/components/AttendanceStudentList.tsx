@@ -14,7 +14,7 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import { ChevronLeft, CloudUpload, Search } from "@mui/icons-material";
+import { ChevronLeft, CloudUpload, Search, ContentCopy } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
 import { AttendanceRow } from "./AttendanceRow";
 
@@ -48,11 +48,37 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
 }) => {
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const classStudents = useMemo(() => 
     students.filter((s) => s.classId === selectedClassId && s.isActive !== false),
     [students, selectedClassId]
   );
+
+  const absentees = useMemo(() => {
+    return classStudents.filter((student) => {
+      const att = attendance[student.id];
+      const status = typeof att === 'object' && att !== null ? att.status : att;
+      return status === "absent";
+    });
+  }, [classStudents, attendance]);
+
+  const handleCopyAbsentees = () => {
+    if (absentees.length === 0) {
+      navigator.clipboard.writeText("No absentees");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      return;
+    }
+    
+    const text = absentees
+      .map((student, index) => `${index + 1}. ${student.firstName} ${student.lastName}`)
+      .join("\n");
+      
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const filteredStudents = useMemo(() => {
     if (!searchQuery.trim()) return classStudents;
@@ -144,6 +170,16 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               {syncing ? "Sync..." : "Sync"}
             </Button>
           )}
+          <Button
+            startIcon={<ContentCopy sx={{ fontSize: 14 }} />}
+            onClick={handleCopyAbsentees}
+            variant="outlined"
+            color={copied ? "success" : "primary"}
+            size="small"
+            sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
+          >
+            {copied ? "Copied!" : `Copy Absentees (${absentees.length})`}
+          </Button>
           <TextField
             placeholder="Search..."
             size="small"
