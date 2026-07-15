@@ -8,11 +8,12 @@ import { HeaderAppBar } from "../components/navigation/HeaderAppBar";
 import { DesktopSidebar } from "../components/navigation/DesktopSidebar";
 import { LogoutDialog } from "../components/navigation/LogoutDialog";
 import { PendingApproval } from "../components/navigation/PendingApproval";
+import { LoadingOverlay } from "../components/navigation/LoadingOverlay";
 import { useNavigationItems } from "../hooks/useNavigationItems";
 import { useData } from "../contexts/DataContext";
 
 export default function AppShell() {
-  const { currentUser, userProfile, signOut } = useAuth();
+  const { currentUser, userProfile, loading, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
@@ -42,6 +43,10 @@ export default function AppShell() {
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (loading) {
+    return <LoadingOverlay />;
   }
 
   if (userProfile?.status === "pending") {

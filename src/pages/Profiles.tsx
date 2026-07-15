@@ -243,10 +243,10 @@ export default function Profiles() {
     if (s.isActive === false) return false;
 
     const term = searchQuery.toLowerCase();
-    const fullName = `${s.firstName} ${s.lastName}`.toLowerCase();
+    const fullName = `${s.firstName || ""} ${s.lastName || ""}`.toLowerCase();
     const father = (s.fatherName || "").toLowerCase();
     const mother = (s.motherName || "").toLowerCase();
-    const roll = s.rollNumber.toLowerCase();
+    const roll = (s.rollNumber || "").toLowerCase();
 
     const classInfo = classes.find((c) => c.id === s.classId);
     const classString = classInfo
