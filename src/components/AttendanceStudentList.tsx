@@ -13,8 +13,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  MenuItem,
+  FormControl,
+  Select,
+  SelectChangeEvent,
 } from "@mui/material";
-import { ChevronLeft, CloudUpload, Search, ContentCopy } from "@mui/icons-material";
+import { ChevronLeft, CloudUpload, Search, ContentCopy, ArrowDropDown } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
 import { AttendanceRow } from "./AttendanceRow";
 
@@ -49,6 +53,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copiedType, setCopiedType] = useState<"absent" | "present" | null>(null);
 
   const classStudents = useMemo(() => 
     students.filter((s) => s.classId === selectedClassId && s.isActive !== false),
@@ -63,11 +68,23 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
     });
   }, [classStudents, attendance]);
 
+  const presents = useMemo(() => {
+    return classStudents.filter((student) => {
+      const att = attendance[student.id];
+      const status = typeof att === 'object' && att !== null ? att.status : att;
+      return status === "present";
+    });
+  }, [classStudents, attendance]);
+
   const handleCopyAbsentees = () => {
     if (absentees.length === 0) {
       navigator.clipboard.writeText("No absentees");
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedType("absent");
+      setTimeout(() => {
+        setCopied(false);
+        setCopiedType(null);
+      }, 2000);
       return;
     }
     
@@ -77,7 +94,45 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
       
     navigator.clipboard.writeText(text);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopiedType("absent");
+    setTimeout(() => {
+      setCopied(false);
+      setCopiedType(null);
+    }, 2000);
+  };
+
+  const handleCopyPresents = () => {
+    if (presents.length === 0) {
+      navigator.clipboard.writeText("No presents");
+      setCopied(true);
+      setCopiedType("present");
+      setTimeout(() => {
+        setCopied(false);
+        setCopiedType(null);
+      }, 2000);
+      return;
+    }
+    
+    const text = presents
+      .map((student, index) => `${index + 1}. ${student.firstName} ${student.lastName}`)
+      .join("\n");
+      
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setCopiedType("present");
+    setTimeout(() => {
+      setCopied(false);
+      setCopiedType(null);
+    }, 2000);
+  };
+
+  const handleCopySelect = (event: SelectChangeEvent<"absent" | "present" | "">) => {
+    const value = event.target.value as "absent" | "present";
+    if (value === "absent") {
+      handleCopyAbsentees();
+    } else if (value === "present") {
+      handleCopyPresents();
+    }
   };
 
   const filteredStudents = useMemo(() => {
@@ -170,16 +225,55 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               {syncing ? "Sync..." : "Sync"}
             </Button>
           )}
-          <Button
-            startIcon={<ContentCopy sx={{ fontSize: 14 }} />}
-            onClick={handleCopyAbsentees}
-            variant="outlined"
-            color={copied ? "success" : "primary"}
-            size="small"
-            sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
-          >
-            {copied ? "Copied!" : `Copy Absentees (${absentees.length})`}
-          </Button>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <Select
+              value=""
+              displayEmpty
+              onChange={handleCopySelect}
+              sx={{
+                borderRadius: 2,
+                height: 32,
+                fontSize: '0.75rem',
+                border: "1px solid",
+                borderColor: copied ? "success.main" : "primary.main",
+                color: copied ? "success.main" : "primary.main",
+                fontWeight: "medium",
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  color: copied ? "success.main" : "primary.main",
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  border: "none"
+                },
+                '&:hover': {
+                  borderColor: copied ? "success.dark" : "primary.dark",
+                }
+              }}
+              renderValue={() => (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <ContentCopy sx={{ fontSize: 14 }} />
+                  {copied
+                    ? copiedType === "absent"
+                      ? "Copied Abs!"
+                      : "Copied Pres!"
+                    : "Copy List"}
+                </Box>
+              )}
+            >
+              <MenuItem value="" disabled sx={{ fontSize: '0.75rem' }}>
+                <em>Select List to Copy</em>
+              </MenuItem>
+              <MenuItem value="absent" sx={{ fontSize: '0.75rem' }}>
+                Copy Absentees ({absentees.length})
+              </MenuItem>
+              <MenuItem value="present" sx={{ fontSize: '0.75rem' }}>
+                Copy Present Students ({presents.length})
+              </MenuItem>
+            </Select>
+          </FormControl>
           <TextField
             placeholder="Search..."
             size="small"

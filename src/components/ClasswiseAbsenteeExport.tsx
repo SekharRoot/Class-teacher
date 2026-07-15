@@ -111,8 +111,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
         hasAnyAbsentees = true;
         text += `• ${item.className} (Total: ${item.absentees.length} Absent):\n`;
         item.absentees.forEach((student, index) => {
-          const rollInfo = student.rollNumber ? ` [Roll: ${student.rollNumber}]` : "";
-          text += `  ${index + 1}. ${student.firstName} ${student.lastName}${rollInfo}\n`;
+          text += `  ${index + 1}. ${student.firstName} ${student.lastName}\n`;
         });
         text += `\n`;
       }
@@ -156,8 +155,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
     const formattedDate = format(new Date(dateString + "T12:00:00"), "dd/MM/yyyy");
     let text = `${className} - Absentees (${formattedDate}):\n`;
     absentees.forEach((student, index) => {
-      const rollInfo = student.rollNumber ? ` [Roll: ${student.rollNumber}]` : "";
-      text += `${index + 1}. ${student.firstName} ${student.lastName}${rollInfo}\n`;
+      text += `${index + 1}. ${student.firstName} ${student.lastName}\n`;
     });
 
     navigator.clipboard.writeText(text);
