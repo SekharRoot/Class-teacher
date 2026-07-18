@@ -36,8 +36,8 @@ export const ClassSelectionGrid: React.FC<ClassSelectionGridProps> = ({
               p: 3,
               borderRadius: 3,
               cursor: "pointer",
-              transition: "transform 0.2s, box-shadow 0.2s",
-              "&:hover": { transform: "translateY(-4px)", boxShadow: 4 },
+              transition: "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+              "&:hover": { transform: "translateY(-4px) scale(1.02)", boxShadow: 6 },
             }}
           >
             <Typography variant="h5" sx={{ fontWeight: "bold" }}>

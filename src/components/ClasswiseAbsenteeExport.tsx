@@ -332,10 +332,11 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                   borderRadius: "8px !important",
                   overflow: "hidden",
                   "&:before": { display: "none" },
-                  transition: "all 0.2s ease",
+                  transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
                   "&:hover": {
                     borderColor: "primary.light",
-                    boxShadow: "0px 2px 8px rgba(0,0,0,0.04)",
+                    boxShadow: "0px 4px 12px rgba(0,0,0,0.06)",
+                    transform: "translateY(-1px)",
                   },
                 }}
               >

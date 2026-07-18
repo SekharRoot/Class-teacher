@@ -34,6 +34,7 @@ export function useAttendanceData() {
   const dateString = format(selectedDate, "yyyy-MM-dd");
 
   const [leavesList, setLeavesList] = useState<LeaveRequest[]>([]);
+  const [historyLimit, setHistoryLimit] = useState(6);
   const [historyDates, setHistoryDates] = useState<
     {
       date: string;
@@ -122,10 +123,11 @@ export function useAttendanceData() {
       let datesList: any[] = [];
 
       if (!offlineMode) {
-        // Fetch from Firestore (optimized to last 30 entries/days)
+        // Fetch from Firestore (optimized to last 6 days initially, extensible via historyLimit)
         datesList = await attendanceApi.getHistory(
           classStudentIds,
           selectedClassId || undefined,
+          historyLimit,
         );
       } else {
         // Use local storage for offline history
@@ -141,6 +143,7 @@ export function useAttendanceData() {
           classStudentIds,
           selectedClassId,
         });
+        datesList = datesList.slice(0, historyLimit);
       }
 
       setHistoryDates(datesList);
@@ -229,10 +232,15 @@ export function useAttendanceData() {
     fetchAttendanceForDate(dateString);
   }, [dateString]);
 
-  // 6. Recalculate history whenever selected class, student database or attendance updates
+  // 6. Recalculate history whenever selected class, student database, attendance, or historyLimit updates
   useEffect(() => {
     fetchHistory();
-  }, [selectedClassId, students, attendance, dateString]);
+  }, [selectedClassId, students, attendance, dateString, historyLimit]);
+
+  // Reset history limit when switching class
+  useEffect(() => {
+    setHistoryLimit(6);
+  }, [selectedClassId]);
 
   // 7. Sync leaves from DataContext
   useEffect(() => {
@@ -287,6 +295,8 @@ export function useAttendanceData() {
     dateString,
     historyDates,
     setHistoryDates,
+    historyLimit,
+    setHistoryLimit,
     activeTab,
     setActiveTab,
     showToast,

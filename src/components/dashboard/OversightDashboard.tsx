@@ -170,7 +170,13 @@ export const OversightDashboard = React.memo(({
                         ? "warning"
                         : "error"
                   }
-                  sx={{ borderRadius: 1, height: 6 }}
+                  sx={{
+                    borderRadius: 1,
+                    height: 6,
+                    [`& .MuiLinearProgress-bar`]: {
+                      transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+                    },
+                  }}
                 />
               </Box>
             </CardContent>

@@ -61,6 +61,8 @@ export default function Attendance() {
     dateString,
     historyDates,
     setHistoryDates,
+    historyLimit,
+    setHistoryLimit,
     activeTab,
     setActiveTab,
     showToast,
@@ -90,7 +92,7 @@ export default function Attendance() {
     if (!userProfile || loadingScope) return;
 
     if (classId) {
-      const isAuthorized = authorizedClassIds.includes(classId) || (isTeacher && isSubstituteMode);
+      const isAuthorized = authorizedClassIds.includes(classId);
       if (!isAuthorized) {
         if (
           userProfile.role === "class_teacher" &&
@@ -101,7 +103,7 @@ export default function Attendance() {
         } else {
           // Check if class exists even if not authorized yet
           const classExists = classes.some(c => c.id === classId);
-          if (isSubstituteMode && classExists) {
+          if (isSubstituteMode && classExists && authorizedClassIds.includes(classId)) {
             setSelectedClassId(classId);
           } else {
             navigate("/attendance");
@@ -180,9 +182,16 @@ export default function Attendance() {
     showToast("Switched to Offline Mode successfully.", "info");
   };
 
-  const filteredClasses = classes.filter((cls) =>
-    isSubstituteMode ? true : authorizedClassIds.includes(cls.id),
-  );
+  const filteredClasses = classes.filter((cls) => {
+    if (userProfile?.role === "class_teacher") {
+      if (isSubstituteMode) {
+        return userProfile.alternateClassIds?.includes(cls.id) || false;
+      } else {
+        return cls.id === userProfile.assignedClassId;
+      }
+    }
+    return authorizedClassIds.includes(cls.id);
+  });
 
   return (
     <Box sx={{ maxWidth: "lg", mx: "auto", pb: 6 }}>
@@ -328,16 +337,18 @@ export default function Attendance() {
             classes={filteredClasses}
             onSelectClass={handleClassSelect}
           />
-          <Box sx={{ mt: 4 }}>
-            <ClasswiseAbsenteeExport
-              classes={filteredClasses}
-              students={students}
-              attendance={attendance}
-              dateString={dateString}
-              onDateChange={setSelectedDate}
-              loading={loading}
-            />
-          </Box>
+          {!(isTeacher && isSubstituteMode) && (
+            <Box sx={{ mt: 4 }}>
+              <ClasswiseAbsenteeExport
+                classes={filteredClasses}
+                students={students}
+                attendance={attendance}
+                dateString={dateString}
+                onDateChange={setSelectedDate}
+                loading={loading}
+              />
+            </Box>
+          )}
         </>
       ) : (
         <Box>
@@ -537,6 +548,8 @@ export default function Attendance() {
                 historyDates={historyDates}
                 dateString={dateString}
                 onDateSelect={handleDateSelect}
+                onLoadMore={() => setHistoryLimit((prev) => prev + 6)}
+                hasMore={historyDates.length >= historyLimit}
               />
             </Box>
           )}

@@ -108,9 +108,10 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                   gap: 0.25,
                   minWidth: { xs: 50, sm: 70 },
                   flexShrink: 0,
-                  transition: "all 0.2s ease",
+                  transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
                   "&:hover": {
                     color: "primary.main",
+                    transform: "translateY(-1px) scale(1.05)",
                     bgcolor:
                       theme.palette.mode === "dark"
                         ? "rgba(25, 118, 210, 0.1)"

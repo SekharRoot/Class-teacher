@@ -109,10 +109,10 @@ export const ClassCard: React.FC<ClassCardProps> = ({
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        transition: "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: 4,
+          transform: "translateY(-4px) scale(1.01)",
+          boxShadow: 5,
         },
       }}
     >
@@ -166,7 +166,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                 title="Transfer Class to School"
                 sx={{
                   "&:hover": { bgcolor: "secondary.50" },
-                  transition: "all 0.2s",
+                  transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
                 }}
               >
                 <Business fontSize="small" />
@@ -183,7 +183,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                 title="Edit Class"
                 sx={{
                   "&:hover": { bgcolor: "primary.50" },
-                  transition: "all 0.2s",
+                  transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
                 }}
               >
                 <Edit fontSize="small" />
@@ -203,7 +203,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
                   bgcolor: "error.50",
                   transform: "scale(1.1)",
                 },
-                transition: "all 0.2s",
+                transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
               }}
             >
               <Delete fontSize="small" />

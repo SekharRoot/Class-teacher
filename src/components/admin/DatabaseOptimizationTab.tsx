@@ -182,7 +182,14 @@ export const DatabaseOptimizationTab: React.FC<DatabaseOptimizationTabProps> = (
                   ? (migrationProgress.current / migrationProgress.total) * 100
                   : 0
               }
-              sx={{ height: 10, borderRadius: 5, mb: 1 }}
+              sx={{
+                height: 10,
+                borderRadius: 5,
+                mb: 1,
+                [`& .MuiLinearProgress-bar`]: {
+                  transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+                },
+              }}
             />
             <Box
               sx={{

@@ -54,10 +54,10 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
         position: "relative",
         border: selected ? "2px solid" : "none",
         borderColor: "primary.main",
-        transition: "transform 0.2s ease, box-shadow 0.2s ease",
+        transition: "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.3s ease",
         "&:hover": {
-          transform: "translateY(-4px)",
-          boxShadow: 4,
+          transform: "translateY(-4px) scale(1.01)",
+          boxShadow: 5,
         },
       }}
     >
@@ -245,7 +245,7 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
                 bgcolor: "error.50",
                 transform: "scale(1.1)",
               },
-              transition: "all 0.2s",
+              transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
             }}
           >
             <Delete fontSize="small" />

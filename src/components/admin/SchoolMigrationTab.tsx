@@ -640,7 +640,13 @@ export const SchoolMigrationTab: React.FC<SchoolMigrationTabProps> = ({
           <LinearProgress
             variant="determinate"
             value={migrationProgress.current}
-            sx={{ height: 10, borderRadius: 5 }}
+            sx={{
+              height: 10,
+              borderRadius: 5,
+              [`& .MuiLinearProgress-bar`]: {
+                transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+              },
+            }}
           />
         </Paper>
       )}

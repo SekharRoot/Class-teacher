@@ -649,7 +649,14 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
                 variant="determinate"
                 value={transferProgress}
                 color="secondary"
-                sx={{ height: 8, borderRadius: 4, mb: 2 }}
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  mb: 2,
+                  [`& .MuiLinearProgress-bar`]: {
+                    transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
+                  },
+                }}
               />
               
               <Typography variant="caption" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 0.5, mb: 1 }}>

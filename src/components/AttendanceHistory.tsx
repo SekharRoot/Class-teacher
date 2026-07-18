@@ -24,32 +24,28 @@ interface AttendanceHistoryProps {
   historyDates: HistoryRecord[];
   dateString: string;
   onDateSelect: (date: string) => void;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
 }
 
 export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
   historyDates,
   dateString,
   onDateSelect,
+  onLoadMore,
+  hasMore = false,
 }) => {
-  const [visibleCount, setVisibleCount] = useState(5);
   const [isFetching, setIsFetching] = useState(false);
 
-  // Reset pagination when context/history list changes (e.g., class selection change)
-  useEffect(() => {
-    setVisibleCount(5);
-  }, [historyDates.length, historyDates[0]?.date]);
-
-  const visibleDates = historyDates.slice(0, visibleCount);
-  const hasMore = historyDates.length > visibleCount;
+  const visibleDates = historyDates;
 
   const handleLoadMore = () => {
-    if (isFetching) return;
+    if (isFetching || !onLoadMore) return;
     setIsFetching(true);
-    // Simulate lightweight API fetch/compute delay for superior UX
+    onLoadMore();
     setTimeout(() => {
-      setVisibleCount((prev) => prev + 5);
       setIsFetching(false);
-    }, 600);
+    }, 800);
   };
 
   const containerVariants = {
