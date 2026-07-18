@@ -576,8 +576,15 @@ export const TeacherDashboard = React.memo(({
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                {format(new Date(leave.startDate), "MMM d")} -{" "}
-                                {format(new Date(leave.endDate), "MMM d")} •{" "}
+                                {(() => {
+                                  try {
+                                    const startStr = leave.startDate ? format(new Date(leave.startDate), "MMM d") : "N/A";
+                                    const endStr = leave.endDate ? format(new Date(leave.endDate), "MMM d") : "N/A";
+                                    return `${startStr} - ${endStr}`;
+                                  } catch (e) {
+                                    return "Invalid date range";
+                                  }
+                                })()} •{" "}
                                 {leave.reason}
                               </Typography>
                             }

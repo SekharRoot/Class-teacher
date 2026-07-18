@@ -141,8 +141,15 @@ export function LeaveCard({
           >
             <Event color="action" fontSize="small" />
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {format(new Date(leave.startDate), "MMM d, yyyy")} -{" "}
-              {format(new Date(leave.endDate), "MMM d, yyyy")}
+              {(() => {
+                try {
+                  const startStr = leave.startDate ? format(new Date(leave.startDate), "MMM d, yyyy") : "N/A";
+                  const endStr = leave.endDate ? format(new Date(leave.endDate), "MMM d, yyyy") : "N/A";
+                  return `${startStr} - ${endStr}`;
+                } catch (e) {
+                  return "Invalid date range";
+                }
+              })()}
             </Typography>
           </Box>
 

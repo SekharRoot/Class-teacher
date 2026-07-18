@@ -195,24 +195,51 @@ export const attendanceApi = {
       // 2. Fetch classes
       const classesList = await classesApi.getAll(true);
 
-      // 3. Fetch active students
+      // 3. Fetch all students (including inactive ones to see if they have logs on this date)
       const studentsList = await studentsApi.getAll(true);
-      const activeStudentsList = studentsList.filter(s => s.isActive !== false);
 
       // 4. Compute stats
-      const classesCount = classesList.length;
-      const studentsCount = activeStudentsList.length;
       let todayPresent = 0;
       let todayTotalMarked = 0;
       let todayAbsent = 0;
       let todayLeave = 0;
 
       const classStats = classesList.map((cls) => {
-        const classStudents = activeStudentsList.filter((s) => s.classId === cls.id);
-        const total = classStudents.length;
-        const totalDB = classStudents.filter(s => s.boarderType === "Day Boarder").length;
-        const totalDS = classStudents.filter(s => s.boarderType === "Day Scholar").length;
-        const totalBoarder = classStudents.filter(s => s.boarderType === "Full Boarder").length;
+        // Find all active students in this class
+        const activeClassStudents = studentsList.filter((s) => s.classId === cls.id && s.isActive !== false);
+        
+        // Also find any students (active or inactive) who have actual attendance records on this date for this class
+        const loggedStudentIds = new Set<string>();
+        Object.entries(records).forEach(([studentId, val]) => {
+          const isObj = typeof val === "object" && val !== null;
+          const recordClassId = isObj ? (val as any).classId : null;
+          if (
+            recordClassId === cls.id ||
+            (!recordClassId && studentsList.find((s) => s.id === studentId)?.classId === cls.id)
+          ) {
+            loggedStudentIds.add(studentId);
+          }
+        });
+
+        // Combine active students and student IDs found in attendance records
+        const activeStudentIds = new Set(activeClassStudents.map((s) => s.id));
+        const allUniqueStudentIds = Array.from(new Set([...Array.from(loggedStudentIds), ...Array.from(activeStudentIds)]));
+
+        const total = allUniqueStudentIds.length;
+        
+        // Helper to resolve boarder type
+        const getBoarderType = (studentId: string, val: any) => {
+          const s = studentsList.find((st) => st.id === studentId);
+          if (s) return s.boarderType;
+          if (val && typeof val === "object" && (val as any).boarderType) {
+            return (val as any).boarderType;
+          }
+          return "Day Scholar";
+        };
+
+        const totalDB = allUniqueStudentIds.filter(id => getBoarderType(id, records[id]) === "Day Boarder").length;
+        const totalDS = allUniqueStudentIds.filter(id => getBoarderType(id, records[id]) === "Day Scholar").length;
+        const totalBoarder = allUniqueStudentIds.filter(id => getBoarderType(id, records[id]) === "Full Boarder").length;
 
         let present = 0;
         let presentDB = 0;
@@ -227,8 +254,8 @@ export const attendanceApi = {
         let leave = 0;
         let marked = 0;
 
-        classStudents.forEach((student) => {
-          const val = records[student.id];
+        allUniqueStudentIds.forEach((studentId) => {
+          const val = records[studentId];
           let status = "";
           if (val) {
             if (typeof val === "object" && val !== null) {
@@ -238,6 +265,8 @@ export const attendanceApi = {
             }
           }
 
+          const boarderType = getBoarderType(studentId, val);
+
           if (status) {
             marked++;
             todayTotalMarked++;
@@ -245,15 +274,15 @@ export const attendanceApi = {
             if (lowerStatus === "present") {
               present++;
               todayPresent++;
-              if (student.boarderType === "Day Boarder") presentDB++;
-              else if (student.boarderType === "Day Scholar") presentDS++;
-              else if (student.boarderType === "Full Boarder") presentBoarder++;
+              if (boarderType === "Day Boarder") presentDB++;
+              else if (boarderType === "Day Scholar") presentDS++;
+              else if (boarderType === "Full Boarder") presentBoarder++;
             } else if (lowerStatus === "absent") {
               absent++;
               todayAbsent++;
-              if (student.boarderType === "Day Boarder") absentDB++;
-              else if (student.boarderType === "Day Scholar") absentDS++;
-              else if (student.boarderType === "Full Boarder") absentBoarder++;
+              if (boarderType === "Day Boarder") absentDB++;
+              else if (boarderType === "Day Scholar") absentDS++;
+              else if (boarderType === "Full Boarder") absentBoarder++;
             } else if (lowerStatus === "leave") {
               leave++;
               todayLeave++;
@@ -293,6 +322,9 @@ export const attendanceApi = {
         todayTotalMarked > 0
           ? Math.round((todayPresent / todayTotalMarked) * 100)
           : null;
+
+      const classesCount = classesList.length;
+      const studentsCount = classStats.reduce((sum, cs) => sum + cs.totalStudents, 0);
 
       const summaryDocRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
       await setDoc(summaryDocRef, {

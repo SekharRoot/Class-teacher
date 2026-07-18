@@ -115,7 +115,7 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
               boxShadow: "0 4px 10px rgba(0,0,0,0.15)",
             }}
           >
-            {item.firstName[0] || ""}
+            {item.firstName ? item.firstName[0] : ""}
             {item.lastName ? item.lastName[0] : ""}
           </Avatar>
         )}

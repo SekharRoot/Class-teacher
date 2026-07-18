@@ -58,7 +58,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ entries }) => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {entries.map((entry) => (
+          {(entries || []).map((entry) => (
             <TableRow key={entry.studentId} hover>
               <TableCell sx={{ fontWeight: "medium" }}>
                 {entry.studentName}

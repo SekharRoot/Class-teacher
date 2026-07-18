@@ -76,8 +76,8 @@ export const StudentCardListLayout: React.FC<StudentCardListLayoutProps> = ({
             fontWeight: "bold",
           }}
         >
-          {item.firstName[0]}
-          {item.lastName[0]}
+          {item.firstName ? item.firstName[0] : ""}
+          {item.lastName ? item.lastName[0] : ""}
         </Avatar>
       )}
 

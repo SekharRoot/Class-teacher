@@ -165,8 +165,8 @@ export default function Reports() {
       ) : report ? (
         <Box>
           <ReportSummaryCards
-            workingDays={report.entries[0]?.totalDays || 0}
-            totalStudents={report.entries.length}
+            workingDays={(report.entries && report.entries[0]?.totalDays) || 0}
+            totalStudents={(report.entries && report.entries.length) || 0}
             onDownloadCSV={downloadCSV}
           />
 

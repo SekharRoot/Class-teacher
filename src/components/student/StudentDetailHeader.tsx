@@ -75,7 +75,7 @@ export const StudentDetailHeader: React.FC<StudentDetailHeaderProps> = ({
             mb: 1.5,
           }}
         >
-          {student.firstName[0] || ""}
+          {student.firstName ? student.firstName[0] : ""}
           {student.lastName ? student.lastName[0] : ""}
         </Avatar>
       )}

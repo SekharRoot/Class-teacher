@@ -169,8 +169,8 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                   bgcolor: status ? `${statusColor}.light` : "primary.light",
                 }}
               >
-                {student.firstName[0]}
-                {student.lastName?.[0]}
+                {student.firstName ? student.firstName[0] : ""}
+                {student.lastName?.[0] || ""}
               </Avatar>
               <IconButton
                 size="small"
@@ -290,7 +290,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               src={displayImage}
               sx={{ width: 48, height: 48, borderRadius: 2 }}
             >
-              {student.firstName[0]}{student.lastName?.[0]}
+              {student.firstName ? student.firstName[0] : ""}{student.lastName?.[0] || ""}
             </Avatar>
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>

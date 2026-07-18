@@ -90,8 +90,8 @@ export function useAttendanceActions(
     try {
       setLoading(true);
       const enriched = updateLocalCache(attendance);
-      const isClassTeacher = userProfile?.role === "class_teacher";
-      await attendanceApi.saveByDate(dateString, enriched, isClassTeacher);
+      // Always update the server-side lightweight summary document on sync for correct administrative totals
+      await attendanceApi.saveByDate(dateString, enriched, false);
       localStorage.removeItem(`unsynced_${dateString}`);
       showToast("Attendance successfully synced with server!", "success");
       fetchHistory();
@@ -101,7 +101,7 @@ export function useAttendanceActions(
     } finally {
       setLoading(false);
     }
-  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache, setLoading, userProfile]);
+  }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache, setLoading]);
 
   const clearAllData = useCallback(async () => {
     if (
