@@ -16,6 +16,8 @@ import {
   ListItemAvatar,
   Avatar,
   ListItemText,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -37,6 +39,9 @@ interface TeacherDashboardProps {
   teacherLeaves: LeaveRequest[];
   teacherPendingLeavesCount: number;
   studentNameMap: Record<string, string>;
+  selectedClassId?: string;
+  onClassChange?: (classId: string) => void;
+  availableClasses?: ClassItem[];
 }
 
 export const TeacherDashboard = React.memo(({
@@ -46,6 +51,9 @@ export const TeacherDashboard = React.memo(({
   teacherLeaves,
   teacherPendingLeavesCount,
   studentNameMap,
+  selectedClassId,
+  onClassChange,
+  availableClasses,
 }: TeacherDashboardProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -55,12 +63,35 @@ export const TeacherDashboard = React.memo(({
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
         Teacher Portal
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
         Welcome back, {userProfile?.displayName}. Here is today's overview for
         your assigned class.
       </Typography>
 
-      {!userProfile?.assignedClassId ? (
+      {userProfile && userProfile.assignedClassId2 && availableClasses && availableClasses.length > 0 && (
+        <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+            Viewing Overview For:
+          </Typography>
+          <Box sx={{ minWidth: 200 }}>
+            <Select
+              size="small"
+              value={selectedClassId || ""}
+              onChange={(e) => onClassChange?.(e.target.value)}
+              fullWidth
+              sx={{ bgcolor: "background.paper", borderRadius: 2 }}
+            >
+              {availableClasses.map((cls) => (
+                <MenuItem key={cls.id} value={cls.id}>
+                  {cls.classStandard} {cls.section} ({cls.board})
+                </MenuItem>
+              ))}
+            </Select>
+          </Box>
+        </Box>
+      )}
+
+      {!userProfile?.assignedClassId && !userProfile?.assignedClassId2 ? (
         <Alert
           severity="warning"
           variant="outlined"

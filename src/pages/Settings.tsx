@@ -45,6 +45,7 @@ import { previewProfileImport, ParsedStudentPreview } from "../utils/csvImport";
 import { Student, ClassItem } from "../types";
 import { cache } from "../lib/cache";
 import { studentCache } from "../utils/studentCache";
+import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 
 export default function Settings() {
   const { currentUser, userProfile } = useAuth();
@@ -174,7 +175,7 @@ export default function Settings() {
     setImporting(true);
     try {
       const createdClasses: Record<string, string> = {};
-      const activeSchoolId = (studentsApi as any).getActiveSchoolId?.() || "default_school";
+      const activeSchoolId = userProfile?.schoolId || getActiveSchoolId() || "default_school";
       
       // Step 1: Create any necessary new classes
       for (const preview of previewsToImport) {

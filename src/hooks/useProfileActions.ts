@@ -51,14 +51,24 @@ export const useProfileActions = (
       image: formData.imageUrl,
     };
 
-    let updatedList = [...students];
     if (editingStudent) {
-      updatedList = updatedList.map((s) =>
-        s.id === studentId ? savedStudent : s
-      );
-    } else {
-      updatedList.push(savedStudent);
+      // Direct update to server only
+      try {
+        await studentsApi.update(studentId, savedStudent);
+        showToast(`Profile for "${formData.studentName}" updated successfully on server!`, "success");
+        setOpenDialog(false);
+        setEditingStudent(null);
+        fetchInitialData();
+        return true;
+      } catch (err: any) {
+        console.error("Error editing student profile directly on server:", err);
+        showToast("Failed to update profile on server. Please try again.", "error");
+        return false;
+      }
     }
+
+    let updatedList = [...students];
+    updatedList.push(savedStudent);
 
     updatedList.sort((a, b) => {
       const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();

@@ -69,6 +69,9 @@ export function RolesTable({
                 const assignedClass = classes.find(
                   (c: ClassItem) => c.id === user.assignedClassId,
                 );
+                const assignedClass2 = classes.find(
+                  (c: ClassItem) => c.id === user.assignedClassId2,
+                );
                 const assignedCoords = users.filter(
                   (u: UserProfile) =>
                     user.coordinatorIds?.includes(u.uid) ||
@@ -113,10 +116,10 @@ export function RolesTable({
                       {user.role === "class_teacher" && (
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            Class:{" "}
-                            {assignedClass
-                              ? `${assignedClass.classStandard} ${assignedClass.section}`
-                              : "None Assigned"}
+                            Classes: {[
+                              assignedClass ? `${assignedClass.classStandard} ${assignedClass.section}` : null,
+                              assignedClass2 ? `${assignedClass2.classStandard} ${assignedClass2.section}` : null
+                            ].filter(Boolean).join(", ") || "None Assigned"}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
                             Coordinators:{" "}

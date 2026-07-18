@@ -90,6 +90,7 @@ export default function AdminPanel() {
   const [formRole, setFormRole] = useState<UserRole>("class_teacher");
   const [formDisplayName, setFormDisplayName] = useState("");
   const [formAssignedClassId, setFormAssignedClassId] = useState<string>("");
+  const [formAssignedClassId2, setFormAssignedClassId2] = useState<string>("");
   const [formCoordinatorIds, setFormCoordinatorIds] = useState<string[]>([]);
   const [formPrincipalId, setFormPrincipalId] = useState<string>("");
   const [formHasLeaveFeatureAccess, setFormHasLeaveFeatureAccess] =
@@ -774,6 +775,7 @@ export default function AdminPanel() {
     setFormRole(user.role);
     setFormDisplayName(user.displayName || "");
     setFormAssignedClassId(user.assignedClassId || "");
+    setFormAssignedClassId2(user.assignedClassId2 || "");
     setFormCoordinatorIds(
       user.coordinatorIds || (user.coordinatorId ? [user.coordinatorId] : []),
     );
@@ -803,6 +805,8 @@ export default function AdminPanel() {
       displayName: formDisplayName,
       assignedClassId:
         formRole === "class_teacher" ? formAssignedClassId || null : null,
+      assignedClassId2:
+        formRole === "class_teacher" ? formAssignedClassId2 || null : null,
       coordinatorIds:
         formRole === "class_teacher" ? formCoordinatorIds : [],
       coordinatorId: null, // Clear deprecated field
@@ -1329,6 +1333,8 @@ export default function AdminPanel() {
         setFormStatus={setFormStatus}
         formAssignedClassId={formAssignedClassId}
         setFormAssignedClassId={setFormAssignedClassId}
+        formAssignedClassId2={formAssignedClassId2}
+        setFormAssignedClassId2={setFormAssignedClassId2}
         formCoordinatorIds={formCoordinatorIds}
         setFormCoordinatorIds={setFormCoordinatorIds}
         formPrincipalId={formPrincipalId}

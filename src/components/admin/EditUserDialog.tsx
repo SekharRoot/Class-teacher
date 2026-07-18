@@ -33,6 +33,8 @@ interface EditUserDialogProps {
   setFormStatus: (status: "active" | "pending") => void;
   formAssignedClassId: string;
   setFormAssignedClassId: (id: string) => void;
+  formAssignedClassId2: string;
+  setFormAssignedClassId2: (id: string) => void;
   formCoordinatorIds: string[];
   setFormCoordinatorIds: (ids: string[]) => void;
   formPrincipalId: string;
@@ -62,6 +64,8 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
   setFormStatus,
   formAssignedClassId,
   setFormAssignedClassId,
+  formAssignedClassId2,
+  setFormAssignedClassId2,
   formCoordinatorIds,
   setFormCoordinatorIds,
   formPrincipalId,
@@ -193,6 +197,25 @@ export const EditUserDialog: React.FC<EditUserDialogProps> = ({
                     <MenuItem value="">-- No Class Assigned --</MenuItem>
                     {classes.map((cls) => (
                       <MenuItem key={cls.id} value={cls.id}>
+                        {cls.classStandard} {cls.section} ({cls.board})
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <InputLabel id="class2-select-label">
+                    Second Assigned Classroom (Optional)
+                  </InputLabel>
+                  <Select
+                    labelId="class2-select-label"
+                    label="Second Assigned Classroom (Optional)"
+                    value={formAssignedClassId2}
+                    onChange={(e) => setFormAssignedClassId2(e.target.value)}
+                  >
+                    <MenuItem value="">-- No Second Class Assigned --</MenuItem>
+                    {classes.map((cls) => (
+                      <MenuItem key={cls.id} value={cls.id} disabled={cls.id === formAssignedClassId}>
                         {cls.classStandard} {cls.section} ({cls.board})
                       </MenuItem>
                     ))}

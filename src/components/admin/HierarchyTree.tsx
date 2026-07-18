@@ -222,6 +222,10 @@ export function HierarchyTree({
                                   const assignedClass = classes.find(
                                     (c) => c.id === te.assignedClassId,
                                   );
+                                  const assignedClass2 = classes.find(
+                                    (c) => c.id === te.assignedClassId2,
+                                  );
+                                  const hasAnyClass = !!(assignedClass || assignedClass2);
                                   return (
                                     <ListItem
                                       key={te.uid}
@@ -249,28 +253,48 @@ export function HierarchyTree({
                                           </span>
                                         }
                                         secondary={
-                                          <span>
-                                            Teacher • {te.email} |{" "}
-                                            <Chip
-                                              label={
-                                                assignedClass
-                                                  ? `Class: ${assignedClass.classStandard} ${assignedClass.section}`
-                                                  : "No Class Assigned"
-                                              }
-                                              size="small"
-                                              color={
-                                                assignedClass
-                                                  ? "success"
-                                                  : "default"
-                                              }
-                                              sx={{
-                                                height: 20,
-                                                fontSize: "0.72rem",
-                                                fontWeight: "bold",
-                                                ml: 1,
-                                              }}
-                                            />
-                                          </span>
+                                          <Box component="span" sx={{ display: "flex", alignItems: "center", gap: 0.5, flexWrap: "wrap", mt: 0.5 }}>
+                                            <span>Teacher • {te.email}</span>
+                                            {!hasAnyClass ? (
+                                              <Chip
+                                                label="No Class Assigned"
+                                                size="small"
+                                                color="default"
+                                                sx={{
+                                                  height: 20,
+                                                  fontSize: "0.72rem",
+                                                  fontWeight: "bold",
+                                                }}
+                                              />
+                                            ) : (
+                                              <>
+                                                {assignedClass && (
+                                                  <Chip
+                                                    label={`${assignedClass.classStandard} ${assignedClass.section}`}
+                                                    size="small"
+                                                    color="success"
+                                                    sx={{
+                                                      height: 20,
+                                                      fontSize: "0.72rem",
+                                                      fontWeight: "bold",
+                                                    }}
+                                                  />
+                                                )}
+                                                {assignedClass2 && (
+                                                  <Chip
+                                                    label={`${assignedClass2.classStandard} ${assignedClass2.section}`}
+                                                    size="small"
+                                                    color="success"
+                                                    sx={{
+                                                      height: 20,
+                                                      fontSize: "0.72rem",
+                                                      fontWeight: "bold",
+                                                    }}
+                                                  />
+                                                )}
+                                              </>
+                                            )}
+                                          </Box>
                                         }
                                       />
                                     </ListItem>

@@ -96,10 +96,10 @@ export default function Attendance() {
       if (!isAuthorized) {
         if (
           userProfile.role === "class_teacher" &&
-          userProfile.assignedClassId &&
+          (userProfile.assignedClassId || userProfile.assignedClassId2) &&
           !isSubstituteMode
         ) {
-          navigate(`/attendance/${userProfile.assignedClassId}`);
+          navigate(`/attendance/${userProfile.assignedClassId || userProfile.assignedClassId2}`);
         } else {
           // Check if class exists even if not authorized yet
           const classExists = classes.some(c => c.id === classId);
@@ -113,8 +113,8 @@ export default function Attendance() {
         setSelectedClassId(classId);
       }
     } else {
-      if (userProfile.role === "class_teacher" && userProfile.assignedClassId && !isSubstituteMode) {
-        navigate(`/attendance/${userProfile.assignedClassId}`);
+      if (userProfile.role === "class_teacher" && (userProfile.assignedClassId || userProfile.assignedClassId2) && !isSubstituteMode) {
+        navigate(`/attendance/${userProfile.assignedClassId || userProfile.assignedClassId2}`);
       } else {
         setSelectedClassId(null);
       }
@@ -187,7 +187,7 @@ export default function Attendance() {
       if (isSubstituteMode) {
         return userProfile.alternateClassIds?.includes(cls.id) || false;
       } else {
-        return cls.id === userProfile.assignedClassId;
+        return cls.id === userProfile.assignedClassId || cls.id === userProfile.assignedClassId2;
       }
     }
     return authorizedClassIds.includes(cls.id);

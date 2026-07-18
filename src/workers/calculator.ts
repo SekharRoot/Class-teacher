@@ -446,17 +446,393 @@ export const runCalculationWorker = async (
 };
 
 const runSingleWorker = (type: string, payload: any): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    const blob = new Blob([workerCode], { type: "application/javascript" });
-    const worker = new Worker(URL.createObjectURL(blob));
-    worker.onmessage = (event) => {
-      worker.terminate();
-      resolve(event.data.payload);
-    };
-    worker.onerror = (error) => {
-      worker.terminate();
-      reject(error);
-    };
-    worker.postMessage({ type, payload });
+  return new Promise((resolve) => {
+    try {
+      const blob = new Blob([workerCode], { type: "application/javascript" });
+      const worker = new Worker(URL.createObjectURL(blob));
+      worker.onmessage = (event) => {
+        worker.terminate();
+        resolve(event.data.payload);
+      };
+      worker.onerror = (error) => {
+        console.warn("Web worker error. Falling back to main-thread calculation.", error);
+        worker.terminate();
+        try {
+          const result = runCalculationLocally(type, payload);
+          resolve(result);
+        } catch (localErr) {
+          console.error("Local main-thread calculation fallback failed:", localErr);
+          resolve(getEmptyResult(type));
+        }
+      };
+      worker.postMessage({ type, payload });
+    } catch (error) {
+      console.warn("Failed to initialize Web Worker (sandboxing/CSP restriction?). Falling back to main-thread calculation.", error);
+      try {
+        const result = runCalculationLocally(type, payload);
+        resolve(result);
+      } catch (localErr) {
+        console.error("Local main-thread calculation fallback failed:", localErr);
+        resolve(getEmptyResult(type));
+      }
+    }
   });
 };
+
+const getEmptyResult = (type: string): any => {
+  if (type === "CALCULATE_HISTORY" || type === "CALCULATE_LOCAL_HISTORY") {
+    return [];
+  }
+  if (type === "CALCULATE_SUMMARY") {
+    return {
+      totalCount: 0, totalDayScholar: 0, totalDayBoarder: 0, totalFullBoarder: 0,
+      presentCount: 0, presentDayScholar: 0, presentDayBoarder: 0, presentFullBoarder: 0,
+      absentCount: 0, absentDayScholar: 0, absentDayBoarder: 0, absentFullBoarder: 0,
+      leaveCount: 0, leaveDayScholar: 0, leaveDayBoarder: 0, leaveFullBoarder: 0
+    };
+  }
+  if (type === "CALCULATE_DASHBOARD_STATS") {
+    return {
+      stats: {
+        totalClasses: 0,
+        totalStudents: 0,
+        todayAttendanceRate: null,
+        todayPresentCount: 0,
+        todayTotalMarked: 0,
+      },
+      classStats: [],
+    };
+  }
+  if (type === "CALCULATE_MONTHLY_REPORT") {
+    return {
+      month: "",
+      classId: "",
+      entries: [],
+    };
+  }
+  return null;
+};
+
+function runCalculationLocally(type: string, payload: any): any {
+  if (type === "CALCULATE_HISTORY") {
+    const { docs, classStudentIds, selectedClassId } = payload;
+    const datesList: any[] = [];
+    const studentSet = classStudentIds ? new Set(classStudentIds) : null;
+
+    for (const doc of docs) {
+      const { id, data } = doc;
+      let present = 0;
+      let absent = 0;
+      let leave = 0;
+
+      if (data) {
+        for (const [studentId, val] of Object.entries(data)) {
+          const isObj = typeof val === "object" && val !== null;
+          const status = (isObj ? (val as any).status : val || "").toLowerCase();
+          const recordClassId = isObj ? (val as any).classId : null;
+
+          if (selectedClassId) {
+            if (recordClassId) {
+              if (recordClassId !== selectedClassId) continue;
+            } else {
+              if (studentSet && !studentSet.has(studentId)) continue;
+            }
+          }
+
+          if (status === "present") present++;
+          else if (status === "absent") absent++;
+          else if (status === "leave") { leave++; absent++; }
+        }
+      }
+
+      datesList.push({ date: id, present, absent, leave });
+    }
+    
+    datesList.sort((a, b) => b.date.localeCompare(a.date));
+    return datesList;
+  }
+
+  if (type === "CALCULATE_LOCAL_HISTORY") {
+     const { localStorageItems, classStudentIds, selectedClassId } = payload;
+     const datesList: any[] = [];
+     const studentSet = classStudentIds ? new Set(classStudentIds) : null;
+     
+     for (const [key, recordDataStr] of Object.entries(localStorageItems)) {
+        if (key.startsWith("attendance_")) {
+          const dateStr = key.replace("attendance_", "");
+          const recordData = JSON.parse((recordDataStr as string) || "{}");
+          
+          let present = 0;
+          let absent = 0;
+          let leave = 0;
+          
+          for (const [studentId, val] of Object.entries(recordData)) {
+            const isObj = typeof val === "object" && val !== null;
+            const status = (isObj ? (val as any).status : val || "").toLowerCase();
+            const recordClassId = isObj ? (val as any).classId : null;
+
+            if (selectedClassId) {
+              if (recordClassId) {
+                 if (recordClassId !== selectedClassId) continue;
+              } else {
+                 if (studentSet && !studentSet.has(studentId)) continue;
+              }
+            }
+
+            if (status === "present") present++;
+            else if (status === "absent") absent++;
+            else if (status === "leave") { leave++; absent++; }
+          }
+
+          datesList.push({
+            date: dateStr,
+            present,
+            absent,
+            leave
+          });
+        }
+     }
+     datesList.sort((a, b) => b.date.localeCompare(a.date));
+     return datesList;
+  }
+
+  if (type === "CALCULATE_SUMMARY") {
+    const { students, attendance, selectedClassId } = payload;
+    const classStudents = students.filter((st: any) => 
+      (!selectedClassId || st.classId === selectedClassId) && 
+      st.isActive !== false
+    );
+    
+    const totalCount = classStudents.length;
+    const totalDayScholar = classStudents.filter((st: any) => st.boarderType === "Day Scholar").length;
+    const totalDayBoarder = classStudents.filter((st: any) => st.boarderType === "Day Boarder").length;
+    const totalFullBoarder = classStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
+
+    const presentStudents = classStudents.filter((st: any) => {
+      const val = attendance[st.id];
+      const status = (typeof val === "object" && val !== null ? val.status : val || "").toLowerCase();
+      return status === "present";
+    });
+    const presentCount = presentStudents.length;
+    const presentDayScholar = presentStudents.filter((st: any) => st.boarderType === "Day Scholar").length;
+    const presentDayBoarder = presentStudents.filter((st: any) => st.boarderType === "Day Boarder").length;
+    const presentFullBoarder = presentStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
+
+    const absentStudents = classStudents.filter((st: any) => {
+      const val = attendance[st.id];
+      const status = (typeof val === "object" && val !== null ? val.status : val || "").toLowerCase();
+      return status === "absent" || status === "leave";
+    });
+    const absentCount = absentStudents.length;
+    const absentDayScholar = absentStudents.filter((st: any) => st.boarderType === "Day Scholar").length;
+    const absentDayBoarder = absentStudents.filter((st: any) => st.boarderType === "Day Boarder").length;
+    const absentFullBoarder = absentStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
+
+    const leaveStudents = classStudents.filter((st: any) => {
+      const val = attendance[st.id];
+      const status = (typeof val === "object" && val !== null ? val.status : val || "").toLowerCase();
+      return status === "leave";
+    });
+    const leaveCount = leaveStudents.length;
+    const leaveDayScholar = leaveStudents.filter((st: any) => st.boarderType === "Day Scholar").length;
+    const leaveDayBoarder = leaveStudents.filter((st: any) => st.boarderType === "Day Boarder").length;
+    const leaveFullBoarder = leaveStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
+
+    return {
+      totalCount, totalDayScholar, totalDayBoarder, totalFullBoarder,
+      presentCount, presentDayScholar, presentDayBoarder, presentFullBoarder,
+      absentCount, absentDayScholar, absentDayBoarder, absentFullBoarder,
+      leaveCount, leaveDayScholar, leaveDayBoarder, leaveFullBoarder
+    };
+  }
+
+  if (type === "CALCULATE_DASHBOARD_STATS") {
+    const { classes, students, authorizedClassIds, todayRecords } = payload;
+    
+    const filteredClasses = classes.filter((c: any) =>
+      authorizedClassIds.includes(c.id)
+    );
+    const filteredStudents = students.filter(
+      (s: any) => s.classId && authorizedClassIds.includes(s.classId) && s.isActive !== false
+    );
+
+    const classesCount = filteredClasses.length;
+    const studentsCount = filteredStudents.length;
+
+    let todayPresent = 0;
+    let todayTotalMarked = 0;
+
+    if (todayRecords) {
+      Object.keys(todayRecords).forEach((studentId) => {
+        const belongsToScope = filteredStudents.some((s: any) => s.id === studentId);
+        if (!belongsToScope) return;
+
+        const val = todayRecords[studentId];
+        let status = "";
+        if (typeof val === "object" && val !== null) {
+          status = val.status || "";
+        } else {
+          status = String(val);
+        }
+        if (status) {
+          todayTotalMarked++;
+          const lowerStatus = status.toLowerCase();
+          if (lowerStatus === "present") {
+            todayPresent++;
+          }
+        }
+      });
+    }
+
+    const attendanceRate =
+      todayTotalMarked > 0
+        ? Math.round((todayPresent / todayTotalMarked) * 100)
+        : null;
+
+    const classStats = filteredClasses.map((cls: any) => {
+      const classStudents = filteredStudents.filter((s: any) => s.classId === cls.id);
+      const total = classStudents.length;
+
+      let present = 0;
+      let absent = 0;
+      let leave = 0;
+      let marked = 0;
+
+      classStudents.forEach((student: any) => {
+        const record = todayRecords ? todayRecords[student.id] : null;
+        let status = "";
+        if (record) {
+          if (typeof record === "object" && record !== null) {
+            status = record.status || "";
+          } else {
+            status = String(record);
+          }
+        }
+
+        if (status) {
+          marked++;
+          const lowerStatus = status.toLowerCase();
+          if (lowerStatus === "present") {
+            present++;
+          } else if (lowerStatus === "absent") {
+            absent++;
+          } else if (lowerStatus === "leave") {
+            leave++;
+          }
+        }
+      });
+
+      const rate = marked > 0 ? Math.round((present / marked) * 100) : null;
+
+      return {
+        classId: cls.id,
+        className: cls.classStandard + " " + cls.section + " (" + cls.board + ")",
+        totalStudents: total,
+        presentCount: present,
+        absentCount: absent,
+        leaveCount: leave,
+        markedCount: marked,
+        attendanceRate: rate,
+      };
+    });
+
+    return {
+      stats: {
+        totalClasses: classesCount,
+        totalStudents: studentsCount,
+        todayAttendanceRate: attendanceRate,
+        todayPresentCount: todayPresent,
+        todayTotalMarked: todayTotalMarked,
+      },
+      classStats,
+    };
+  }
+
+  if (type === "CALCULATE_MONTHLY_REPORT") {
+    const { docs, month, classId, students } = payload;
+    const reportEntries: any[] = [];
+    
+    const monthDocs = docs.filter((doc: any) => doc.id.startsWith(month));
+    const totalWorkingDays = monthDocs.length;
+
+    const studentIdsInDocs = new Set();
+    monthDocs.forEach((doc: any) => {
+      if (doc.data) {
+        Object.entries(doc.data).forEach(([studentId, val]) => {
+          const isObj = typeof val === "object" && val !== null;
+          const recordClassId = isObj ? (val as any).classId : null;
+          if (recordClassId === classId || (!recordClassId && students.find((s: any) => s.id === studentId)?.classId === classId)) {
+            studentIdsInDocs.add(studentId);
+          }
+        });
+      }
+    });
+
+    const activeClassStudents = students.filter((s: any) => s.classId === classId && s.isActive !== false);
+    const activeStudentIds = new Set(activeClassStudents.map((s: any) => s.id));
+    
+    const allUniqueStudentIds = Array.from(new Set([...Array.from(studentIdsInDocs), ...Array.from(activeStudentIds)]));
+
+    for (const studentId of allUniqueStudentIds) {
+      const student = students.find((s: any) => s.id === studentId);
+      
+      let present = 0;
+      let absent = 0;
+      let leave = 0;
+      let hasAnyRecord = false;
+
+      for (const doc of monthDocs) {
+        const val = (doc.data as any)[studentId as string];
+        if (!val) continue;
+
+        hasAnyRecord = true;
+        const status = (typeof val === "object" ? (val as any).status : val || "").toLowerCase();
+        if (status === "present") present++;
+        else if (status === "absent") absent++;
+        else if (status === "leave") { leave++; absent++; }
+      }
+
+      const isActive = student ? (student.isActive !== false) : false;
+      if (!isActive && !hasAnyRecord) {
+        continue;
+      }
+
+      let studentName = "";
+      let rollNumber = "";
+      if (student) {
+        const baseName = student.firstName + " " + student.lastName;
+        if (student.isActive === false) {
+          studentName = baseName + " (Profile Removed)";
+        } else {
+          studentName = baseName;
+        }
+        rollNumber = student.rollNumber || "";
+      } else {
+        studentName = "[Profile Removed]";
+        rollNumber = "-";
+      }
+
+      const totalAttended = present;
+      const percentage = totalWorkingDays > 0 ? (totalAttended / totalWorkingDays) * 100 : 0;
+
+      reportEntries.push({
+        studentId: studentId as string,
+        studentName: studentName,
+        rollNumber: rollNumber,
+        present,
+        absent,
+        leave,
+        totalDays: totalWorkingDays,
+        attendancePercentage: Math.round(percentage * 10) / 10
+      });
+    }
+
+    return {
+      month,
+      classId,
+      entries: reportEntries
+    };
+  }
+
+  throw new Error(`Unknown calculation type: ${type}`);
+}

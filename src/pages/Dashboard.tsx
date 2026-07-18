@@ -85,6 +85,22 @@ export default function Dashboard() {
   });
   const [classStats, setClassStats] = useState<ClassStat[]>([]);
 
+  const [selectedTeacherClassId, setSelectedTeacherClassId] = useState<string>("");
+
+  useEffect(() => {
+    if (userProfile?.assignedClassId && !selectedTeacherClassId) {
+      setSelectedTeacherClassId(userProfile.assignedClassId);
+    } else if (userProfile?.assignedClassId2 && !userProfile?.assignedClassId && !selectedTeacherClassId) {
+      setSelectedTeacherClassId(userProfile.assignedClassId2);
+    }
+  }, [userProfile, selectedTeacherClassId]);
+
+  const teacherAvailableClasses = useMemo(() => {
+    if (!userProfile) return [];
+    const classIds = [userProfile.assignedClassId, userProfile.assignedClassId2].filter(Boolean) as string[];
+    return allClasses.filter((c) => classIds.includes(c.id));
+  }, [userProfile, allClasses]);
+
   useEffect(() => {
     if (loadingScope || globalLoading) return;
 
@@ -261,7 +277,7 @@ export default function Dashboard() {
 
   const teacherNameForClass = (classId: string) => {
     const teacher = allUsers.find(
-      (u) => u.role === "class_teacher" && u.assignedClassId === classId,
+      (u) => u.role === "class_teacher" && (u.assignedClassId === classId || u.assignedClassId2 === classId),
     );
     if (!teacher) return "No assigned teacher";
     return teacher.displayName || teacher.email || "Unassigned Teacher";
@@ -271,22 +287,22 @@ export default function Dashboard() {
 
   // 1. Calculations for TEACHER view
   const teacherClassStat = useMemo(() => {
-    if (!isTeacher || !userProfile?.assignedClassId) return null;
+    if (!isTeacher || !selectedTeacherClassId) return null;
     return (
-      classStats.find((cs) => cs.classId === userProfile.assignedClassId) ||
+      classStats.find((cs) => cs.classId === selectedTeacherClassId) ||
       null
     );
-  }, [isTeacher, userProfile?.assignedClassId, classStats]);
+  }, [isTeacher, selectedTeacherClassId, classStats]);
 
   const teacherClassInfo = useMemo(() => {
-    if (!isTeacher || !userProfile?.assignedClassId) return null;
-    return allClasses.find((c) => c.id === userProfile.assignedClassId) || null;
-  }, [isTeacher, userProfile?.assignedClassId, allClasses]);
+    if (!isTeacher || !selectedTeacherClassId) return null;
+    return allClasses.find((c) => c.id === selectedTeacherClassId) || null;
+  }, [isTeacher, selectedTeacherClassId, allClasses]);
 
   const teacherLeaves = useMemo(() => {
-    if (!isTeacher || !userProfile?.assignedClassId) return [];
-    return leaves.filter((l) => l.classId === userProfile.assignedClassId);
-  }, [isTeacher, userProfile?.assignedClassId, leaves]);
+    if (!isTeacher || !selectedTeacherClassId) return [];
+    return leaves.filter((l) => l.classId === selectedTeacherClassId);
+  }, [isTeacher, selectedTeacherClassId, leaves]);
 
   const teacherPendingLeavesCount = useMemo(() => {
     return teacherLeaves.filter((l) => l.status === "pending").length;
@@ -334,6 +350,9 @@ export default function Dashboard() {
         teacherLeaves={teacherLeaves}
         teacherPendingLeavesCount={teacherPendingLeavesCount}
         studentNameMap={studentNameMap}
+        selectedClassId={selectedTeacherClassId}
+        onClassChange={setSelectedTeacherClassId}
+        availableClasses={teacherAvailableClasses}
       />
     );
   }

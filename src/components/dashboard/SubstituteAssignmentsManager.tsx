@@ -62,7 +62,7 @@ export function SubstituteAssignmentsManager() {
   // Find permanent class teacher
   const getRegularTeacher = (classId: string) => {
     return users.find(
-      (u) => u.role === "class_teacher" && u.assignedClassId === classId
+      (u) => u.role === "class_teacher" && (u.assignedClassId === classId || u.assignedClassId2 === classId)
     );
   };
 

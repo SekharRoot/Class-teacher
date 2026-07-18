@@ -36,6 +36,9 @@ export function useHierarchyScope() {
       if (userProfile.assignedClassId) {
         ids.push(userProfile.assignedClassId);
       }
+      if (userProfile.assignedClassId2) {
+        ids.push(userProfile.assignedClassId2);
+      }
       if (userProfile.alternateClassIds) {
         userProfile.alternateClassIds.forEach((id) => {
           if (id && !ids.includes(id)) {
