@@ -161,7 +161,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (now - lastSync > throttleMs) {
         try {
-          await fetchInitialData();
+          await fetchAndCacheAll(true);
           localStorage.setItem("last_global_sync", now.toString());
         } catch (err) {
           console.error("Background initial load sync failed:", err);

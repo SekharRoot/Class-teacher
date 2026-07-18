@@ -228,7 +228,7 @@ export default function Attendance() {
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1 }}>
-          {isTeacher && (
+          {isTeacher && userProfile?.alternateClassIds && userProfile.alternateClassIds.length > 0 && (
             <Box sx={{ display: "flex", bgcolor: "action.hover", p: 0.5, borderRadius: 2 }}>
               <Button
                 size="small"
@@ -337,7 +337,7 @@ export default function Attendance() {
             classes={filteredClasses}
             onSelectClass={handleClassSelect}
           />
-          {!(isTeacher && isSubstituteMode) && (
+          {userProfile?.role !== "class_teacher" && (
             <Box sx={{ mt: 4 }}>
               <ClasswiseAbsenteeExport
                 classes={filteredClasses}
@@ -549,7 +549,7 @@ export default function Attendance() {
                 dateString={dateString}
                 onDateSelect={handleDateSelect}
                 onLoadMore={() => setHistoryLimit((prev) => prev + 6)}
-                hasMore={historyDates.length >= historyLimit}
+                hasMore={historyDates.length === historyLimit}
               />
             </Box>
           )}

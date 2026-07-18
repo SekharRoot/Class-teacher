@@ -19,6 +19,11 @@ export const useProfileActions = (
     setOpenDialog: (o: boolean) => void,
     setEditingStudent: (s: Student | null) => void
   ): Promise<boolean> => {
+    if (offlineMode) {
+      showToast("Cannot save profile. Profile addition and editing require an active internet connection.", "warning");
+      return false;
+    }
+
     const nameParts = formData.studentName.trim().split(/\s+/);
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || ".";

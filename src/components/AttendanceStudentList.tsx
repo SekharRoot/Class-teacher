@@ -55,10 +55,52 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   const [copied, setCopied] = useState(false);
   const [copiedType, setCopiedType] = useState<"absent" | "present" | null>(null);
 
-  const classStudents = useMemo(() => 
-    students.filter((s) => s.classId === selectedClassId && s.isActive !== false),
-    [students, selectedClassId]
-  );
+  const classStudents = useMemo(() => {
+    // 1. Get all currently active students in this class
+    const activeStudents = students.filter(
+      (s) => s.classId === selectedClassId && s.isActive !== false
+    );
+    const activeStudentIds = new Set(activeStudents.map((s) => s.id));
+
+    // 2. Also look at students who have attendance records on this date for this class
+    const loggedStudents: Student[] = [];
+    Object.entries(attendance).forEach(([studentId, val]) => {
+      if (activeStudentIds.has(studentId)) return; // Already in active list
+
+      // Determine if this attendance record belongs to the selected class
+      const isObj = typeof val === "object" && val !== null;
+      const recordClassId = isObj ? (val as any).classId : null;
+
+      if (
+        recordClassId === selectedClassId ||
+        (!recordClassId &&
+          students.find((s) => s.id === studentId)?.classId === selectedClassId)
+      ) {
+        // Find the student in the master students list (even if they are inactive/deleted!)
+        const foundStudent = students.find((s) => s.id === studentId);
+        if (foundStudent) {
+          loggedStudents.push(foundStudent);
+        } else {
+          // Synthesize a student object so they still show up in history
+          loggedStudents.push({
+            id: studentId,
+            firstName: "Profile",
+            lastName: "Removed",
+            rollNumber: "-",
+            classId: selectedClassId,
+            gender: "Male",
+            boarderType: isObj
+              ? (val as any).boarderType || "Day Scholar"
+              : "Day Scholar",
+            isActive: false,
+            schoolId: "",
+          } as Student);
+        }
+      }
+    });
+
+    return [...activeStudents, ...loggedStudents];
+  }, [students, selectedClassId, attendance]);
 
   const absentees = useMemo(() => {
     return classStudents.filter((student) => {

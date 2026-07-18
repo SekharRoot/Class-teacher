@@ -191,6 +191,11 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
             <Box>
               <Typography variant="body2" sx={{ fontWeight: "bold" }}>
                 {student.firstName} {student.lastName}
+                {student.isActive === false && (
+                  <Box component="span" sx={{ color: "text.secondary", fontWeight: "normal", fontSize: "0.85em", ml: 1 }}>
+                    (Profile Removed)
+                  </Box>
+                )}
               </Typography>
               {approvedLeave && (
                 <Chip
@@ -290,6 +295,11 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
             <Box>
               <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
                 {student.firstName} {student.lastName}
+                {student.isActive === false && (
+                  <Box component="span" sx={{ color: "text.secondary", fontWeight: "normal", fontSize: "0.85em", ml: 1 }}>
+                    (Profile Removed)
+                  </Box>
+                )}
               </Typography>
               <Typography variant="body2" color="text.secondary">
                 Last 30 report cycles

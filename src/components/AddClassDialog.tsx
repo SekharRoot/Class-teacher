@@ -66,15 +66,15 @@ export const ClassFormDialog: React.FC<ClassFormDialogProps> = ({
       return;
     }
 
-    const newClassId =
-      `${trimmedBoard}_${trimmedStandard}_${trimmedSection}`.replace(
-        /\s+/g,
-        "_",
-      );
+    const isDuplicate = classesList.some(
+      (c) =>
+        c.board.toUpperCase() === trimmedBoard &&
+        c.classStandard.toUpperCase() === trimmedStandard &&
+        c.section.toUpperCase() === trimmedSection &&
+        c.id !== editingClass?.id
+    );
 
-    if (
-      classesList.some((c) => c.id === newClassId && c.id !== editingClass?.id)
-    ) {
+    if (isDuplicate) {
       setErrorText(
         `Class "${trimmedBoard} ${trimmedStandard} ${trimmedSection}" already exists!`,
       );

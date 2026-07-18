@@ -48,7 +48,7 @@ import { studentCache } from "../utils/studentCache";
 
 export default function Settings() {
   const { currentUser, userProfile } = useAuth();
-  const { fetchInitialData, students, setStudents, classes } = useData();
+  const { fetchInitialData, students, setStudents, classes, offlineMode } = useData();
   const { isReadOnly } = useHierarchyScope();
   const [notifications, setNotifications] = useState(true);
   const { mode, toggleTheme } = useContext(ThemeContext);
@@ -135,6 +135,11 @@ export default function Settings() {
   };
 
   const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (offlineMode) {
+      showToast("Importing student profiles is only allowed when you are online.", "warning");
+      e.target.value = "";
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -161,6 +166,11 @@ export default function Settings() {
   };
 
   const handleConfirmImport = async () => {
+    if (offlineMode) {
+      showToast("Cannot complete import. You are offline.", "error");
+      setImportDialogOpen(false);
+      return;
+    }
     setImporting(true);
     try {
       const createdClasses: Record<string, string> = {};
@@ -181,7 +191,21 @@ export default function Settings() {
         if (existingClass) {
           createdClasses[classNameKey] = existingClass.id;
         } else if (!createdClasses[classNameKey]) {
-          const newClassId = `cls_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          const existingIds = new Set([
+            ...classes.map((c) => c.id),
+            ...Object.values(createdClasses),
+          ]);
+          let newClassId = "";
+          let attempts = 0;
+          do {
+            newClassId = Math.floor(1000 + Math.random() * 9000).toString();
+            attempts++;
+          } while (existingIds.has(newClassId) && attempts < 10000);
+
+          if (attempts >= 10000) {
+            newClassId = `cls_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+          }
+
           const newClass: ClassItem = {
             id: newClassId,
             board: preview.parsedClass.board,
@@ -350,6 +374,7 @@ export default function Settings() {
                   variant="contained"
                   color="primary"
                   component="label"
+                  disabled={offlineMode}
                   startIcon={<FileUpload />}
                   sx={{ borderRadius: 2, textTransform: "none", fontWeight: "bold" }}
                 >
@@ -358,6 +383,7 @@ export default function Settings() {
                     type="file"
                     accept=".csv"
                     hidden
+                    disabled={offlineMode}
                     onChange={handleImportData}
                   />
                 </Button>

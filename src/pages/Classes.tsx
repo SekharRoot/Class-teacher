@@ -132,12 +132,19 @@ export default function Classes() {
     trimmedStandard: string,
     trimmedSection: string,
   ): Promise<boolean> => {
-    const classId =
-      oldId ||
-      `${trimmedBoard}_${trimmedStandard}_${trimmedSection}`.replace(
-        /\s+/g,
-        "_",
-      );
+    let classId = oldId;
+    if (!classId) {
+      const existingIds = new Set(classesList.map((c) => c.id));
+      let attempts = 0;
+      do {
+        classId = Math.floor(1000 + Math.random() * 9000).toString();
+        attempts++;
+      } while (existingIds.has(classId) && attempts < 10000);
+      
+      if (attempts >= 10000) {
+        classId = Date.now().toString().slice(-4);
+      }
+    }
     const classItem: ClassItem = {
       id: classId,
       board: trimmedBoard,

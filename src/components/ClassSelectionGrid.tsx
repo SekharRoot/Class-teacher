@@ -43,9 +43,14 @@ export const ClassSelectionGrid: React.FC<ClassSelectionGridProps> = ({
             <Typography variant="h5" sx={{ fontWeight: "bold" }}>
               {cls.board} {cls.classStandard}
             </Typography>
-            <Typography color="text.secondary">
-              Section: {cls.section}
-            </Typography>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
+              <Typography color="text.secondary" variant="body2">
+                Section: {cls.section}
+              </Typography>
+              <Typography variant="caption" color="primary" sx={{ fontWeight: "bold", fontFamily: "monospace", bgcolor: "action.hover", px: 1, py: 0.25, borderRadius: 1 }}>
+                ID: {cls.id}
+              </Typography>
+            </Box>
           </Paper>
         ))}
       </Box>

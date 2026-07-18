@@ -130,8 +130,25 @@ export const previewProfileImport = (
     const fatherName = values[7] || "";
     const motherName = values[8] || "";
 
-    // Parse class standard
-    const parsedClass = parseClassName(rawClassName);
+    // Parse class standard or match unique 4-digit class ID directly
+    const normalizedRawClass = rawClassName.trim().toLowerCase();
+    const directClassId = classNameToIdMap[normalizedRawClass];
+    let parsedClass;
+    if (directClassId) {
+      const matchedClass = classes.find((c) => c.id === directClassId);
+      if (matchedClass) {
+        parsedClass = {
+          board: matchedClass.board,
+          classStandard: matchedClass.classStandard,
+          section: matchedClass.section,
+          formattedName: `${matchedClass.board} ${matchedClass.classStandard} ${matchedClass.section}`,
+        };
+      } else {
+        parsedClass = parseClassName(rawClassName);
+      }
+    } else {
+      parsedClass = parseClassName(rawClassName);
+    }
 
     // Resolve gender
     let gender: "Male" | "Female" | "Transgender" = "Male";
@@ -157,7 +174,7 @@ export const previewProfileImport = (
       statusReason = "Missing name, class, or roll number";
     } else {
       // Find matching existing class
-      const classId = classNameToIdMap[parsedClass.formattedName.toLowerCase()];
+      const classId = directClassId || classNameToIdMap[parsedClass.formattedName.toLowerCase()];
       const rollKey = `${classId || "new"}_${rollNumber}`;
       
       const isDuplicateInCSV = processedRollNumbers.has(rollKey);

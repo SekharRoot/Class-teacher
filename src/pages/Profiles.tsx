@@ -165,9 +165,13 @@ export default function Profiles() {
   ), [classes, authorizedClassIds]);
 
   const handleOpenEditDialog = useCallback((student: Student) => {
+    if (offlineMode) {
+      showToast("Cannot edit profiles while offline. Please connect to the internet.", "warning");
+      return;
+    }
     setEditingStudent(student);
     setOpenDialog(true);
-  }, [setEditingStudent, setOpenDialog]);
+  }, [setEditingStudent, setOpenDialog, offlineMode, showToast]);
 
   const handleOpenDetail = useCallback((student: Student) => {
     setSelectedStudent(student);
@@ -381,8 +385,13 @@ export default function Profiles() {
               <Button
                 variant="contained"
                 color="primary"
+                disabled={offlineMode}
                 startIcon={<Add />}
                 onClick={() => {
+                  if (offlineMode) {
+                    showToast("Cannot add student profiles while offline. Please connect to the internet.", "warning");
+                    return;
+                  }
                   setEditingStudent(null);
                   setOpenDialog(true);
                 }}

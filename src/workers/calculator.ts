@@ -242,34 +242,81 @@ self.onmessage = (event) => {
   if (type === 'CALCULATE_MONTHLY_REPORT') {
     const { docs, month, classId, students } = payload;
     const reportEntries = [];
-    const classStudents = students.filter(s => s.classId === classId && s.isActive !== false);
     
     // docs is an array of { id, data } where id is date YYYY-MM-DD
     const monthDocs = docs.filter(doc => doc.id.startsWith(month));
     const totalWorkingDays = monthDocs.length;
 
-    for (const student of classStudents) {
+    // Collect all student IDs who have attendance records in this class during this month
+    const studentIdsInDocs = new Set();
+    monthDocs.forEach(doc => {
+      if (doc.data) {
+        Object.entries(doc.data).forEach(([studentId, val]) => {
+          const isObj = typeof val === 'object' && val !== null;
+          const recordClassId = isObj ? val.classId : null;
+          if (recordClassId === classId || (!recordClassId && students.find(s => s.id === studentId)?.classId === classId)) {
+            studentIdsInDocs.add(studentId);
+          }
+        });
+      }
+    });
+
+    // We want to list all active students of this class, PLUS any student who has attendance logs in this class for this month (even if inactive/deleted)
+    const activeClassStudents = students.filter(s => s.classId === classId && s.isActive !== false);
+    const activeStudentIds = new Set(activeClassStudents.map(s => s.id));
+    
+    // Combine active students and student IDs found in attendance records
+    const allUniqueStudentIds = Array.from(new Set([...Array.from(studentIdsInDocs), ...Array.from(activeStudentIds)]));
+
+    for (const studentId of allUniqueStudentIds) {
+      // Find student in our list (even if inactive)
+      const student = students.find(s => s.id === studentId);
+      
       let present = 0;
       let absent = 0;
       let leave = 0;
+      let hasAnyRecord = false;
 
       for (const doc of monthDocs) {
-        const val = doc.data[student.id];
+        const val = doc.data[studentId];
         if (!val) continue;
 
+        hasAnyRecord = true;
         const status = (typeof val === 'object' ? val.status : val || '').toLowerCase();
         if (status === 'present') present++;
         else if (status === 'absent') absent++;
         else if (status === 'leave') { leave++; absent++; }
       }
 
+      // If they are inactive (soft-deleted) AND they have no records for this month, skip them to keep the list clean.
+      // But if they are active, OR they are inactive but have attendance records, include them!
+      const isActive = student ? (student.isActive !== false) : false;
+      if (!isActive && !hasAnyRecord) {
+        continue;
+      }
+
+      let studentName = "";
+      let rollNumber = "";
+      if (student) {
+        const baseName = student.firstName + ' ' + student.lastName;
+        if (student.isActive === false) {
+          studentName = baseName + ' (Profile Removed)';
+        } else {
+          studentName = baseName;
+        }
+        rollNumber = student.rollNumber || "";
+      } else {
+        studentName = '[Profile Removed]';
+        rollNumber = "-";
+      }
+
       const totalAttended = present;
       const percentage = totalWorkingDays > 0 ? (totalAttended / totalWorkingDays) * 100 : 0;
 
       reportEntries.push({
-        studentId: student.id,
-        studentName: student.firstName + ' ' + student.lastName,
-        rollNumber: student.rollNumber,
+        studentId: studentId,
+        studentName: studentName,
+        rollNumber: rollNumber,
         present,
         absent,
         leave,
