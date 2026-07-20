@@ -87,8 +87,8 @@ async function startServer() {
     }
     app.use(import_express.default.static(distPath, { index: false }));
     app.get("*", (req, res) => {
-      if (req.path.startsWith("/api/")) {
-        return res.status(404).json({ error: "API route not found" });
+      if (req.path.startsWith("/api/") || req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|json|map)$/) || req.path.includes("/assets/")) {
+        return res.status(404).send("Not Found");
       }
       res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
       res.setHeader("Pragma", "no-cache");
