@@ -41,6 +41,7 @@ interface AttendanceRowProps {
   disabled?: boolean;
   leavesList?: LeaveRequest[];
   dateString?: string;
+  maxNameLength?: number;
 }
 
 const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
@@ -51,6 +52,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   disabled = false,
   leavesList = [],
   dateString = "",
+  maxNameLength = 0,
 }) => {
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [historyLoading, setHistoryLoading] = React.useState(false);
@@ -188,8 +190,16 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 <HistoryIcon sx={{ fontSize: 12 }} />
               </IconButton>
             </Box>
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                height: 60,
+                minWidth: maxNameLength ? Math.max(140, maxNameLength * 7.5) : 140,
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: "bold" }} noWrap>
                 {student.firstName} {student.lastName}
                 {student.isActive === false && (
                   <Box component="span" sx={{ color: "text.secondary", fontWeight: "normal", fontSize: "0.85em", ml: 1 }}>
@@ -197,14 +207,16 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                   </Box>
                 )}
               </Typography>
-              {approvedLeave && (
+              {approvedLeave ? (
                 <Chip
                   label="On Leave"
                   size="small"
                   color="info"
                   variant="outlined"
-                  sx={{ height: 16, fontSize: "0.6rem", fontWeight: "bold", mt: 0.25 }}
+                  sx={{ height: 16, fontSize: "0.6rem", fontWeight: "bold", mt: 0.25, width: "fit-content" }}
                 />
+              ) : (
+                <Box sx={{ height: 18 }} />
               )}
             </Box>
           </Box>
@@ -358,7 +370,8 @@ export const AttendanceRow = React.memo(
       prevProps.student.lastName === nextProps.student.lastName &&
       prevProps.student.image === nextProps.student.image &&
       prevProps.dateString === nextProps.dateString &&
-      prevProps.leavesList?.length === nextProps.leavesList?.length
+      prevProps.leavesList?.length === nextProps.leavesList?.length &&
+      prevProps.maxNameLength === nextProps.maxNameLength
     );
   },
 );

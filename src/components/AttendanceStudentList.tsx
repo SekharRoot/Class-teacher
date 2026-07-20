@@ -186,6 +186,11 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
     );
   }, [classStudents, searchQuery]);
 
+  const maxNameLength = useMemo(() => {
+    if (filteredStudents.length === 0) return 0;
+    return Math.max(...filteredStudents.map((s) => `${s.firstName} ${s.lastName}`.length));
+  }, [filteredStudents]);
+
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
 
@@ -417,6 +422,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                     disabled={readOnly}
                     leavesList={leavesList}
                     dateString={dateString}
+                    maxNameLength={maxNameLength}
                   />
                 ))}
                 {displayCount < filteredStudents.length && (
