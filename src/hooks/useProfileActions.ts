@@ -68,15 +68,17 @@ export const useProfileActions = (
     setStudents(updatedList);
 
     // Update global state as well so other views (like Attendance page) are immediately in sync
-    setGlobalStudents((prev) => {
-      let updatedGlobal = [...prev];
-      if (editingStudent) {
-        updatedGlobal = prev.map((s) => (s.id === studentId ? savedStudent : s));
-      } else {
-        updatedGlobal.push(savedStudent);
-      }
-      return updatedGlobal;
-    });
+    if (setStudents !== setGlobalStudents) {
+      setGlobalStudents((prev) => {
+        let updatedGlobal = [...prev];
+        if (editingStudent) {
+          updatedGlobal = prev.map((s) => (s.id === studentId ? savedStudent : s));
+        } else {
+          updatedGlobal.push(savedStudent);
+        }
+        return updatedGlobal;
+      });
+    }
 
     // Update the FULL offline list in cache instead of overwriting with the filtered local list
     const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
@@ -147,7 +149,9 @@ export const useProfileActions = (
     setStudents(updatedList);
 
     // Update global state
-    setGlobalStudents((prev) => prev.filter((s) => s.id !== studentId));
+    if (setStudents !== setGlobalStudents) {
+      setGlobalStudents((prev) => prev.filter((s) => s.id !== studentId));
+    }
 
     // Update the FULL offline list in cache
     const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
@@ -189,7 +193,9 @@ export const useProfileActions = (
     setStudents(updatedList);
 
     // Update global state
-    setGlobalStudents((prev) => prev.filter((s) => !idsToDelete.includes(s.id)));
+    if (setStudents !== setGlobalStudents) {
+      setGlobalStudents((prev) => prev.filter((s) => !idsToDelete.includes(s.id)));
+    }
 
     // Update the FULL offline list in cache
     const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
