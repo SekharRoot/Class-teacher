@@ -459,7 +459,7 @@ export default function Settings() {
               />
             </Stack>
           </Box>
-          <TableContainer sx={{ maxHeight: 400 }}>
+          <TableContainer sx={{ maxHeight: 400, overflowX: "auto" }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>

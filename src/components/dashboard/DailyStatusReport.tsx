@@ -263,7 +263,7 @@ export const DailyStatusReport = React.memo(({
         <Typography variant="h6" sx={{ fontWeight: 800 }}>
           Daily Attendance Status Report
         </Typography>
-        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 2, alignSelf: { xs: "flex-end", sm: "auto" } }}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 1.5, width: { xs: "100%", sm: "auto" }, justifyContent: { xs: "flex-start", sm: "flex-end" } }}>
           <Button
             variant="outlined"
             size="small"
@@ -271,6 +271,7 @@ export const DailyStatusReport = React.memo(({
             startIcon={<Download />}
             onClick={exportToCSV}
             disabled={loading || reportData.length === 0}
+            sx={{ flexGrow: { xs: 1, sm: 0 } }}
           >
             Export CSV
           </Button>
@@ -281,6 +282,7 @@ export const DailyStatusReport = React.memo(({
             startIcon={<PictureAsPdf />}
             onClick={exportToPDF}
             disabled={loading || reportData.length === 0}
+            sx={{ flexGrow: { xs: 1, sm: 0 } }}
           >
             Export PDF
           </Button>
@@ -299,7 +301,7 @@ export const DailyStatusReport = React.memo(({
             slotProps={{
               inputLabel: { shrink: true }
             }}
-            sx={{ width: 180 }}
+            sx={{ width: { xs: "100%", sm: 180 } }}
           />
         </Box>
       </Box>
@@ -309,7 +311,7 @@ export const DailyStatusReport = React.memo(({
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: "none", border: "1px solid", borderColor: "divider" }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: "none", border: "1px solid", borderColor: "divider", overflowX: "auto" }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: "action.hover" }}>
