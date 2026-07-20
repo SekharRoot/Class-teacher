@@ -86,9 +86,13 @@ async function startServer() {
     
     // SPA fallback
     app.get("*", (req, res) => {
-      // If it's an API route that reached here, return 404
-      if (req.path.startsWith("/api/")) {
-        return res.status(404).json({ error: "API route not found" });
+      // If it's an API route or a static asset request that reached here, return 404
+      if (
+        req.path.startsWith("/api/") ||
+        req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|json|map)$/) ||
+        req.path.includes("/assets/")
+      ) {
+        return res.status(404).send("Not Found");
       }
 
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

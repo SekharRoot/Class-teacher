@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, ReactNode, useCallback } from "react";
+import { createContext, useState, useEffect, useContext, ReactNode, useCallback, useRef } from "react";
 import { Student, ClassItem, LeaveRequest, UserProfile, OfflineStudentChange, ConflictItem } from "../types";
 import { classesApi, studentsApi, leavesApi } from "../api";
 import { usersApi } from "../api/users";
@@ -39,6 +39,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [pendingChanges, setPendingChanges] = useState<OfflineStudentChange[]>([]);
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error" | "success">("idle");
+  const syncPromiseRef = useRef<Promise<void> | null>(null);
 
   const refreshPendingChanges = useCallback(async () => {
     const list = await studentSyncManager.getOfflineChanges();
@@ -46,34 +47,44 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const syncOfflineQueue = useCallback(async () => {
-    if (syncStatus === "syncing") return;
-    setSyncStatus("syncing");
-
-    const tempConflicts: ConflictItem[] = [];
-
-    const onConflictDetected = async (conflict: ConflictItem): Promise<"local" | "server" | "skip"> => {
-      tempConflicts.push(conflict);
-      setConflicts([...tempConflicts]);
-      return "skip"; // Skip resolving immediately so the user can resolve via the UI
-    };
-
-    try {
-      const res = await studentSyncManager.syncOfflineChanges(onConflictDetected);
-      await refreshPendingChanges();
-
-      if (res.errors.length > 0) {
-        setSyncStatus("error");
-      } else if (tempConflicts.length > 0) {
-        setSyncStatus("idle"); // user attention required for conflicts
-      } else {
-        setSyncStatus("success");
-        setTimeout(() => setSyncStatus("idle"), 3000);
-      }
-    } catch (err) {
-      console.error("Queue sync error:", err);
-      setSyncStatus("error");
+    if (syncPromiseRef.current) {
+      return syncPromiseRef.current;
     }
-  }, [syncStatus, refreshPendingChanges]);
+
+    const promise = (async () => {
+      setSyncStatus("syncing");
+
+      const tempConflicts: ConflictItem[] = [];
+
+      const onConflictDetected = async (conflict: ConflictItem): Promise<"local" | "server" | "skip"> => {
+        tempConflicts.push(conflict);
+        setConflicts([...tempConflicts]);
+        return "skip"; // Skip resolving immediately so the user can resolve via the UI
+      };
+
+      try {
+        const res = await studentSyncManager.syncOfflineChanges(onConflictDetected);
+        await refreshPendingChanges();
+
+        if (res.errors.length > 0) {
+          setSyncStatus("error");
+        } else if (tempConflicts.length > 0) {
+          setSyncStatus("idle"); // user attention required for conflicts
+        } else {
+          setSyncStatus("success");
+          setTimeout(() => setSyncStatus("idle"), 3000);
+        }
+      } catch (err) {
+        console.error("Queue sync error:", err);
+        setSyncStatus("error");
+      } finally {
+        syncPromiseRef.current = null;
+      }
+    })();
+
+    syncPromiseRef.current = promise;
+    return promise;
+  }, [refreshPendingChanges]);
 
   const resolveConflict = useCallback(async (conflictId: string, resolution: "local" | "server") => {
     const conflict = conflicts.find((c) => c.id === conflictId);
@@ -161,6 +172,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [syncOfflineQueue]);
 
   const fetchAndCacheAll = useCallback(async (forceRefreshStudents: boolean = false) => {
+    // 1. If there is an active offline sync, wait for it
+    if (syncPromiseRef.current) {
+      console.log("Waiting for active offline sync before fetching...");
+      await syncPromiseRef.current;
+    }
+
+    // 2. If there are pending changes in the offline queue and we are online, sync them first!
+    try {
+      const pending = await studentSyncManager.getOfflineChanges();
+      if (pending.length > 0 && typeof navigator !== "undefined" && navigator.onLine) {
+        console.log("Pending offline changes detected. Syncing them before fetching fresh state...");
+        await syncOfflineQueue();
+      }
+    } catch (syncErr) {
+      console.error("Failed to pre-sync offline queue before fetch:", syncErr);
+    }
+
     const canAccessLeaves =
       userProfile?.role === "admin" ||
       userProfile?.role === "owner" ||

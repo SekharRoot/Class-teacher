@@ -4,6 +4,7 @@ import { studentsApi } from "../api";
 import { cache } from "../lib/cache";
 import { studentCache } from "../utils/studentCache";
 import { studentSyncManager } from "../utils/studentSyncManager";
+import { useData } from "../contexts/DataContext";
 
 export const useProfileActions = (
   students: Student[],
@@ -13,6 +14,7 @@ export const useProfileActions = (
   fetchInitialData: () => void
 ) => {
   const [isMassDeleting, setIsMassDeleting] = useState(false);
+  const { setStudents: setGlobalStudents } = useData();
 
   const handleSaveProfileAsync = useCallback(async (
     formData: any,
@@ -62,7 +64,27 @@ export const useProfileActions = (
     });
 
     setStudents(updatedList);
-    await cache.set("offline_students", updatedList);
+
+    // Update global state as well so other views (like Attendance page) are immediately in sync
+    setGlobalStudents((prev) => {
+      let updatedGlobal = [...prev];
+      if (editingStudent) {
+        updatedGlobal = prev.map((s) => (s.id === studentId ? savedStudent : s));
+      } else {
+        updatedGlobal.push(savedStudent);
+      }
+      return updatedGlobal;
+    });
+
+    // Update the FULL offline list in cache instead of overwriting with the filtered local list
+    const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
+    let updatedFullList = [...fullCachedStudents];
+    if (editingStudent) {
+      updatedFullList = fullCachedStudents.map((s) => (s.id === studentId ? savedStudent : s));
+    } else {
+      updatedFullList.push(savedStudent);
+    }
+    await cache.set("offline_students", updatedFullList);
     await studentCache.setBatch([savedStudent]);
 
     setOpenDialog(false);
@@ -108,7 +130,7 @@ export const useProfileActions = (
     }
 
     return true;
-  }, [students, offlineMode, setStudents, showToast, fetchInitialData]);
+  }, [students, offlineMode, setStudents, setGlobalStudents, showToast, fetchInitialData]);
 
   const handleConfirmDeleteStudent = useCallback(async (
     studentToDelete: { id: string; name: string } | null,
@@ -121,7 +143,15 @@ export const useProfileActions = (
 
     const updatedList = students.filter((s) => s.id !== studentId);
     setStudents(updatedList);
-    await cache.set("offline_students", updatedList);
+
+    // Update global state
+    setGlobalStudents((prev) => prev.filter((s) => s.id !== studentId));
+
+    // Update the FULL offline list in cache
+    const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
+    const updatedFullList = fullCachedStudents.filter((s) => s.id !== studentId);
+    await cache.set("offline_students", updatedFullList);
+
     await studentCache.deleteBatch([studentId]);
     setStudentToDelete(null);
 
@@ -142,7 +172,7 @@ export const useProfileActions = (
       showToast(`Profile deleted locally. Synchronization pending.`, "warning");
       window.dispatchEvent(new CustomEvent("offline-queue-changed"));
     }
-  }, [students, offlineMode, setStudents, showToast, fetchInitialData]);
+  }, [students, offlineMode, setStudents, setGlobalStudents, showToast, fetchInitialData]);
 
   const handleMassDelete = useCallback(async (
     selectedIds: string[],
@@ -155,7 +185,15 @@ export const useProfileActions = (
 
     const updatedList = students.filter((s) => !idsToDelete.includes(s.id));
     setStudents(updatedList);
-    await cache.set("offline_students", updatedList);
+
+    // Update global state
+    setGlobalStudents((prev) => prev.filter((s) => !idsToDelete.includes(s.id)));
+
+    // Update the FULL offline list in cache
+    const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
+    const updatedFullList = fullCachedStudents.filter((s) => !idsToDelete.includes(s.id));
+    await cache.set("offline_students", updatedFullList);
+
     await studentCache.deleteBatch(idsToDelete);
     setSelectedIds([]);
 
@@ -188,7 +226,7 @@ export const useProfileActions = (
       window.dispatchEvent(new CustomEvent("offline-queue-changed"));
     }
     setIsMassDeleting(false);
-  }, [students, offlineMode, setStudents, showToast, fetchInitialData]);
+  }, [students, offlineMode, setStudents, setGlobalStudents, showToast, fetchInitialData]);
 
   return useMemo(() => ({
     isMassDeleting,
