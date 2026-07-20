@@ -229,12 +229,75 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Fetch students in highly efficient parallel class-by-class chunks
         const targetClasses = classesList || [];
 
-        const studentsList = await studentsApi.getAllInParallelChunks(targetClasses, true);
+        let studentsList = await studentsApi.getAllInParallelChunks(targetClasses, true);
+
+        // Apply any pending offline changes to the fresh server list so local updates/creations are not lost
+        const pendingChanges = await studentSyncManager.getOfflineChanges();
+        if (pendingChanges.length > 0) {
+          console.log(`Merging ${pendingChanges.length} pending offline changes into the fresh server student list...`);
+          const studentMap = new Map<string, Student>();
+          studentsList.forEach(s => studentMap.set(s.id, s));
+
+          for (const change of pendingChanges) {
+            if (change.type === "create") {
+              studentMap.set(change.studentId, change.studentData);
+            } else if (change.type === "update") {
+              const existing = studentMap.get(change.studentId);
+              if (existing) {
+                studentMap.set(change.studentId, { ...existing, ...change.studentData });
+              } else {
+                studentMap.set(change.studentId, change.studentData);
+              }
+            } else if (change.type === "delete") {
+              studentMap.delete(change.studentId);
+            }
+          }
+          studentsList = Array.from(studentMap.values());
+          
+          // Sort alphabetically by first name and last name
+          studentsList.sort((a, b) => {
+            const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+            const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+        }
+
         setStudents(studentsList || []);
         await cache.set("offline_students", studentsList || []);
       } catch (err) {
         console.error("Progressive parallel chunk student download failed, trying standard:", err);
-        const studentsList = await studentsApi.getAll(true);
+        let studentsList = await studentsApi.getAll(true);
+
+        // Apply pending offline changes to the standard server list as well
+        const pendingChanges = await studentSyncManager.getOfflineChanges();
+        if (pendingChanges.length > 0) {
+          console.log(`Merging ${pendingChanges.length} pending offline changes into the standard server list...`);
+          const studentMap = new Map<string, Student>();
+          studentsList.forEach(s => studentMap.set(s.id, s));
+
+          for (const change of pendingChanges) {
+            if (change.type === "create") {
+              studentMap.set(change.studentId, change.studentData);
+            } else if (change.type === "update") {
+              const existing = studentMap.get(change.studentId);
+              if (existing) {
+                studentMap.set(change.studentId, { ...existing, ...change.studentData });
+              } else {
+                studentMap.set(change.studentId, change.studentData);
+              }
+            } else if (change.type === "delete") {
+              studentMap.delete(change.studentId);
+            }
+          }
+          studentsList = Array.from(studentMap.values());
+          
+          studentsList.sort((a, b) => {
+            const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+            const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+        }
+
         setStudents(studentsList || []);
         await cache.set("offline_students", studentsList || []);
       }

@@ -5,6 +5,7 @@ import { cache } from "../lib/cache";
 import { studentCache } from "../utils/studentCache";
 import { studentSyncManager } from "../utils/studentSyncManager";
 import { useData } from "../contexts/DataContext";
+import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 
 export const useProfileActions = (
   students: Student[],
@@ -47,6 +48,7 @@ export const useProfileActions = (
       phoneNumber: formData.phoneNumber.trim(),
       boarderType: formData.boarderType,
       image: formData.imageUrl,
+      schoolId: getActiveSchoolId(),
     };
 
     // Update locally first to make the UI update instantly

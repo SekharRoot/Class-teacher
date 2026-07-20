@@ -11,12 +11,26 @@ import {
   limit,
   startAfter,
   collectionGroup,
+  waitForPendingWrites,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType, getRtdb } from "../lib/firebase";
 import { ref as rtdbRef, set as rtdbSet, get as rtdbGet, remove as rtdbRemove } from "firebase/database";
 import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
 import { Student } from "../types";
 import { classesApi } from "./classes";
+
+async function waitForSync() {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return;
+  }
+  try {
+    const syncPromise = waitForPendingWrites(db);
+    const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 3000));
+    await Promise.race([syncPromise, timeoutPromise]);
+  } catch (err) {
+    console.warn("Failed or timed out waiting for pending writes:", err);
+  }
+}
 
 let studentsCache: Student[] | null = null;
 let studentsCacheTime = 0;
@@ -342,6 +356,7 @@ export const studentsApi = {
         updatedAt: new Date().toISOString(),
       };
       await setDoc(studentRef, data);
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(
@@ -407,6 +422,7 @@ export const studentsApi = {
           updatedAt: new Date().toISOString(),
         }, { merge: true });
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `students/${studentId}`);
@@ -424,6 +440,7 @@ export const studentsApi = {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
         await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(
@@ -447,6 +464,7 @@ export const studentsApi = {
           await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
         }
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, "students");
@@ -464,6 +482,7 @@ export const studentsApi = {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
         await setDoc(studentRef, { isActive: true, updatedAt: new Date().toISOString() }, { merge: true });
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `students/${studentId}`);
@@ -494,6 +513,7 @@ export const studentsApi = {
           }
         }
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "students/transfer");
@@ -522,6 +542,7 @@ export const studentsApi = {
           await setDoc(newRef, mergedData);
         }
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "students/transferSchool");
@@ -544,6 +565,7 @@ export const studentsApi = {
           console.error("Failed to delete image from Realtime Database during permanentlyDelete:", rtdbErr);
         }
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(
@@ -573,6 +595,7 @@ export const studentsApi = {
         });
       });
       await batch.commit();
+      await waitForSync();
       this.invalidateCache();
       return missing.length;
     } catch (error) {
@@ -625,6 +648,7 @@ export const studentsApi = {
           updatedAt: new Date().toISOString(),
         });
       }
+      await waitForSync();
       this.invalidateCache();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, "students");
