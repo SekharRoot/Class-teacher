@@ -632,6 +632,22 @@ export const studentsApi = {
   },
 
   /**
+   * Fetches a specific student profile from the server directly.
+   */
+  async getStudentFromServer(studentId: string): Promise<Student | null> {
+    try {
+      const studentInfo = await findStudentClass(studentId);
+      if (studentInfo && studentInfo.data) {
+        return { id: studentId, ...studentInfo.data } as Student;
+      }
+      return null;
+    } catch (error) {
+      console.warn(`Failed to fetch student ${studentId} from server:`, error);
+      return null;
+    }
+  },
+
+  /**
    * Performs an incremental or full sync of student profiles based on a last-synced timestamp.
    */
   async syncProfiles(lastSyncTime?: string | null, fullSync = false): Promise<{

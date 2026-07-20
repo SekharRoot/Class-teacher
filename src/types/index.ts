@@ -13,6 +13,8 @@ export interface Student {
   image?: string; // base64 Data URL
   boarderType?: "Day Boarder" | "Day Scholar" | "Full Boarder";
   isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type AttendanceStatus = "present" | "absent" | "leave";
@@ -106,3 +108,21 @@ export interface LeaveRequest {
   resolvedById?: string; // profile uid who approved/rejected
   resolvedAt?: string; // ISO date-time string
 }
+
+export interface OfflineStudentChange {
+  id: string;
+  type: "create" | "update" | "delete";
+  studentId: string;
+  studentData: Student;
+  timestamp: string;
+}
+
+export interface ConflictItem {
+  id: string;
+  studentName: string;
+  localVersion: Student;
+  serverVersion: Student;
+  changeType: "create" | "update" | "delete";
+  timestamp: string;
+}
+

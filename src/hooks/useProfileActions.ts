@@ -3,6 +3,7 @@ import { Student } from "../types";
 import { studentsApi } from "../api";
 import { cache } from "../lib/cache";
 import { studentCache } from "../utils/studentCache";
+import { studentSyncManager } from "../utils/studentSyncManager";
 
 export const useProfileActions = (
   students: Student[],
@@ -19,11 +20,6 @@ export const useProfileActions = (
     setOpenDialog: (o: boolean) => void,
     setEditingStudent: (s: Student | null) => void
   ): Promise<boolean> => {
-    if (offlineMode) {
-      showToast("Cannot save profile. Profile addition and editing require an active internet connection.", "warning");
-      return false;
-    }
-
     const nameParts = formData.studentName.trim().split(/\s+/);
     const firstName = nameParts[0] || "";
     const lastName = nameParts.slice(1).join(" ") || ".";
@@ -51,24 +47,13 @@ export const useProfileActions = (
       image: formData.imageUrl,
     };
 
-    if (editingStudent) {
-      // Direct update to server only
-      try {
-        await studentsApi.update(studentId, savedStudent);
-        showToast(`Profile for "${formData.studentName}" updated successfully on server!`, "success");
-        setOpenDialog(false);
-        setEditingStudent(null);
-        fetchInitialData();
-        return true;
-      } catch (err: any) {
-        console.error("Error editing student profile directly on server:", err);
-        showToast("Failed to update profile on server. Please try again.", "error");
-        return false;
-      }
-    }
-
+    // Update locally first to make the UI update instantly
     let updatedList = [...students];
-    updatedList.push(savedStudent);
+    if (editingStudent) {
+      updatedList = students.map((s) => (s.id === studentId ? savedStudent : s));
+    } else {
+      updatedList.push(savedStudent);
+    }
 
     updatedList.sort((a, b) => {
       const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
@@ -77,29 +62,50 @@ export const useProfileActions = (
     });
 
     setStudents(updatedList);
-    cache.set("offline_students", updatedList);
+    await cache.set("offline_students", updatedList);
     await studentCache.setBatch([savedStudent]);
 
-    if (offlineMode) {
-      showToast(`Profile for "${formData.studentName}" saved offline!`, "success");
-      setOpenDialog(false);
-      setEditingStudent(null);
-      return true;
-    }
-
-    showToast("Uploaded!", "success");
     setOpenDialog(false);
     setEditingStudent(null);
 
-    studentsApi
-      .create(savedStudent)
-      .then(() => {
-        fetchInitialData();
-      })
-      .catch((err: any) => {
-        console.error("Error saving student profile in background:", err);
-        showToast("Saved to offline cache. Synchronization failed.", "warning");
-      });
+    if (offlineMode) {
+      // Add to offline queue
+      await studentSyncManager.addOfflineChange(
+        editingStudent ? "update" : "create",
+        studentId,
+        savedStudent
+      );
+      showToast(
+        editingStudent
+          ? `Profile for "${formData.studentName}" updated offline (pending sync)!`
+          : `Profile for "${formData.studentName}" saved offline (pending sync)!`,
+        "info"
+      );
+      // Fire global event to notify components that queue size has changed
+      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
+      return true;
+    }
+
+    // Attempt direct server upload
+    try {
+      if (editingStudent) {
+        await studentsApi.update(studentId, savedStudent);
+        showToast(`Profile for "${formData.studentName}" updated successfully!`, "success");
+      } else {
+        await studentsApi.create(savedStudent);
+        showToast(`Profile for "${formData.studentName}" created successfully!`, "success");
+      }
+      fetchInitialData();
+    } catch (err: any) {
+      console.error("Server save failed, queueing offline change:", err);
+      await studentSyncManager.addOfflineChange(
+        editingStudent ? "update" : "create",
+        studentId,
+        savedStudent
+      );
+      showToast(`Saved to offline cache. Synchronization pending.`, "warning");
+      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
+    }
 
     return true;
   }, [students, offlineMode, setStudents, showToast, fetchInitialData]);
@@ -111,17 +117,18 @@ export const useProfileActions = (
   ) => {
     if (!studentToDelete) return;
     const { id: studentId, name } = studentToDelete;
-    const originalStudents = [...students];
     setDeleteDialogOpen(false);
 
     const updatedList = students.filter((s) => s.id !== studentId);
     setStudents(updatedList);
-    cache.set("offline_students", updatedList);
+    await cache.set("offline_students", updatedList);
     await studentCache.deleteBatch([studentId]);
     setStudentToDelete(null);
 
     if (offlineMode) {
-      showToast("Profile deleted from offline cache.", "info");
+      await studentSyncManager.addOfflineChange("delete", studentId, { id: studentId } as Student);
+      showToast(`Profile for "${name}" deleted from local cache (pending sync).`, "info");
+      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
       return;
     }
 
@@ -130,10 +137,10 @@ export const useProfileActions = (
       showToast(`Profile for "${name}" deleted successfully!`, "success");
       fetchInitialData();
     } catch (err) {
-      console.error(err);
-      showToast("Could not remove from cloud database. Reverting.", "error");
-      setStudents(originalStudents);
-      fetchInitialData();
+      console.error("Server delete failed, queueing offline delete:", err);
+      await studentSyncManager.addOfflineChange("delete", studentId, { id: studentId } as Student);
+      showToast(`Profile deleted locally. Synchronization pending.`, "warning");
+      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
     }
   }, [students, offlineMode, setStudents, showToast, fetchInitialData]);
 
@@ -145,32 +152,40 @@ export const useProfileActions = (
 
     setIsMassDeleting(true);
     const idsToDelete = [...selectedIds];
-    const originalStudents = [...students];
 
     const updatedList = students.filter((s) => !idsToDelete.includes(s.id));
     setStudents(updatedList);
-    cache.set("offline_students", updatedList);
+    await cache.set("offline_students", updatedList);
     await studentCache.deleteBatch(idsToDelete);
     setSelectedIds([]);
 
-    if (!offlineMode) {
-      try {
-        if ((studentsApi as any).batchDelete) {
-          await (studentsApi as any).batchDelete(idsToDelete);
-        } else {
-          for (const id of idsToDelete) {
-            await studentsApi.delete(id);
-          }
-        }
-        showToast(`Deleted ${idsToDelete.length} profiles successfully!`, "success");
-        fetchInitialData();
-      } catch (error) {
-        console.error("Mass delete error", error);
-        showToast("Mass deletion failed. Reverting...", "error");
-        setStudents(originalStudents);
+    if (offlineMode) {
+      for (const id of idsToDelete) {
+        await studentSyncManager.addOfflineChange("delete", id, { id } as Student);
       }
-    } else {
-      showToast(`Deleted ${idsToDelete.length} profiles from offline cache.`, "info");
+      showToast(`Deleted ${idsToDelete.length} profiles from offline cache (pending sync).`, "info");
+      setIsMassDeleting(false);
+      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
+      return;
+    }
+
+    try {
+      if ((studentsApi as any).batchDelete) {
+        await (studentsApi as any).batchDelete(idsToDelete);
+      } else {
+        for (const id of idsToDelete) {
+          await studentsApi.delete(id);
+        }
+      }
+      showToast(`Deleted ${idsToDelete.length} profiles successfully!`, "success");
+      fetchInitialData();
+    } catch (error) {
+      console.error("Mass delete server error, queueing offline:", error);
+      for (const id of idsToDelete) {
+        await studentSyncManager.addOfflineChange("delete", id, { id } as Student);
+      }
+      showToast(`Deleted ${idsToDelete.length} profiles locally. Synchronization pending.`, "warning");
+      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
     }
     setIsMassDeleting(false);
   }, [students, offlineMode, setStudents, showToast, fetchInitialData]);

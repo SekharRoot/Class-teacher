@@ -37,6 +37,7 @@ import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { useProfileActions } from "../hooks/useProfileActions";
 import { useAuth } from "../contexts/AuthContext";
+import { useData } from "../contexts/DataContext";
 
 export default function Profiles() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -49,6 +50,13 @@ export default function Profiles() {
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   const { userProfile } = useAuth();
+  const {
+    pendingChanges,
+    conflicts,
+    syncStatus,
+    syncOfflineQueue,
+    resolveConflict,
+  } = useData();
   const [transferSchoolDialogOpen, setTransferSchoolDialogOpen] = useState(false);
   const [schoolsList, setSchoolsList] = useState<School[]>([]);
   const [isSchoolTransferring, setIsSchoolTransferring] = useState(false);
@@ -165,13 +173,9 @@ export default function Profiles() {
   ), [classes, authorizedClassIds]);
 
   const handleOpenEditDialog = useCallback((student: Student) => {
-    if (offlineMode) {
-      showToast("Cannot edit profiles while offline. Please connect to the internet.", "warning");
-      return;
-    }
     setEditingStudent(student);
     setOpenDialog(true);
-  }, [setEditingStudent, setOpenDialog, offlineMode, showToast]);
+  }, [setEditingStudent, setOpenDialog]);
 
   const handleOpenDetail = useCallback((student: Student) => {
     setSelectedStudent(student);
@@ -385,13 +389,8 @@ export default function Profiles() {
               <Button
                 variant="contained"
                 color="primary"
-                disabled={offlineMode}
                 startIcon={<Add />}
                 onClick={() => {
-                  if (offlineMode) {
-                    showToast("Cannot add student profiles while offline. Please connect to the internet.", "warning");
-                    return;
-                  }
                   setEditingStudent(null);
                   setOpenDialog(true);
                 }}
@@ -403,6 +402,116 @@ export default function Profiles() {
           )}
         </Box>
       </Box>
+
+      {/* Offline Sync Status & Retry Indicator */}
+      {pendingChanges.length > 0 && (
+        <Alert
+          severity={syncStatus === "error" ? "error" : "info"}
+          icon={syncStatus === "syncing" ? <CircularProgress size={20} /> : undefined}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              disabled={syncStatus === "syncing"}
+              onClick={() => syncOfflineQueue()}
+              sx={{ fontWeight: "bold" }}
+            >
+              {syncStatus === "syncing" ? "Syncing..." : "Sync Now"}
+            </Button>
+          }
+          sx={{ mb: 3, borderRadius: 2 }}
+        >
+          {syncStatus === "syncing" ? (
+            "Synchronizing pending local updates back to the server..."
+          ) : syncStatus === "error" ? (
+            `Failed to sync ${pendingChanges.length} local edits. Please check your internet connection and try again.`
+          ) : (
+            `You have ${pendingChanges.length} offline student profile change(s) saved locally. Sync now to update the database.`
+          )}
+        </Alert>
+      )}
+
+      {/* Interactive Conflict Resolution Panel */}
+      {conflicts.length > 0 && (
+        <Paper
+          elevation={1}
+          sx={{
+            p: 3,
+            mb: 3,
+            borderRadius: 2,
+            border: "1.5px solid",
+            borderColor: "warning.main",
+            backgroundColor: "warning.lighter",
+          }}
+        >
+          <Typography variant="h6" color="warning.dark" sx={{ fontWeight: "bold", mb: 1, display: "flex", alignItems: "center", gap: 1 }}>
+            ⚠️ Profile Sync Conflict Detected
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            The following student profiles were modified both offline and on the server. Please review and select which version to preserve.
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {conflicts.map((conflict) => (
+              <Paper
+                key={conflict.id}
+                variant="outlined"
+                sx={{ p: 2, borderRadius: 1.5, borderColor: "divider" }}
+              >
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+                  Student: {conflict.studentName} ({conflict.changeType.toUpperCase()})
+                </Typography>
+                
+                <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, mb: 2 }}>
+                  <Box sx={{ p: 1.5, borderRadius: 1, backgroundColor: "action.hover", borderLeft: "4px solid #1976d2" }}>
+                    <Typography variant="caption" color="primary" sx={{ fontWeight: "bold", display: "block" }}>
+                      LOCAL OFFLINE VERSION
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                      Roll Number: {conflict.localVersion?.rollNumber || "N/A"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Father: {conflict.localVersion?.fatherName || "N/A"} | Mother: {conflict.localVersion?.motherName || "N/A"}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ p: 1.5, borderRadius: 1, backgroundColor: "action.hover", borderLeft: "4px solid #2e7d32" }}>
+                    <Typography variant="caption" color="success.main" sx={{ fontWeight: "bold", display: "block" }}>
+                      SERVER CLOUD VERSION
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                      Roll Number: {conflict.serverVersion?.rollNumber || "N/A"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Father: {conflict.serverVersion?.fatherName || "N/A"} | Mother: {conflict.serverVersion?.motherName || "N/A"}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end" }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    onClick={() => resolveConflict(conflict.id, "local")}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Keep Local Version
+                  </Button>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    onClick={() => resolveConflict(conflict.id, "server")}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Keep Server Version
+                  </Button>
+                </Box>
+              </Paper>
+            ))}
+          </Box>
+        </Paper>
+      )}
 
       <ProfileFilters
         searchQuery={searchQuery}
