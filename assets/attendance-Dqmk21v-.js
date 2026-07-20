@@ -1,4 +1,4 @@
-import{W as q,V as x,a1 as Z,ab as H,X as z,Q as M,R as tt,a6 as et,a2 as st,T as J,U as at}from"./firebase-vendor-CtvHyiMR.js";import{g as k,e as R,o as N,O as P,h as Y,d as nt}from"./index-BMxqRaKo.js";const it=`
+import{W as q,V as x,a1 as Z,ab as H,X as z,Q as M,R as tt,a6 as et,a2 as st,T as J,U as at}from"./firebase-vendor-CtvHyiMR.js";import{g as k,e as R,o as N,O as P,h as Y,d as nt}from"./index-CNjidtbT.js";const it=`
 self.onmessage = (event) => {
   const { type, payload } = event.data;
   
