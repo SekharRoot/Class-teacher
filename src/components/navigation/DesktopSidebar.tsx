@@ -39,9 +39,21 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const sortedMenuItems = React.useMemo(() => {
     const allItems = [...primaryMenuItems, ...secondaryMenuItems];
     const dashboardItem = allItems.find((item) => item.text === "Dashboard");
-    const otherItems = allItems.filter((item) => item.text !== "Dashboard");
+    const attendanceItem = allItems.find((item) => item.text === "Attendance");
+    const profilesItem = allItems.find((item) => item.text === "Profiles");
+    
+    const otherItems = allItems.filter(
+      (item) => item.text !== "Dashboard" && item.text !== "Attendance" && item.text !== "Profiles"
+    );
     otherItems.sort((a, b) => a.text.localeCompare(b.text));
-    return dashboardItem ? [dashboardItem, ...otherItems] : otherItems;
+
+    const result = [];
+    if (dashboardItem) result.push(dashboardItem);
+    if (attendanceItem) result.push(attendanceItem);
+    if (profilesItem) result.push(profilesItem);
+    result.push(...otherItems);
+
+    return result;
   }, [primaryMenuItems, secondaryMenuItems]);
 
   return (
