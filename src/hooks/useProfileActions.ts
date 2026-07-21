@@ -87,62 +87,41 @@ export const useProfileActions = (
       await studentCache.setBatch([savedStudent]);
     };
 
-    if (offlineMode) {
-      await applyLocalAndCacheUpdates();
-      // Add to offline queue
-      await studentSyncManager.addOfflineChange(
-        editingStudent ? "update" : "create",
-        studentId,
-        savedStudent
-      );
-      showToast(
-        editingStudent
-          ? `Profile for "${formData.studentName}" updated locally!`
-          : `Profile for "${formData.studentName}" saved locally!`,
-        "info"
-      );
-      setOpenDialog(false);
-      setEditingStudent(null);
-      // Fire global event to notify components that queue size has changed
-      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
-      return true;
-    }
-
     try {
-      // Optimistic update for instant UI feedback
-      await applyLocalAndCacheUpdates();
-      
-      // Close dialog immediately to provide responsive UX
-      setOpenDialog(false);
-      setEditingStudent(null);
-
+      // Direct update to server without background offline sync fallback for these actions
       if (editingStudent) {
         await studentsApi.update(studentId, savedStudent, editingStudent.classId);
-        showToast(`Profile for "${formData.studentName}" synchronized successfully!`, "success");
       } else {
         await studentsApi.create(savedStudent);
-        showToast(`Profile for "${formData.studentName}" created and uploaded!`, "success");
       }
+
+      // AFTER successful upload, update local state and offline cache
+      await applyLocalAndCacheUpdates();
       
-      // Sync in the background silently to ensure local state is perfectly in sync with server
+      showToast(
+        editingStudent
+          ? `Profile for "${formData.studentName}" updated successfully!`
+          : `Profile for "${formData.studentName}" created and synchronized!`,
+        "success"
+      );
+
+      setOpenDialog(false);
+      setEditingStudent(null);
+      
+      // Trigger a silent refresh to ensure the authoritative data is fetched from the server
       fetchInitialData(true);
     } catch (err: any) {
-      console.error("Server save failed, student saved to offline queue:", err);
-      
-      // We already applied local updates optimistically, now we just need to queue the offline change
-      await studentSyncManager.addOfflineChange(
-        editingStudent ? "update" : "create",
-        studentId,
-        savedStudent
+      console.error("Direct server upload failed:", err);
+      showToast(
+        `Failed to sync with server. Please check your connection and try again.`,
+        "error"
       );
-      showToast(`Saved locally. Synchronization will retry automatically.`, "warning");
-      
-      // State is already reset in the optimistic block above
-      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
+      // We do NOT update local state or cache, and we do NOT add to the offline sync manager queue.
+      // The user remains on the dialog to retry.
     }
 
     return true;
-  }, [students, offlineMode, setStudents, setGlobalStudents, showToast, fetchInitialData]);
+  }, [students, setStudents, setGlobalStudents, showToast, fetchInitialData]);
 
   const handleConfirmDeleteStudent = useCallback(async (
     studentToDelete: { id: string; name: string } | null,
