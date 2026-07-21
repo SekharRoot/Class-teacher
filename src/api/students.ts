@@ -51,14 +51,22 @@ async function findStudentClass(studentId: string, bypassCache = false): Promise
   }
   const classesList = await classesApi.getAll();
   const classIds = ["unassigned", ...classesList.map(c => c.id)];
-  for (const cId of classIds) {
+  
+  // Parallelize the search across all classes to avoid sequential O(N) wait time
+  const results = await Promise.all(classIds.map(async (cId) => {
     const ref = doc(db, "schools", activeSchoolId, "classes", cId, "students", studentId);
-    const snap = await getDoc(ref);
-    if (snap.exists()) {
-      return { schoolId: activeSchoolId, classId: cId === "unassigned" ? "" : cId, data: snap.data() };
+    try {
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        return { schoolId: activeSchoolId, classId: cId === "unassigned" ? "" : cId, data: snap.data() };
+      }
+    } catch (err) {
+      console.warn(`Search in class ${cId} failed for student ${studentId}:`, err);
     }
-  }
-  return null;
+    return null;
+  }));
+
+  return results.find(r => r !== null) || null;
 }
 
 export const studentsApi = {
@@ -411,9 +419,10 @@ export const studentsApi = {
       const targetClassId = studentData.classId !== undefined ? studentData.classId : oldClassId;
 
       if (oldClassId !== targetClassId) {
-        // Transfer to another class
+        // Transfer to another class (move document from old class to new class)
+        const batch = writeBatch(db);
         const oldRef = getStudentDocRef(activeSchoolId, oldClassId, studentId);
-        await deleteDoc(oldRef);
+        batch.delete(oldRef);
 
         if (!studentInfo) {
           studentInfo = await findStudentClass(studentId, true);
@@ -426,7 +435,8 @@ export const studentsApi = {
           classId: targetClassId,
           updatedAt: new Date().toISOString(),
         };
-        await setDoc(newRef, mergedData);
+        batch.set(newRef, mergedData);
+        await batch.commit();
       } else {
         const ref = getStudentDocRef(activeSchoolId, oldClassId, studentId);
         await setDoc(ref, {

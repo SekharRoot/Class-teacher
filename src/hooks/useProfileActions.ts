@@ -73,7 +73,8 @@ export const useProfileActions = (
       if (setStudents !== setGlobalStudents) {
         setGlobalStudents((prev) => {
           let updatedGlobal = [...prev];
-          if (editingStudent) {
+          const existsInGlobal = prev.some(s => s.id === studentId);
+          if (existsInGlobal) {
             updatedGlobal = prev.map((s) => (s.id === studentId ? savedStudent : s));
           } else {
             updatedGlobal.push(savedStudent);
@@ -82,15 +83,7 @@ export const useProfileActions = (
         });
       }
 
-      // Update the FULL offline list in cache instead of overwriting with the filtered local list
-      const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
-      let updatedFullList = [...fullCachedStudents];
-      if (editingStudent) {
-        updatedFullList = fullCachedStudents.map((s) => (s.id === studentId ? savedStudent : s));
-      } else {
-        updatedFullList.push(savedStudent);
-      }
-      await cache.set("offline_students", updatedFullList);
+      // Update the FULL offline list in cache
       await studentCache.setBatch([savedStudent]);
     };
 
@@ -104,8 +97,8 @@ export const useProfileActions = (
       );
       showToast(
         editingStudent
-          ? `Profile for "${formData.studentName}" updated offline (pending sync)!`
-          : `Profile for "${formData.studentName}" saved offline (pending sync)!`,
+          ? `Profile for "${formData.studentName}" updated locally!`
+          : `Profile for "${formData.studentName}" saved locally!`,
         "info"
       );
       setOpenDialog(false);
@@ -116,36 +109,35 @@ export const useProfileActions = (
     }
 
     try {
-      if (editingStudent) {
-        await studentsApi.update(studentId, savedStudent, editingStudent.classId);
-        showToast(`Profile for "${formData.studentName}" uploaded and updated successfully!`, "success");
-      } else {
-        await studentsApi.create(savedStudent);
-        showToast(`Profile for "${formData.studentName}" uploaded and created successfully!`, "success");
-      }
-      
-      // Update local states and offline cache AFTER successful server save
+      // Optimistic update for instant UI feedback
       await applyLocalAndCacheUpdates();
-
+      
+      // Close dialog immediately to provide responsive UX
       setOpenDialog(false);
       setEditingStudent(null);
 
-      // Sync in the background silently
+      if (editingStudent) {
+        await studentsApi.update(studentId, savedStudent, editingStudent.classId);
+        showToast(`Profile for "${formData.studentName}" synchronized successfully!`, "success");
+      } else {
+        await studentsApi.create(savedStudent);
+        showToast(`Profile for "${formData.studentName}" created and uploaded!`, "success");
+      }
+      
+      // Sync in the background silently to ensure local state is perfectly in sync with server
       fetchInitialData(true);
     } catch (err: any) {
-      console.error("Server save failed, queueing offline change:", err);
+      console.error("Server save failed, student saved to offline queue:", err);
       
-      // If server save fails, we still apply local updates and queue it offline
-      await applyLocalAndCacheUpdates();
-
+      // We already applied local updates optimistically, now we just need to queue the offline change
       await studentSyncManager.addOfflineChange(
         editingStudent ? "update" : "create",
         studentId,
         savedStudent
       );
-      showToast(`Saved to offline cache. Synchronization pending.`, "warning");
-      setOpenDialog(false);
-      setEditingStudent(null);
+      showToast(`Saved locally. Synchronization will retry automatically.`, "warning");
+      
+      // State is already reset in the optimistic block above
       window.dispatchEvent(new CustomEvent("offline-queue-changed"));
     }
 
