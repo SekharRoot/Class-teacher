@@ -383,7 +383,7 @@ export const studentsApi = {
       let studentInfo: any = null;
 
       if (!oldClassId) {
-        studentInfo = await findStudentClass(studentId);
+        studentInfo = await findStudentClass(studentId, true);
         if (!studentInfo) {
           throw new Error(`Student not found: ${studentId}`);
         }
@@ -416,7 +416,7 @@ export const studentsApi = {
         await deleteDoc(oldRef);
 
         if (!studentInfo) {
-          studentInfo = await findStudentClass(studentId);
+          studentInfo = await findStudentClass(studentId, true);
         }
 
         const newRef = getStudentDocRef(activeSchoolId, targetClassId, studentId);
