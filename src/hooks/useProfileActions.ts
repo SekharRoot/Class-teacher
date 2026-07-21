@@ -12,7 +12,7 @@ export const useProfileActions = (
   setStudents: (s: Student[]) => void,
   offlineMode: boolean,
   showToast: (msg: string, sev: any) => void,
-  fetchInitialData: () => void
+  fetchInitialData: (forceRefreshStudents?: boolean) => void
 ) => {
   const [isMassDeleting, setIsMassDeleting] = useState(false);
   const { setStudents: setGlobalStudents } = useData();
@@ -51,50 +51,51 @@ export const useProfileActions = (
       schoolId: getActiveSchoolId(),
     };
 
-    // Update locally first to make the UI update instantly
-    let updatedList = [...students];
-    if (editingStudent) {
-      updatedList = students.map((s) => (s.id === studentId ? savedStudent : s));
-    } else {
-      updatedList.push(savedStudent);
-    }
+    // Helper to perform local state and offline cache updates
+    const applyLocalAndCacheUpdates = async () => {
+      // Update locally first to make the UI update instantly
+      let updatedList = [...students];
+      if (editingStudent) {
+        updatedList = students.map((s) => (s.id === studentId ? savedStudent : s));
+      } else {
+        updatedList.push(savedStudent);
+      }
 
-    updatedList.sort((a, b) => {
-      const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-      const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-
-    setStudents(updatedList);
-
-    // Update global state as well so other views (like Attendance page) are immediately in sync
-    if (setStudents !== setGlobalStudents) {
-      setGlobalStudents((prev) => {
-        let updatedGlobal = [...prev];
-        if (editingStudent) {
-          updatedGlobal = prev.map((s) => (s.id === studentId ? savedStudent : s));
-        } else {
-          updatedGlobal.push(savedStudent);
-        }
-        return updatedGlobal;
+      updatedList.sort((a, b) => {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
       });
-    }
 
-    // Update the FULL offline list in cache instead of overwriting with the filtered local list
-    const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
-    let updatedFullList = [...fullCachedStudents];
-    if (editingStudent) {
-      updatedFullList = fullCachedStudents.map((s) => (s.id === studentId ? savedStudent : s));
-    } else {
-      updatedFullList.push(savedStudent);
-    }
-    await cache.set("offline_students", updatedFullList);
-    await studentCache.setBatch([savedStudent]);
+      setStudents(updatedList);
 
-    setOpenDialog(false);
-    setEditingStudent(null);
+      // Update global state as well so other views (like Attendance page) are immediately in sync
+      if (setStudents !== setGlobalStudents) {
+        setGlobalStudents((prev) => {
+          let updatedGlobal = [...prev];
+          if (editingStudent) {
+            updatedGlobal = prev.map((s) => (s.id === studentId ? savedStudent : s));
+          } else {
+            updatedGlobal.push(savedStudent);
+          }
+          return updatedGlobal;
+        });
+      }
+
+      // Update the FULL offline list in cache instead of overwriting with the filtered local list
+      const fullCachedStudents: Student[] = (await cache.get("offline_students")) || [];
+      let updatedFullList = [...fullCachedStudents];
+      if (editingStudent) {
+        updatedFullList = fullCachedStudents.map((s) => (s.id === studentId ? savedStudent : s));
+      } else {
+        updatedFullList.push(savedStudent);
+      }
+      await cache.set("offline_students", updatedFullList);
+      await studentCache.setBatch([savedStudent]);
+    };
 
     if (offlineMode) {
+      await applyLocalAndCacheUpdates();
       // Add to offline queue
       await studentSyncManager.addOfflineChange(
         editingStudent ? "update" : "create",
@@ -107,6 +108,8 @@ export const useProfileActions = (
           : `Profile for "${formData.studentName}" saved offline (pending sync)!`,
         "info"
       );
+      setOpenDialog(false);
+      setEditingStudent(null);
       // Fire global event to notify components that queue size has changed
       window.dispatchEvent(new CustomEvent("offline-queue-changed"));
       return true;
@@ -115,21 +118,34 @@ export const useProfileActions = (
     try {
       if (editingStudent) {
         await studentsApi.update(studentId, savedStudent, editingStudent.classId);
-        showToast(`Profile for "${formData.studentName}" updated successfully!`, "success");
+        showToast(`Profile for "${formData.studentName}" uploaded and updated successfully!`, "success");
       } else {
         await studentsApi.create(savedStudent);
-        showToast(`Profile for "${formData.studentName}" created successfully!`, "success");
+        showToast(`Profile for "${formData.studentName}" uploaded and created successfully!`, "success");
       }
+      
+      // Update local states and offline cache AFTER successful server save
+      await applyLocalAndCacheUpdates();
+
+      setOpenDialog(false);
+      setEditingStudent(null);
+
       // Sync in the background silently
-      fetchInitialData();
+      fetchInitialData(true);
     } catch (err: any) {
       console.error("Server save failed, queueing offline change:", err);
+      
+      // If server save fails, we still apply local updates and queue it offline
+      await applyLocalAndCacheUpdates();
+
       await studentSyncManager.addOfflineChange(
         editingStudent ? "update" : "create",
         studentId,
         savedStudent
       );
       showToast(`Saved to offline cache. Synchronization pending.`, "warning");
+      setOpenDialog(false);
+      setEditingStudent(null);
       window.dispatchEvent(new CustomEvent("offline-queue-changed"));
     }
 
@@ -173,7 +189,7 @@ export const useProfileActions = (
       try {
         await studentsApi.delete(studentId);
         showToast(`Profile for "${name}" deleted successfully!`, "success");
-        fetchInitialData();
+        fetchInitialData(true);
       } catch (err) {
         console.error("Server delete failed, queueing offline delete:", err);
         await studentSyncManager.addOfflineChange("delete", studentId, { id: studentId } as Student);
@@ -229,7 +245,7 @@ export const useProfileActions = (
           }
         }
         showToast(`Deleted ${idsToDelete.length} profiles successfully!`, "success");
-        fetchInitialData();
+        fetchInitialData(true);
       } catch (error) {
         console.error("Mass delete server error, queueing offline:", error);
         for (const id of idsToDelete) {

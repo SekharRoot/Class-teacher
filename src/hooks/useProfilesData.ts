@@ -28,9 +28,9 @@ export function useProfilesData(
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
 
-  const fetchInitialData = useCallback(async () => {
+  const fetchInitialData = useCallback(async (forceRefreshStudents: boolean = false) => {
     try {
-      await globalFetchInitialData();
+      await globalFetchInitialData(forceRefreshStudents);
     } catch (err) {
       console.error("Failed to load initial profiles", err);
       showToast("Could not synchronize profiles. Displaying cached data.", "warning");

@@ -14,7 +14,7 @@ interface DataContextType {
   users: UserProfile[]; setUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
   loading: boolean; setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   offlineMode: boolean; setOfflineMode: React.Dispatch<React.SetStateAction<boolean>>;
-  fetchInitialData: () => Promise<void>; handleForceSync: () => Promise<void>;
+  fetchInitialData: (forceRefreshStudents?: boolean) => Promise<void>; handleForceSync: () => Promise<void>;
   
   // Offline sync queue and conflict properties:
   pendingChanges: OfflineStudentChange[];
@@ -309,14 +309,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [userProfile]);
 
-  const fetchInitialData = useCallback(async () => {
+  const fetchInitialData = useCallback(async (forceRefreshStudents: boolean = false) => {
     if (!currentUser || userProfile?.status !== "active") return;
 
     try {
       const cachedStudents = await cache.get("offline_students");
       const hasCache = !!(cachedStudents && cachedStudents.length > 0);
       
-      if (!hasCache) {
+      if (!hasCache || forceRefreshStudents) {
         setLoading(true);
       }
       
@@ -329,7 +329,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       await Promise.race([
         (async () => {
-          await fetchAndCacheAll();
+          await fetchAndCacheAll(forceRefreshStudents);
           setOfflineMode(false);
         })(),
         timeoutPromise,
