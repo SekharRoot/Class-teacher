@@ -67,7 +67,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         bottom: 0,
         left: 0,
         zIndex: 100,
-        pt: "7px",
+        pt: "22px",
+        pl: "1px",
       }}
     >
       {/* Sidebar Header / Toggle Button */}

@@ -21,6 +21,8 @@ interface ThemeContextType {
   toggleTheme: () => void;
   translucencyEnabled: boolean;
   toggleTranslucency: () => void;
+  zoomLevel: number;
+  setZoomLevel: (zoom: number) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType>({
@@ -28,6 +30,8 @@ export const ThemeContext = createContext<ThemeContextType>({
   toggleTheme: () => {},
   translucencyEnabled: false,
   toggleTranslucency: () => {},
+  zoomLevel: 100,
+  setZoomLevel: () => {},
 });
 
 export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -44,6 +48,30 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     const saved = localStorage.getItem("translucencyEnabled");
     return saved === "true";
   });
+
+  const [zoomLevel, setZoomLevelState] = useState<number>(() => {
+    const saved = localStorage.getItem("pageZoomLevel");
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 50 && parsed <= 200) {
+        return parsed;
+      }
+    }
+    return 100;
+  });
+
+  const setZoomLevel = (zoom: number) => {
+    const clamped = Math.max(50, Math.min(200, zoom));
+    setZoomLevelState(clamped);
+    localStorage.setItem("pageZoomLevel", clamped.toString());
+  };
+
+  useEffect(() => {
+    const docEl = document.documentElement;
+    if (docEl) {
+      (docEl.style as any).zoom = `${zoomLevel}%`;
+    }
+  }, [zoomLevel]);
 
   useEffect(() => {
     localStorage.setItem("themeMode", mode);
@@ -131,7 +159,7 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme, translucencyEnabled, toggleTranslucency }}>
+    <ThemeContext.Provider value={{ mode, toggleTheme, translucencyEnabled, toggleTranslucency, zoomLevel, setZoomLevel }}>
       <MuiThemeProvider theme={theme}>
         <CssBaseline />
         {translucencyEnabled && (

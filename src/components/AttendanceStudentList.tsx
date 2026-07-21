@@ -186,11 +186,6 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
     );
   }, [classStudents, searchQuery]);
 
-  const maxNameLength = useMemo(() => {
-    if (filteredStudents.length === 0) return 0;
-    return Math.max(...filteredStudents.map((s) => `${s.firstName} ${s.lastName}`.length));
-  }, [filteredStudents]);
-
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
 
@@ -198,7 +193,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
     setDisplayCount(12);
   }, [selectedClassId, students.length]);
 
-  const setLoadMoreRef = React.useCallback((node: HTMLElement | null) => {
+  const setLoadMoreRef = React.useCallback((node: HTMLTableRowElement | null) => {
     if (observerRef.current) {
       observerRef.current.disconnect();
     }
@@ -240,16 +235,16 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
           alignItems: "center",
           mb: 2,
           flexWrap: "wrap",
-          gap: 1.5,
+          gap: 2,
         }}
       >
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", width: { xs: "100%", sm: "auto" }, alignItems: "center" }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", flexGrow: 1 }}>
           <Button
             startIcon={<ChevronLeft />}
             onClick={onBack}
             variant="outlined"
             size="small"
-            sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem', flexGrow: { xs: 1, sm: 0 } }}
+            sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
           >
             Back
           </Button>
@@ -267,12 +262,12 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               color="primary"
               size="small"
               disabled={syncing}
-              sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem', flexGrow: { xs: 1, sm: 0 } }}
+              sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
             >
               {syncing ? "Sync..." : "Sync"}
             </Button>
           )}
-          <FormControl size="small" sx={{ minWidth: 120, flexGrow: { xs: 1, sm: 0 } }}>
+          <FormControl size="small" sx={{ minWidth: 120 }}>
             <Select
               value=""
               displayEmpty
@@ -327,7 +322,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             sx={{ 
-              width: { xs: '100%', sm: 140 },
+              minWidth: { xs: '100%', sm: 140 },
               "& .MuiOutlinedInput-root": { borderRadius: 2, height: 32, bgcolor: 'background.paper', fontSize: '0.75rem' }
             }}
             slotProps={{
@@ -343,143 +338,99 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         </Box>
 
         {!readOnly && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "nowrap", alignItems: 'center', width: { xs: "100%", sm: "auto" }, justifyContent: { xs: "space-between", sm: "flex-start" }, borderTop: { xs: "1px dashed", sm: "none" }, borderColor: "divider", pt: { xs: 1.5, sm: 0 } }}>
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "nowrap", alignItems: 'center' }}>
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ fontWeight: "bold", whiteSpace: 'nowrap', fontSize: '0.75rem' }}
+              sx={{ fontWeight: "bold", whiteSpace: 'nowrap', fontSize: '0.6rem' }}
             >
-              Bulk Actions:
+              Bulk:
             </Typography>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button
-                size="small"
-                variant="outlined"
-                color="success"
-                onClick={() => onMarkAll("present", classStudents)}
-                sx={{
-                  borderRadius: 2,
-                  fontSize: "0.75rem",
-                  textTransform: "none",
-                  py: 0.5,
-                  px: 2,
-                  minWidth: 80
-                }}
-              >
-                Mark All Present
-              </Button>
-              <Button
-                size="small"
-                variant="outlined"
-                color="error"
-                onClick={() => onMarkAll("absent", classStudents)}
-                sx={{
-                  borderRadius: 2,
-                  fontSize: "0.75rem",
-                  textTransform: "none",
-                  py: 0.5,
-                  px: 2,
-                  minWidth: 80
-                }}
-              >
-                Mark All Absent
-              </Button>
-            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              color="success"
+              onClick={() => onMarkAll("present", classStudents)}
+              sx={{
+                borderRadius: 2,
+                fontSize: "0.65rem",
+                textTransform: "none",
+                py: 0.25,
+                px: 1,
+                minWidth: 0
+              }}
+            >
+              Present
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              onClick={() => onMarkAll("absent", classStudents)}
+              sx={{
+                borderRadius: 2,
+                fontSize: "0.65rem",
+                textTransform: "none",
+                py: 0.25,
+                px: 1,
+                minWidth: 0
+              }}
+            >
+              Absent
+            </Button>
           </Box>
         )}
       </Box>
 
-      {/* Mobile Layout: Stack of cards (visible on xs, hidden on sm) */}
-      <Box sx={{ display: { xs: "block", sm: "none" }, mt: 2 }}>
-        {filteredStudents.length === 0 ? (
-          <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2.5 }}>
-            <Typography color="text.secondary" sx={{ fontSize: "0.85rem" }}>
-              {searchQuery ? "No matches found." : "No students found in this class."}
-            </Typography>
-          </Paper>
-        ) : (
-          <Box>
-            {filteredStudents.slice(0, displayCount).map((student, idx) => (
-              <AttendanceRow
-                key={student.id}
-                student={student}
-                status={
-                  typeof attendance[student.id] === 'object' && attendance[student.id] !== null 
-                    ? attendance[student.id].status 
-                    : attendance[student.id]
-                }
-                onMarkStatus={onMarkAttendance}
-                index={idx}
-                disabled={readOnly}
-                leavesList={leavesList}
-                dateString={dateString}
-                maxNameLength={maxNameLength}
-                isMobile={true}
-              />
-            ))}
-            {displayCount < filteredStudents.length && (
-              <Box ref={setLoadMoreRef} sx={{ display: "flex", justifyContent: "center", p: 2 }}>
-                <CircularProgress size={24} />
-              </Box>
-            )}
-          </Box>
-        )}
-      </Box>
-
-      {/* Desktop Layout: Table (hidden on xs, visible on sm) */}
-      <Box sx={{ display: { xs: "none", sm: "block" } }}>
-        <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2, overflowX: "auto" }}>
-          <Table size="small">
-            <TableHead sx={{ bgcolor: "action.hover" }}>
+      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+        <Table size="small">
+          <TableHead sx={{ bgcolor: "action.hover" }}>
+            <TableRow>
+              <TableCell sx={{ fontWeight: "bold" }}>Student</TableCell>
+              <TableCell align="center" sx={{ fontWeight: "bold", width: { xs: 150, sm: 220 } }}>
+                Attendance
+              </TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredStudents.length === 0 ? (
               <TableRow>
-                <TableCell sx={{ fontWeight: "bold" }}>Student</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", width: { xs: 150, sm: 220 } }}>
-                  Attendance
+                <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
+                  <Typography color="text.secondary">
+                    {searchQuery ? "No matches found." : "No students found in this class."}
+                  </Typography>
                 </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredStudents.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
-                    <Typography color="text.secondary">
-                      {searchQuery ? "No matches found." : "No students found in this class."}
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                <>
-                  {filteredStudents.slice(0, displayCount).map((student, idx) => (
-                    <AttendanceRow
-                      key={student.id}
-                      student={student}
-                      status={
-                        typeof attendance[student.id] === 'object' && attendance[student.id] !== null 
-                          ? attendance[student.id].status 
-                          : attendance[student.id]
-                      }
-                      onMarkStatus={onMarkAttendance}
-                      index={idx}
-                      disabled={readOnly}
-                      leavesList={leavesList}
-                      dateString={dateString}
-                      maxNameLength={maxNameLength}
-                      isMobile={false}
-                    />
-                  ))}
-                  {displayCount < filteredStudents.length && (
-                    <TableRow ref={setLoadMoreRef}>
-                      <TableCell colSpan={2} align="center" sx={{ p: 2 }}>
-                        <CircularProgress size={24} />
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
+            ) : (
+              <>
+                {filteredStudents.slice(0, displayCount).map((student, idx) => (
+                  <AttendanceRow
+                    key={student.id}
+                    student={student}
+                    status={
+                      typeof attendance[student.id] === 'object' && attendance[student.id] !== null 
+                        ? attendance[student.id].status 
+                        : attendance[student.id]
+                    }
+                    onMarkStatus={onMarkAttendance}
+                    index={idx}
+                    disabled={readOnly}
+                    leavesList={leavesList}
+                    dateString={dateString}
+                  />
+                ))}
+                {displayCount < filteredStudents.length && (
+                  <TableRow ref={setLoadMoreRef}>
+                    <TableCell colSpan={2} align="center" sx={{ p: 2 }}>
+                      <CircularProgress size={24} />
+                    </TableCell>
+                  </TableRow>
+                )}
+              </>
+            )}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };

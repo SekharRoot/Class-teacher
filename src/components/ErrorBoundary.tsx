@@ -28,6 +28,56 @@ export class ErrorBoundary extends Component<Props, State> {
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
     this.setState({ errorInfo });
+
+    // Check if the error is related to dynamic chunk loading failure
+    const errorMessage = (error.message || "").toLowerCase();
+    const errorStack = (error.stack || "").toLowerCase();
+    const isChunkError = 
+      errorMessage.includes("failed to fetch dynamically imported module") ||
+      errorMessage.includes("error loading dynamically imported module") ||
+      errorMessage.includes("dynamically imported module") ||
+      errorMessage.includes("chunkloaderror") ||
+      errorMessage.includes("loading chunk") ||
+      errorStack.includes("failed to fetch dynamically imported module") ||
+      errorStack.includes("error loading dynamically imported module") ||
+      errorStack.includes("dynamically imported module") ||
+      errorStack.includes("chunkloaderror") ||
+      errorStack.includes("loading chunk");
+
+    if (isChunkError) {
+      console.warn("Chunk load error detected in ErrorBoundary. Attempting automated page recovery...");
+      const lastReloadStr = localStorage.getItem("last_chunk_retry_time");
+      const now = Date.now();
+      // Only reload if we haven't reloaded in the last 10 seconds to avoid infinite reload loops
+      if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 10000) {
+        localStorage.setItem("last_chunk_retry_time", now.toString());
+        
+        // Purge cache and reload with cache buster
+        (async () => {
+          try {
+            if ("serviceWorker" in navigator) {
+              const registrations = await navigator.serviceWorker.getRegistrations();
+              for (const registration of registrations) {
+                await registration.unregister();
+              }
+            }
+            if ("caches" in window) {
+              const keys = await window.caches.keys();
+              for (const key of keys) {
+                await window.caches.delete(key);
+              }
+            }
+            sessionStorage.clear();
+            const url = new URL(window.location.href);
+            url.searchParams.set("t", Date.now().toString());
+            window.location.replace(url.toString());
+          } catch (e) {
+            console.error("Failed during ErrorBoundary force recovery:", e);
+            window.location.reload();
+          }
+        })();
+      }
+    }
   }
 
   private handleReset = async () => {

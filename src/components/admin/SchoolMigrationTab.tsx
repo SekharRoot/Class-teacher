@@ -539,7 +539,7 @@ export const SchoolMigrationTab: React.FC<SchoolMigrationTabProps> = ({
                   </Typography>
                 </Box>
               ) : (
-                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2, overflowX: "auto" }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
                   <Table size="small">
                     <TableHead sx={{ bgcolor: "action.hover" }}>
                       <TableRow>

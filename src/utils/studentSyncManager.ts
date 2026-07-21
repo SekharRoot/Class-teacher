@@ -170,7 +170,7 @@ export const studentSyncManager = {
             // Force save our version to server
             if (change.type === "update") {
               const resolvedData = { ...change.studentData, updatedAt: new Date().toISOString() };
-              await studentsApi.update(change.studentId, resolvedData, serverStudent?.classId || change.studentData.classId);
+              await studentsApi.update(change.studentId, resolvedData);
             } else if (change.type === "delete") {
               await studentsApi.delete(change.studentId);
             }
@@ -200,7 +200,7 @@ export const studentSyncManager = {
           // Default behavior when no conflict handler is present: Local Wins
           if (change.type === "update") {
             const resolvedData = { ...change.studentData, updatedAt: new Date().toISOString() };
-            await studentsApi.update(change.studentId, resolvedData, serverStudent?.classId || change.studentData.classId);
+            await studentsApi.update(change.studentId, resolvedData);
           } else if (change.type === "delete") {
             await studentsApi.delete(change.studentId);
           }
@@ -211,7 +211,7 @@ export const studentSyncManager = {
           if (change.type === "create") {
             await studentsApi.create(change.studentData);
           } else if (change.type === "update") {
-            await studentsApi.update(change.studentId, change.studentData, serverStudent?.classId || change.studentData.classId);
+            await studentsApi.update(change.studentId, change.studentData);
           } else if (change.type === "delete") {
             await studentsApi.delete(change.studentId);
           }
@@ -249,11 +249,24 @@ export const studentSyncManager = {
       const result = await studentsApi.syncProfiles(isFull ? null : lastSyncTime, isFull);
 
       if (isFull) {
-        // Complete override
-        await studentCache.clearAndSet(result.syncedStudents);
+        // Complete override, but MUST preserve students with pending offline changes
+        const offlineChanges = await this.getOfflineChanges();
+        const pendingIds = new Set(offlineChanges.map(c => c.studentId));
+        
+        const localStudents = await studentCache.getAll();
+        const studentsToPreserve = localStudents.filter(s => pendingIds.has(s.id));
+        
+        // Merge server students with our local pending ones
+        const mergedMap = new Map();
+        result.syncedStudents.forEach(s => mergedMap.set(s.id, s));
+        studentsToPreserve.forEach(s => mergedMap.set(s.id, s));
+        
+        const finalStudents = Array.from(mergedMap.values());
+        
+        await studentCache.clearAndSet(finalStudents);
 
         // Update cache (idb-keyval used by DataContext)
-        await cache.set("offline_students", result.syncedStudents);
+        await cache.set("offline_students", finalStudents);
 
         await this.setLastSyncTime(result.timestamp);
         await this.setNextScheduledRefresh();

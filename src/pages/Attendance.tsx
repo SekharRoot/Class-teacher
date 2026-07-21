@@ -78,6 +78,11 @@ export default function Attendance() {
   const [isSubstituteMode, setIsSubstituteMode] = React.useState<boolean>(false);
   const [isTakeAttendanceMode, setIsTakeAttendanceMode] = React.useState<boolean>(isTeacher);
 
+  const todayDateString = format(new Date(), "yyyy-MM-dd");
+  const isOldData = dateString < todayDateString;
+  const allowEditOld = localStorage.getItem("allow_edit_old_attendance") === "true";
+  const isLockedOldData = isOldData && !allowEditOld;
+
   useEffect(() => {
     if (userProfile) {
       // Teachers always default to take attendance mode
@@ -514,6 +519,12 @@ export default function Attendance() {
                   selectedClassId={selectedClassId}
                 />
               </Paper>
+              {isLockedOldData && (
+                <Alert severity="warning" sx={{ mb: 3, borderRadius: 3, fontWeight: "medium" }}>
+                  Historical Attendance Lock: Editing attendance data for past dates is locked by default. 
+                  To modify this, enable "Allow Editing Old Attendance Data" under Account Preferences in the Settings tab.
+                </Alert>
+              )}
             <AttendanceStudentList
                 students={students}
                 attendance={attendance}
@@ -522,7 +533,7 @@ export default function Attendance() {
                 onMarkAll={markAllStatus}
                 onMarkAttendance={markAttendance}
                 onSync={syncAttendance}
-                readOnly={!isTakeAttendanceMode || isPrincipal}
+                readOnly={!isTakeAttendanceMode || isPrincipal || isLockedOldData}
                 leavesList={leavesList}
                 dateString={dateString}
               />

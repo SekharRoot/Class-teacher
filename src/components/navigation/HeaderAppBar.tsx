@@ -65,6 +65,7 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               ml: { xs: 1, sm: 2 },
               fontWeight: "bold",
               fontSize: { xs: "0.68rem", sm: "0.75rem" },
+              "& .MuiChip-label": { width: "151px" },
             }}
           />
         );
@@ -78,6 +79,7 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               ml: { xs: 1, sm: 2 },
               fontWeight: "bold",
               fontSize: { xs: "0.68rem", sm: "0.75rem" },
+              "& .MuiChip-label": { width: "151px" },
             }}
           />
         );
@@ -91,6 +93,7 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               ml: { xs: 1, sm: 2 },
               fontWeight: "bold",
               fontSize: { xs: "0.68rem", sm: "0.75rem" },
+              "& .MuiChip-label": { width: "151px" },
             }}
           />
         );
@@ -104,6 +107,7 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               ml: { xs: 1, sm: 2 },
               fontWeight: "bold",
               fontSize: { xs: "0.68rem", sm: "0.75rem" },
+              "& .MuiChip-label": { width: "151px" },
             }}
           />
         );
@@ -117,6 +121,7 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               ml: { xs: 1, sm: 2 },
               fontWeight: "bold",
               fontSize: { xs: "0.68rem", sm: "0.75rem" },
+              "& .MuiChip-label": { width: "151px" },
             }}
           />
         );
@@ -223,43 +228,6 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
           </FormControl>
         )}
         <Box sx={{ flexGrow: 1 }} />
-        <Tooltip title="Synchronize Data with Server">
-          <span>
-            <IconButton
-              id="btn-sync-global"
-              color="primary"
-              onClick={handleSync}
-              disabled={syncing}
-              sx={{
-                mr: 1.5,
-                transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-                "&:hover": {
-                  transform: syncing ? "none" : "scale(1.1) rotate(30deg)",
-                  bgcolor: "rgba(25, 118, 210, 0.08)",
-                },
-                "&:active": {
-                  transform: syncing ? "none" : "scale(0.95)",
-                },
-              }}
-            >
-              <SyncIcon
-                sx={{
-                  fontSize: { xs: "1.25rem", sm: "1.5rem" },
-                  transition: "color 0.3s ease",
-                  animation: syncing ? "spin-sync-keyframes 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite" : "none",
-                  "@keyframes spin-sync-keyframes": {
-                    "0%": {
-                      transform: "rotate(0deg)",
-                    },
-                    "100%": {
-                      transform: "rotate(360deg)",
-                    },
-                  },
-                }}
-              />
-            </IconButton>
-          </span>
-        </Tooltip>
         {isDashboard && (
           <Tooltip title="Logout">
             <IconButton

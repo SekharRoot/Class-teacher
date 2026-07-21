@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useContext, ReactNode, useCallback, useRef } from "react";
+import { createContext, useState, useEffect, useContext, ReactNode, useCallback } from "react";
 import { Student, ClassItem, LeaveRequest, UserProfile, OfflineStudentChange, ConflictItem } from "../types";
 import { classesApi, studentsApi, leavesApi } from "../api";
 import { usersApi } from "../api/users";
@@ -14,7 +14,7 @@ interface DataContextType {
   users: UserProfile[]; setUsers: React.Dispatch<React.SetStateAction<UserProfile[]>>;
   loading: boolean; setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   offlineMode: boolean; setOfflineMode: React.Dispatch<React.SetStateAction<boolean>>;
-  fetchInitialData: (forceRefreshStudents?: boolean) => Promise<void>; handleForceSync: () => Promise<void>;
+  fetchInitialData: () => Promise<void>; handleForceSync: () => Promise<void>;
   
   // Offline sync queue and conflict properties:
   pendingChanges: OfflineStudentChange[];
@@ -39,7 +39,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [pendingChanges, setPendingChanges] = useState<OfflineStudentChange[]>([]);
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error" | "success">("idle");
-  const syncPromiseRef = useRef<Promise<void> | null>(null);
 
   const refreshPendingChanges = useCallback(async () => {
     const list = await studentSyncManager.getOfflineChanges();
@@ -47,44 +46,34 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const syncOfflineQueue = useCallback(async () => {
-    if (syncPromiseRef.current) {
-      return syncPromiseRef.current;
-    }
+    if (syncStatus === "syncing") return;
+    setSyncStatus("syncing");
 
-    const promise = (async () => {
-      setSyncStatus("syncing");
+    const tempConflicts: ConflictItem[] = [];
 
-      const tempConflicts: ConflictItem[] = [];
+    const onConflictDetected = async (conflict: ConflictItem): Promise<"local" | "server" | "skip"> => {
+      tempConflicts.push(conflict);
+      setConflicts([...tempConflicts]);
+      return "skip"; // Skip resolving immediately so the user can resolve via the UI
+    };
 
-      const onConflictDetected = async (conflict: ConflictItem): Promise<"local" | "server" | "skip"> => {
-        tempConflicts.push(conflict);
-        setConflicts([...tempConflicts]);
-        return "skip"; // Skip resolving immediately so the user can resolve via the UI
-      };
+    try {
+      const res = await studentSyncManager.syncOfflineChanges(onConflictDetected);
+      await refreshPendingChanges();
 
-      try {
-        const res = await studentSyncManager.syncOfflineChanges(onConflictDetected);
-        await refreshPendingChanges();
-
-        if (res.errors.length > 0) {
-          setSyncStatus("error");
-        } else if (tempConflicts.length > 0) {
-          setSyncStatus("idle"); // user attention required for conflicts
-        } else {
-          setSyncStatus("success");
-          setTimeout(() => setSyncStatus("idle"), 3000);
-        }
-      } catch (err) {
-        console.error("Queue sync error:", err);
+      if (res.errors.length > 0) {
         setSyncStatus("error");
-      } finally {
-        syncPromiseRef.current = null;
+      } else if (tempConflicts.length > 0) {
+        setSyncStatus("idle"); // user attention required for conflicts
+      } else {
+        setSyncStatus("success");
+        setTimeout(() => setSyncStatus("idle"), 3000);
       }
-    })();
-
-    syncPromiseRef.current = promise;
-    return promise;
-  }, [refreshPendingChanges]);
+    } catch (err) {
+      console.error("Queue sync error:", err);
+      setSyncStatus("error");
+    }
+  }, [syncStatus, refreshPendingChanges]);
 
   const resolveConflict = useCallback(async (conflictId: string, resolution: "local" | "server") => {
     const conflict = conflicts.find((c) => c.id === conflictId);
@@ -172,23 +161,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }, [syncOfflineQueue]);
 
   const fetchAndCacheAll = useCallback(async (forceRefreshStudents: boolean = false) => {
-    // 1. If there is an active offline sync, wait for it
-    if (syncPromiseRef.current) {
-      console.log("Waiting for active offline sync before fetching...");
-      await syncPromiseRef.current;
-    }
-
-    // 2. If there are pending changes in the offline queue and we are online, sync them first!
-    try {
-      const pending = await studentSyncManager.getOfflineChanges();
-      if (pending.length > 0 && typeof navigator !== "undefined" && navigator.onLine) {
-        console.log("Pending offline changes detected. Syncing them before fetching fresh state...");
-        await syncOfflineQueue();
-      }
-    } catch (syncErr) {
-      console.error("Failed to pre-sync offline queue before fetch:", syncErr);
-    }
-
     const canAccessLeaves =
       userProfile?.role === "admin" ||
       userProfile?.role === "owner" ||
@@ -225,81 +197,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const hasCachedStudents = !!(cachedStudents && cachedStudents.length > 0);
 
     if (forceRefreshStudents || !hasCachedStudents) {
+      // Method 1: If forcing refresh and we already have cached students, perform an incremental sync first
+      if (forceRefreshStudents && hasCachedStudents) {
+        try {
+          console.log("Applying Method 1: Performing timestamp-based incremental sync for students...");
+          const syncResult = await studentSyncManager.performSync(false);
+          if (syncResult.success) {
+            const freshStudents = await cache.get("offline_students");
+            if (freshStudents) {
+              setStudents(freshStudents);
+              console.log(`Incremental sync completed successfully. Synced: ${syncResult.syncedCount}, Deleted: ${syncResult.deletedCount}`);
+              return;
+            }
+          }
+        } catch (syncErr) {
+          console.warn("Incremental sync failed, falling back to full parallel chunk sync:", syncErr);
+        }
+      }
+
       try {
         // Fetch students in highly efficient parallel class-by-class chunks
         const targetClasses = classesList || [];
 
-        let studentsList = await studentsApi.getAllInParallelChunks(targetClasses, true);
-
-        // Apply any pending offline changes to the fresh server list so local updates/creations are not lost
-        const pendingChanges = await studentSyncManager.getOfflineChanges();
-        if (pendingChanges.length > 0) {
-          console.log(`Merging ${pendingChanges.length} pending offline changes into the fresh server student list...`);
-          const studentMap = new Map<string, Student>();
-          studentsList.forEach(s => studentMap.set(s.id, s));
-
-          for (const change of pendingChanges) {
-            if (change.type === "create") {
-              studentMap.set(change.studentId, change.studentData);
-            } else if (change.type === "update") {
-              const existing = studentMap.get(change.studentId);
-              if (existing) {
-                studentMap.set(change.studentId, { ...existing, ...change.studentData });
-              } else {
-                studentMap.set(change.studentId, change.studentData);
-              }
-            } else if (change.type === "delete") {
-              studentMap.delete(change.studentId);
-            }
-          }
-          studentsList = Array.from(studentMap.values());
-          
-          // Sort alphabetically by first name and last name
-          studentsList.sort((a, b) => {
-            const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-            const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-            return nameA.localeCompare(nameB);
-          });
-        }
-
-        setStudents(studentsList || []);
-        await cache.set("offline_students", studentsList || []);
+        const studentsList = await studentsApi.getAllInParallelChunks(targetClasses, true);
+        
+        // Preserve local students with pending offline changes
+        const offlineChanges = await studentSyncManager.getOfflineChanges();
+        const pendingIds = new Set(offlineChanges.map(c => c.studentId));
+        
+        const currentLocalStudents = await studentCache.getAll();
+        const studentsToPreserve = currentLocalStudents.filter(s => pendingIds.has(s.id));
+        
+        // Merge server students with our local pending ones
+        const mergedMap = new Map();
+        studentsList.forEach(s => mergedMap.set(s.id, s));
+        studentsToPreserve.forEach(s => mergedMap.set(s.id, s));
+        
+        const finalStudents = Array.from(mergedMap.values()) as Student[];
+        
+        setStudents(finalStudents);
+        await cache.set("offline_students", finalStudents);
+        // Also update the studentCache for consistency
+        await studentCache.clearAndSet(finalStudents);
       } catch (err) {
         console.error("Progressive parallel chunk student download failed, trying standard:", err);
-        let studentsList = await studentsApi.getAll(true);
+        const studentsList = await studentsApi.getAll(true);
+        
+        // Preserve local students even in fallback
+        const offlineChanges = await studentSyncManager.getOfflineChanges();
+        const pendingIds = new Set(offlineChanges.map(c => c.studentId));
+        const currentLocalStudents = await studentCache.getAll();
+        const studentsToPreserve = currentLocalStudents.filter(s => pendingIds.has(s.id));
+        
+        const mergedMap = new Map();
+        studentsList.forEach(s => mergedMap.set(s.id, s));
+        studentsToPreserve.forEach(s => mergedMap.set(s.id, s));
+        const finalStudents = Array.from(mergedMap.values()) as Student[];
 
-        // Apply pending offline changes to the standard server list as well
-        const pendingChanges = await studentSyncManager.getOfflineChanges();
-        if (pendingChanges.length > 0) {
-          console.log(`Merging ${pendingChanges.length} pending offline changes into the standard server list...`);
-          const studentMap = new Map<string, Student>();
-          studentsList.forEach(s => studentMap.set(s.id, s));
-
-          for (const change of pendingChanges) {
-            if (change.type === "create") {
-              studentMap.set(change.studentId, change.studentData);
-            } else if (change.type === "update") {
-              const existing = studentMap.get(change.studentId);
-              if (existing) {
-                studentMap.set(change.studentId, { ...existing, ...change.studentData });
-              } else {
-                studentMap.set(change.studentId, change.studentData);
-              }
-            } else if (change.type === "delete") {
-              studentMap.delete(change.studentId);
-            }
-          }
-          studentsList = Array.from(studentMap.values());
-          
-          studentsList.sort((a, b) => {
-            const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-            const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-            return nameA.localeCompare(nameB);
-          });
-        }
-
-        setStudents(studentsList || []);
-        await cache.set("offline_students", studentsList || []);
+        setStudents(finalStudents);
+        await cache.set("offline_students", finalStudents);
+        await studentCache.clearAndSet(finalStudents);
       }
     } else {
       console.log("Skipping automatic student profiles re-download as they are already cached offline.");
@@ -309,14 +266,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [userProfile]);
 
-  const fetchInitialData = useCallback(async (forceRefreshStudents: boolean = false) => {
+  const fetchInitialData = useCallback(async () => {
     if (!currentUser || userProfile?.status !== "active") return;
 
     try {
       const cachedStudents = await cache.get("offline_students");
       const hasCache = !!(cachedStudents && cachedStudents.length > 0);
       
-      if (!hasCache || forceRefreshStudents) {
+      if (!hasCache) {
         setLoading(true);
       }
       
@@ -329,7 +286,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       await Promise.race([
         (async () => {
-          await fetchAndCacheAll(forceRefreshStudents);
+          await fetchAndCacheAll();
           setOfflineMode(false);
         })(),
         timeoutPromise,
@@ -385,6 +342,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("last_global_sync", now.toString());
         } catch (err) {
           console.error("Background initial load sync failed:", err);
+        }
+      }
+
+      // 2.5 Auto-sync pending offline changes on load if online
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        try {
+          await syncOfflineQueue();
+        } catch (queueErr) {
+          console.error("Startup offline queue sync failed:", queueErr);
         }
       }
 

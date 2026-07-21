@@ -232,10 +232,17 @@ export function useAttendanceData() {
     fetchAttendanceForDate(dateString);
   }, [dateString]);
 
-  // 6. Recalculate history whenever selected class, student database, attendance, or historyLimit updates
+  // 6. Recalculate history whenever selected class, student database, historyLimit, activeTab, or dateString updates (but not on live attendance changes)
+  useEffect(() => {
+    if (activeTab === 1) {
+      fetchHistory();
+    }
+  }, [selectedClassId, students, dateString, historyLimit, activeTab]);
+
+  // Also fetch history on dateString change to keep track of date-wise history switch
   useEffect(() => {
     fetchHistory();
-  }, [selectedClassId, students, attendance, dateString, historyLimit]);
+  }, [dateString]);
 
   // Reset history limit when switching class
   useEffect(() => {

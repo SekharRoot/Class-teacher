@@ -25,6 +25,7 @@ import {
   Snackbar,
   Stack,
   IconButton,
+  Slider,
 } from "@mui/material";
 import {
   Fingerprint,
@@ -35,6 +36,9 @@ import {
   Close,
   Warning,
   Error as ErrorIcon,
+  ZoomIn,
+  ZoomOut,
+  RestartAlt,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { ThemeContext } from "../contexts/ThemeContext";
@@ -52,7 +56,17 @@ export default function Settings() {
   const { fetchInitialData, students, setStudents, classes, offlineMode } = useData();
   const { isReadOnly } = useHierarchyScope();
   const [notifications, setNotifications] = useState(true);
-  const { mode, toggleTheme } = useContext(ThemeContext);
+  const { mode, toggleTheme, zoomLevel, setZoomLevel } = useContext(ThemeContext);
+  
+  const [allowEditOldAttendance, setAllowEditOldAttendance] = useState(() => {
+    return localStorage.getItem("allow_edit_old_attendance") === "true";
+  });
+
+  const handleToggleEditOldAttendance = (val: boolean) => {
+    setAllowEditOldAttendance(val);
+    localStorage.setItem("allow_edit_old_attendance", val ? "true" : "false");
+    showToast(`Old attendance editing is now ${val ? "enabled" : "disabled"}.`, "info");
+  };
   
   // Data integrity loading
   const [loading, setLoading] = useState(false);
@@ -313,6 +327,96 @@ export default function Settings() {
                 control={<Switch checked={darkMode} onChange={toggleTheme} />}
                 label="Dark Theme"
               />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={allowEditOldAttendance}
+                    onChange={(e) => handleToggleEditOldAttendance(e.target.checked)}
+                  />
+                }
+                label="Allow Editing Old Attendance Data"
+              />
+            </Box>
+
+            <Divider sx={{ my: 2 }} />
+
+            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 0.5 }}>
+              Display Zoom
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+              Adjust the scale of the user interface. Changes are saved automatically in persistent storage.
+            </Typography>
+            
+            <Box sx={{ display: "flex", alignItems: "center", gap: 2, mb: 1 }}>
+              <IconButton 
+                size="small" 
+                onClick={() => setZoomLevel(zoomLevel - 10)} 
+                disabled={zoomLevel <= 50}
+                title="Zoom Out"
+              >
+                <ZoomOut />
+              </IconButton>
+              
+              <Slider
+                value={zoomLevel}
+                min={50}
+                max={200}
+                step={10}
+                onChange={(_, newValue) => setZoomLevel(newValue as number)}
+                valueLabelDisplay="auto"
+                valueLabelFormat={(value) => `${value}%`}
+                sx={{ flexGrow: 1 }}
+              />
+              
+              <IconButton 
+                size="small" 
+                onClick={() => setZoomLevel(zoomLevel + 10)} 
+                disabled={zoomLevel >= 200}
+                title="Zoom In"
+              >
+                <ZoomIn />
+              </IconButton>
+              
+              <Typography variant="body2" sx={{ minWidth: 45, textAlign: "right", fontWeight: "bold" }}>
+                {zoomLevel}%
+              </Typography>
+            </Box>
+            
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center", mt: 1.5 }}>
+              {[80, 90, 100, 110, 125, 150].map((preset) => (
+                <Button
+                  key={preset}
+                  variant={zoomLevel === preset ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setZoomLevel(preset)}
+                  sx={{ 
+                    borderRadius: 3, 
+                    textTransform: "none", 
+                    py: 0.25, 
+                    px: 1.25,
+                    minWidth: "unset",
+                    fontSize: "0.75rem",
+                  }}
+                >
+                  {preset}%
+                </Button>
+              ))}
+              {zoomLevel !== 100 && (
+                <Button
+                  variant="text"
+                  color="secondary"
+                  size="small"
+                  onClick={() => setZoomLevel(100)}
+                  startIcon={<RestartAlt fontSize="small" />}
+                  sx={{ 
+                    textTransform: "none", 
+                    fontSize: "0.75rem",
+                    ml: "auto"
+                  }}
+                >
+                  Reset
+                </Button>
+              )}
             </Box>
           </Paper>
         </Grid>
@@ -459,7 +563,7 @@ export default function Settings() {
               />
             </Stack>
           </Box>
-          <TableContainer sx={{ maxHeight: 400, overflowX: "auto" }}>
+          <TableContainer sx={{ maxHeight: 400 }}>
             <Table stickyHeader size="small">
               <TableHead>
                 <TableRow>

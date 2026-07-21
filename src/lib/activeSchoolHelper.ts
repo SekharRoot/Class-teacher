@@ -1,15 +1,14 @@
 let currentActiveSchoolId = "default_school";
 
 export function getActiveSchoolId(): string {
-  // Try reading from localStorage first
-  const stored = localStorage.getItem("activeSchoolId");
+  // Try reading from multiple common keys for compatibility
+  const stored = localStorage.getItem("activeSchoolId") || 
+                 localStorage.getItem("active_school_id") ||
+                 localStorage.getItem("adminSelectedSchoolId") ||
+                 localStorage.getItem("loginSelectedSchoolId");
+                 
   if (stored) {
     currentActiveSchoolId = stored;
-  } else {
-    const adminStored = localStorage.getItem("adminSelectedSchoolId");
-    if (adminStored) {
-      currentActiveSchoolId = adminStored;
-    }
   }
   return currentActiveSchoolId;
 }

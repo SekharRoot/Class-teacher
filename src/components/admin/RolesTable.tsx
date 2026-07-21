@@ -40,8 +40,8 @@ export function RolesTable({
   onTransferSchool,
 }: RolesTableProps) {
   return (
-    <Box sx={{ p: { xs: 1, sm: 3 } }}>
-      <TableContainer sx={{ overflowX: "auto" }}>
+    <Box sx={{ p: 3 }}>
+      <TableContainer>
         <Table>
           <TableHead>
             <TableRow>

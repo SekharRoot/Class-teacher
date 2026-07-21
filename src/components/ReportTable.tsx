@@ -20,7 +20,7 @@ export const ReportTable: React.FC<ReportTableProps> = ({ entries }) => {
   return (
     <TableContainer
       component={Paper}
-      sx={{ borderRadius: 3, overflowX: "auto", boxShadow: 3 }}
+      sx={{ borderRadius: 3, overflow: "hidden", boxShadow: 3 }}
     >
       <Table stickyHeader>
         <TableHead>

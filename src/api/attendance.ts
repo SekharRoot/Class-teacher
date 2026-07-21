@@ -10,6 +10,7 @@ import {
   limit,
   where,
   documentId,
+  collectionGroup,
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
@@ -187,35 +188,66 @@ export const attendanceApi = {
     try {
       const activeSchoolId = getActiveSchoolId();
 
-      // 1. Fetch existing records for this date and merge with the newly saved partial records.
-      // This ensures the summary is complete and doesn't get "wiped" when different teachers save different classes.
-      const existingRecords = await this.getByDate(dateString);
-      const records = { ...existingRecords, ...partialRecords };
+      // 1. Fetch classes & students using local/cached copies to avoid full server downloads
+      const classesList = await classesApi.getAll(false);
+      const studentsList = await studentsApi.getAll(false);
 
-      // 2. Fetch classes
-      const classesList = await classesApi.getAll(true);
+      const studentToClass: Record<string, string> = {};
+      studentsList.forEach(s => {
+        studentToClass[s.id] = s.classId || "unassigned";
+      });
 
-      // 3. Fetch all students (including inactive ones to see if they have logs on this date)
-      const studentsList = await studentsApi.getAll(true);
+      // 2. Identify which classes have modified records in partialRecords
+      const classIdToRecords: Record<string, Record<string, any>> = {};
+      Object.entries(partialRecords).forEach(([studentId, val]) => {
+        let classId = val && typeof val === "object" ? (val as any).classId : null;
+        if (!classId) {
+          classId = studentToClass[studentId] || "unassigned";
+        }
+        if (!classIdToRecords[classId]) {
+          classIdToRecords[classId] = {};
+        }
+        classIdToRecords[classId][studentId] = val;
+      });
 
-      // 4. Compute stats
-      let todayPresent = 0;
-      let todayTotalMarked = 0;
-      let todayAbsent = 0;
-      let todayLeave = 0;
+      // Helper to resolve boarder type
+      const getBoarderType = (studentId: string, val: any) => {
+        const s = studentsList.find((st) => st.id === studentId);
+        if (s) return s.boarderType;
+        if (val && typeof val === "object" && (val as any).boarderType) {
+          return (val as any).boarderType;
+        }
+        return "Day Scholar";
+      };
 
-      const classStats = classesList.map((cls) => {
+      const newlyComputedClassStats: Record<string, any> = {};
+
+      // 3. For each updated class, compute class-level stats and save them to the attendance_summary subcollection
+      const classSummaryPromises = Object.entries(classIdToRecords).map(async ([cId, classRecords]) => {
+        const cls = classesList.find((c) => c.id === cId) || {
+          id: cId,
+          classStandard: "Class",
+          section: cId === "unassigned" ? "Unassigned" : cId,
+          board: "General"
+        };
+
+        // Fetch existing records for this specific class to merge, taking only 1 read
+        const classRef = doc(db, "schools", activeSchoolId, "classes", cId, "attendance", dateString);
+        const classSnap = await getDoc(classRef);
+        const existingClassRecords = classSnap.exists() ? classSnap.data() || {} : {};
+        const mergedClassRecords = { ...existingClassRecords, ...classRecords };
+
         // Find all active students in this class
-        const activeClassStudents = studentsList.filter((s) => s.classId === cls.id && s.isActive !== false);
-        
-        // Also find any students (active or inactive) who have actual attendance records on this date for this class
+        const activeClassStudents = studentsList.filter((s) => s.classId === cId && s.isActive !== false);
+
+        // Also find any students who have actual attendance records on this date for this class
         const loggedStudentIds = new Set<string>();
-        Object.entries(records).forEach(([studentId, val]) => {
+        Object.entries(mergedClassRecords).forEach(([studentId, val]) => {
           const isObj = typeof val === "object" && val !== null;
           const recordClassId = isObj ? (val as any).classId : null;
           if (
-            recordClassId === cls.id ||
-            (!recordClassId && studentsList.find((s) => s.id === studentId)?.classId === cls.id)
+            recordClassId === cId ||
+            (!recordClassId && studentToClass[studentId] === cId)
           ) {
             loggedStudentIds.add(studentId);
           }
@@ -226,36 +258,23 @@ export const attendanceApi = {
         const allUniqueStudentIds = Array.from(new Set([...Array.from(loggedStudentIds), ...Array.from(activeStudentIds)]));
 
         const total = allUniqueStudentIds.length;
-        
-        // Helper to resolve boarder type
-        const getBoarderType = (studentId: string, val: any) => {
-          const s = studentsList.find((st) => st.id === studentId);
-          if (s) return s.boarderType;
-          if (val && typeof val === "object" && (val as any).boarderType) {
-            return (val as any).boarderType;
-          }
-          return "Day Scholar";
-        };
-
-        const totalDB = allUniqueStudentIds.filter(id => getBoarderType(id, records[id]) === "Day Boarder").length;
-        const totalDS = allUniqueStudentIds.filter(id => getBoarderType(id, records[id]) === "Day Scholar").length;
-        const totalBoarder = allUniqueStudentIds.filter(id => getBoarderType(id, records[id]) === "Full Boarder").length;
+        const totalDB = allUniqueStudentIds.filter(id => getBoarderType(id, mergedClassRecords[id]) === "Day Boarder").length;
+        const totalDS = allUniqueStudentIds.filter(id => getBoarderType(id, mergedClassRecords[id]) === "Day Scholar").length;
+        const totalBoarder = allUniqueStudentIds.filter(id => getBoarderType(id, mergedClassRecords[id]) === "Full Boarder").length;
 
         let present = 0;
         let presentDB = 0;
         let presentDS = 0;
         let presentBoarder = 0;
-
         let absent = 0;
         let absentDB = 0;
         let absentDS = 0;
         let absentBoarder = 0;
-
         let leave = 0;
         let marked = 0;
 
         allUniqueStudentIds.forEach((studentId) => {
-          const val = records[studentId];
+          const val = mergedClassRecords[studentId];
           let status = "";
           if (val) {
             if (typeof val === "object" && val !== null) {
@@ -269,32 +288,27 @@ export const attendanceApi = {
 
           if (status) {
             marked++;
-            todayTotalMarked++;
             const lowerStatus = status.toLowerCase();
             if (lowerStatus === "present") {
               present++;
-              todayPresent++;
               if (boarderType === "Day Boarder") presentDB++;
               else if (boarderType === "Day Scholar") presentDS++;
               else if (boarderType === "Full Boarder") presentBoarder++;
             } else if (lowerStatus === "absent") {
               absent++;
-              todayAbsent++;
               if (boarderType === "Day Boarder") absentDB++;
               else if (boarderType === "Day Scholar") absentDS++;
               else if (boarderType === "Full Boarder") absentBoarder++;
             } else if (lowerStatus === "leave") {
               leave++;
-              todayLeave++;
             }
           }
         });
 
         const rate = marked > 0 ? Math.round((present / marked) * 100) : null;
 
-        // Unified Schema containing keys expected by BOTH OversightDashboard/Worker AND DailyStatusReport
-        return {
-          classId: cls.id,
+        const classStat = {
+          classId: cId,
           className: `${cls.classStandard} ${cls.section} (${cls.board})`,
           totalStudents: total,
           total: total,
@@ -315,7 +329,85 @@ export const attendanceApi = {
           leaveCount: leave,
           markedCount: marked,
           attendanceRate: rate,
+          date: dateString,
+          schoolId: activeSchoolId,
+          updatedAt: new Date().toISOString()
         };
+
+        // Write this class-level summary document
+        const summaryDocRef = doc(db, "schools", activeSchoolId, "classes", cId, "attendance_summary", dateString);
+        await setDoc(summaryDocRef, classStat, { merge: true });
+
+        newlyComputedClassStats[cId] = classStat;
+      });
+
+      await Promise.all(classSummaryPromises);
+
+      // 4. Query all class summaries for this dateString using highly optimized collectionGroup query
+      const q = query(
+        collectionGroup(db, "attendance_summary"),
+        where("date", "==", dateString),
+        where("schoolId", "==", activeSchoolId)
+      );
+      const snap = await getDocs(q);
+
+      // 5. Merge existing class summaries with the newly computed ones
+      const finalClassStatsMap: Record<string, any> = {};
+      
+      // Seed with all classes from the classes list to ensure every class has an entry
+      classesList.forEach((cls) => {
+        finalClassStatsMap[cls.id] = {
+          classId: cls.id,
+          className: `${cls.classStandard} ${cls.section} (${cls.board})`,
+          totalStudents: studentsList.filter(s => s.classId === cls.id && s.isActive !== false).length,
+          total: studentsList.filter(s => s.classId === cls.id && s.isActive !== false).length,
+          totalDB: studentsList.filter(s => s.classId === cls.id && s.isActive !== false && s.boarderType === "Day Boarder").length,
+          totalDS: studentsList.filter(s => s.classId === cls.id && s.isActive !== false && s.boarderType === "Day Scholar").length,
+          totalBoarder: studentsList.filter(s => s.classId === cls.id && s.isActive !== false && s.boarderType === "Full Boarder").length,
+          present: 0,
+          presentCount: 0,
+          presentDB: 0,
+          presentDS: 0,
+          presentBoarder: 0,
+          absent: 0,
+          absentCount: 0,
+          absentDB: 0,
+          absentDS: 0,
+          absentBoarder: 0,
+          leave: 0,
+          leaveCount: 0,
+          markedCount: 0,
+          attendanceRate: null,
+          date: dateString,
+          schoolId: activeSchoolId
+        };
+      });
+
+      snap.forEach(docSnap => {
+        const data = docSnap.data();
+        if (data.classId) {
+          finalClassStatsMap[data.classId] = data;
+        }
+      });
+
+      // Override with newly computed class stats to handle latency/updates
+      Object.entries(newlyComputedClassStats).forEach(([cId, stat]) => {
+        finalClassStatsMap[cId] = stat;
+      });
+
+      const finalClassStats = Object.values(finalClassStatsMap);
+
+      // 6. Compute overall school-wide statistics
+      let todayPresent = 0;
+      let todayTotalMarked = 0;
+      let todayAbsent = 0;
+      let todayLeave = 0;
+
+      finalClassStats.forEach((cs: any) => {
+        todayPresent += cs.presentCount || 0;
+        todayTotalMarked += cs.markedCount || 0;
+        todayAbsent += cs.absentCount || 0;
+        todayLeave += cs.leaveCount || 0;
       });
 
       const todayAttendanceRate =
@@ -324,10 +416,11 @@ export const attendanceApi = {
           : null;
 
       const classesCount = classesList.length;
-      const studentsCount = classStats.reduce((sum, cs) => sum + cs.totalStudents, 0);
+      const studentsCount = finalClassStats.reduce((sum: number, cs: any) => sum + (cs.totalStudents || 0), 0);
 
-      const summaryDocRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
-      await setDoc(summaryDocRef, {
+      // 7. Save the final aggregated summary document to schools/{schoolId}/attendance_summaries/{dateString}
+      const schoolSummaryDocRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
+      await setDoc(schoolSummaryDocRef, {
         date: dateString,
         schoolId: activeSchoolId,
         stats: {
@@ -339,7 +432,7 @@ export const attendanceApi = {
           todayAbsentCount: todayAbsent,
           todayLeaveCount: todayLeave,
         },
-        classStats,
+        classStats: finalClassStats,
         updatedAt: new Date().toISOString(),
       });
     } catch (err) {
@@ -422,6 +515,8 @@ export const attendanceApi = {
       const promises = classIds.map(async (cId) => {
         const ref = doc(db, "schools", activeSchoolId, "classes", cId, "attendance", dateString);
         await deleteDoc(ref);
+        const classSummaryRef = doc(db, "schools", activeSchoolId, "classes", cId, "attendance_summary", dateString);
+        await deleteDoc(classSummaryRef);
       });
 
       const summaryRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);

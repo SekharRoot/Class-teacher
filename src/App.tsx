@@ -12,24 +12,66 @@ import { Box, CircularProgress, Typography } from "@mui/material";
 
 import AppShell from "./layouts/AppShell";
 
+const forceRecovery = async (): Promise<void> => {
+  try {
+    // 1. Unregister any service workers
+    if ("serviceWorker" in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        await registration.unregister();
+      }
+    }
+    
+    // 2. Clear all cache storage (Vite PWA / Workbox cache)
+    if ("caches" in window) {
+      const keys = await window.caches.keys();
+      for (const key of keys) {
+        await window.caches.delete(key);
+      }
+    }
+    
+    // 3. Clear sessionStorage
+    sessionStorage.clear();
+    
+    // 4. Force reload the page bypassing the cache with a cache buster parameter
+    const now = Date.now();
+    const url = new URL(window.location.href);
+    url.searchParams.set("t", now.toString());
+    window.location.replace(url.toString());
+  } catch (e) {
+    console.error("Failed during forceRecovery:", e);
+    // Fallback: simple reload
+    window.location.reload();
+  }
+};
+
 const lazyWithRetry = <T extends React.ComponentType<any>>(
   componentImport: () => Promise<{ default: T }>
 ): React.LazyExoticComponent<T> => {
   return React.lazy(async () => {
-    const hasRetriedKey = "chunk_retry_occurred";
-    try {
-      const component = await componentImport();
-      localStorage.removeItem(hasRetriedKey);
-      return component;
-    } catch (error) {
-      console.error("Chunk loading failed. Attempting to reload page to get latest assets...", error);
-      const hasRetried = localStorage.getItem(hasRetriedKey);
-      if (!hasRetried) {
-        localStorage.setItem(hasRetriedKey, "true");
-        window.location.reload();
+    const retries = 2;
+    for (let i = 0; i <= retries; i++) {
+      try {
+        const component = await componentImport();
+        return component;
+      } catch (error) {
+        if (i === retries) {
+          console.error("Chunk loading failed after retries. Attempting page recovery...", error);
+          
+          // Use a timestamp-based reload gate to avoid infinite loops, but allow future retries
+          const lastReloadStr = localStorage.getItem("last_chunk_retry_time");
+          const now = Date.now();
+          if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 10000) {
+            localStorage.setItem("last_chunk_retry_time", now.toString());
+            await forceRecovery();
+          }
+          throw error;
+        }
+        // Wait 500ms before retrying
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      throw error;
     }
+    return componentImport();
   });
 };
 

@@ -394,7 +394,19 @@ export default function Profiles() {
                   setEditingStudent(null);
                   setOpenDialog(true);
                 }}
-                sx={{ textTransform: "none", px: 3, py: 1, borderRadius: 2 }}
+                sx={{
+                  textTransform: "none",
+                  px: 3.5,
+                  py: 1,
+                  borderRadius: "10px",
+                  fontWeight: 600,
+                  boxShadow: "0 4px 14px 0 rgba(25, 118, 210, 0.3)",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    transform: "translateY(-1px)",
+                    boxShadow: "0 6px 20px 0 rgba(25, 118, 210, 0.4)",
+                  },
+                }}
               >
                 Add Student
               </Button>

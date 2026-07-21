@@ -10,7 +10,11 @@ async function startServer() {
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
-  const PORT = 3000;
+  // PORT value (3000) is hardcoded by the workspace infrastructure for development.
+  // In production (Cloud Run), the server must listen on process.env.PORT to pass health checks.
+  const PORT = process.env.K_SERVICE && process.env.PORT
+    ? parseInt(process.env.PORT, 10)
+    : 3000;
 
   console.log(
     `Starting server in ${
