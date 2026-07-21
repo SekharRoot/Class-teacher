@@ -170,7 +170,7 @@ export const studentSyncManager = {
             // Force save our version to server
             if (change.type === "update") {
               const resolvedData = { ...change.studentData, updatedAt: new Date().toISOString() };
-              await studentsApi.update(change.studentId, resolvedData);
+              await studentsApi.update(change.studentId, resolvedData, serverStudent?.classId || change.studentData.classId);
             } else if (change.type === "delete") {
               await studentsApi.delete(change.studentId);
             }
@@ -200,7 +200,7 @@ export const studentSyncManager = {
           // Default behavior when no conflict handler is present: Local Wins
           if (change.type === "update") {
             const resolvedData = { ...change.studentData, updatedAt: new Date().toISOString() };
-            await studentsApi.update(change.studentId, resolvedData);
+            await studentsApi.update(change.studentId, resolvedData, serverStudent?.classId || change.studentData.classId);
           } else if (change.type === "delete") {
             await studentsApi.delete(change.studentId);
           }
@@ -211,7 +211,7 @@ export const studentSyncManager = {
           if (change.type === "create") {
             await studentsApi.create(change.studentData);
           } else if (change.type === "update") {
-            await studentsApi.update(change.studentId, change.studentData);
+            await studentsApi.update(change.studentId, change.studentData, serverStudent?.classId || change.studentData.classId);
           } else if (change.type === "delete") {
             await studentsApi.delete(change.studentId);
           }

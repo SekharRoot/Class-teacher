@@ -17,6 +17,7 @@ import {
   TableCell,
   Avatar,
   Divider,
+  Paper,
 } from "@mui/material";
 import {
   CheckCircle,
@@ -42,6 +43,7 @@ interface AttendanceRowProps {
   leavesList?: LeaveRequest[];
   dateString?: string;
   maxNameLength?: number;
+  isMobile?: boolean;
 }
 
 const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
@@ -53,6 +55,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
   leavesList = [],
   dateString = "",
   maxNameLength = 0,
+  isMobile = false,
 }) => {
   const [historyOpen, setHistoryOpen] = React.useState(false);
   const [historyLoading, setHistoryLoading] = React.useState(false);
@@ -140,6 +143,230 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
     }
     onMarkStatus(student.id, newStatus);
   };
+
+  if (isMobile) {
+    return (
+      <React.Fragment>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.5,
+            mb: 1.5,
+            borderRadius: 2.5,
+            border: "1px solid",
+            borderColor: status === "absent" ? "error.light" : status === "leave" ? "info.light" : status === "present" ? "success.light" : "divider",
+            bgcolor:
+              status === "absent"
+                ? "error.50"
+                : status === "leave"
+                  ? "info.50"
+                  : status === "present"
+                    ? "success.50"
+                    : "background.paper",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1.5,
+            transition: "all 0.2s ease-in-out",
+            "&:hover": {
+              boxShadow: 1,
+            }
+          }}
+        >
+          {/* Avatar and name section */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flexGrow: 1 }}>
+            <Box sx={{ position: "relative", flexShrink: 0 }}>
+              <Avatar
+                variant="rounded"
+                src={displayImage}
+                sx={{
+                  width: 46,
+                  height: 46,
+                  borderRadius: 1.5,
+                  boxShadow: 1,
+                  bgcolor: status ? `${statusColor}.light` : "primary.light",
+                  fontSize: "1rem",
+                }}
+              >
+                {student.firstName ? student.firstName[0] : ""}
+                {student.lastName?.[0] || ""}
+              </Avatar>
+              <IconButton
+                size="small"
+                onClick={fetchStudentHistory}
+                sx={{
+                  position: "absolute",
+                  bottom: -4,
+                  right: -4,
+                  bgcolor: "background.paper",
+                  boxShadow: 1,
+                  p: 0.2,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <HistoryIcon sx={{ fontSize: 10 }} />
+              </IconButton>
+            </Box>
+            <Box sx={{ minWidth: 0, display: "flex", flexDirection: "column" }}>
+              <Typography variant="body2" sx={{ fontWeight: 700, fontSize: "0.85rem", color: "text.primary" }} noWrap>
+                {student.firstName} {student.lastName}
+              </Typography>
+              {student.isActive === false && (
+                <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }} noWrap>
+                  (Profile Removed)
+                </Typography>
+              )}
+              {approvedLeave ? (
+                <Chip
+                  label="On Leave"
+                  size="small"
+                  color="info"
+                  variant="outlined"
+                  sx={{ height: 16, fontSize: "0.55rem", fontWeight: "bold", mt: 0.25, width: "fit-content" }}
+                />
+              ) : (
+                student.rollNumber && (
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", mt: 0.25 }}>
+                    Roll: {student.rollNumber}
+                  </Typography>
+                )
+              )}
+            </Box>
+          </Box>
+
+          {/* Toggle buttons section */}
+          <Box sx={{ flexShrink: 0 }}>
+            <ToggleButtonGroup
+              value={status || null}
+              exclusive
+              disabled={disabled}
+              onChange={handleStatusChange}
+              size="small"
+              sx={{
+                "& .MuiToggleButton-root": {
+                  p: 0.75,
+                  minWidth: 46,
+                  height: 38,
+                  borderRadius: "8px !important",
+                  border: "1px solid !important",
+                  borderColor: "divider !important",
+                  marginLeft: "0 !important",
+                  mx: 0.25,
+                },
+                '& .MuiToggleButton-root.Mui-selected[value="present"]': {
+                  bgcolor: "success.main",
+                  color: "success.contrastText",
+                  "&:hover": { bgcolor: "success.dark" },
+                },
+                '& .MuiToggleButton-root.Mui-selected[value="absent"]': {
+                  bgcolor: "error.main",
+                  color: "error.contrastText",
+                  "&:hover": { bgcolor: "error.dark" },
+                },
+                '& .MuiToggleButton-root.Mui-selected[value="leave"]': {
+                  bgcolor: "info.main",
+                  color: "info.contrastText",
+                  "&:hover": { bgcolor: "info.dark" },
+                },
+              }}
+            >
+              <ToggleButton value="present" aria-label="present">
+                <CheckCircle sx={{ fontSize: 20 }} />
+              </ToggleButton>
+              <ToggleButton
+                value={status === "leave" ? "leave" : "absent"}
+                aria-label="absent"
+                onTouchStart={startPress}
+                onTouchEnd={endPress}
+                onMouseDown={startPress}
+                onMouseUp={endPress}
+                onMouseLeave={endPress}
+                onClick={handleAbsentClick}
+              >
+                {status === "leave" ? (
+                  <Star sx={{ fontSize: 20 }} />
+                ) : (
+                  <Cancel sx={{ fontSize: 20 }} />
+                )}
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+        </Paper>
+
+        {/* Student History Dialog */}
+        <Dialog
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          maxWidth="xs"
+          fullWidth
+          slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+        >
+          <DialogTitle sx={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            Attendance History
+            <IconButton onClick={() => setHistoryOpen(false)} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ px: 2, pb: 3 }}>
+            <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar 
+                src={displayImage}
+                sx={{ width: 48, height: 48, borderRadius: 2 }}
+              >
+                {student.firstName ? student.firstName[0] : ""}{student.lastName?.[0] || ""}
+              </Avatar>
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  {student.firstName} {student.lastName}
+                  {student.isActive === false && (
+                    <Box component="span" sx={{ color: "text.secondary", fontWeight: "normal", fontSize: "0.85em", ml: 1 }}>
+                      (Profile Removed)
+                    </Box>
+                  )}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Last 30 report cycles
+                </Typography>
+              </Box>
+            </Box>
+            
+            <Divider sx={{ mb: 2 }} />
+
+            {historyLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={32} />
+              </Box>
+            ) : studentHistory.length === 0 ? (
+              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+                No history records found.
+              </Typography>
+            ) : (
+              <MuiList sx={{ maxHeight: 300, overflow: 'auto' }}>
+                {studentHistory.map((record) => (
+                  <MuiListItem 
+                    key={record.date} 
+                    divider
+                    sx={{ px: 1 }}
+                  >
+                    <MuiListItemText 
+                      primary={format(parseISO(record.date), "EEEE, MMM dd, yyyy")}
+                      slotProps={{ primary: { variant: 'body2', sx: { fontWeight: 600 } } }}
+                    />
+                    <Chip 
+                      label={record.present > 0 ? "Present" : record.absent > 0 ? "Absent" : record.leave > 0 ? "Leave" : "N/A"}
+                      size="small"
+                      color={record.present > 0 ? "success" : record.absent > 0 ? "error" : record.leave > 0 ? "info" : "default"}
+                      sx={{ fontWeight: 'bold', minWidth: 70 }}
+                    />
+                  </MuiListItem>
+                ))}
+              </MuiList>
+            )}
+          </DialogContent>
+        </Dialog>
+      </React.Fragment>
+    );
+  }
 
   return (
     <React.Fragment>
@@ -361,6 +588,7 @@ export const AttendanceRow = React.memo(
   AttendanceRowComponent,
   (prevProps, nextProps) => {
     return (
+      prevProps.isMobile === nextProps.isMobile &&
       prevProps.status === nextProps.status &&
       prevProps.index === nextProps.index &&
       prevProps.disabled === nextProps.disabled &&

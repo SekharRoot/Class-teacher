@@ -112,15 +112,15 @@ export const useProfileActions = (
       return true;
     }
 
-    // Attempt direct server upload
     try {
       if (editingStudent) {
-        await studentsApi.update(studentId, savedStudent);
+        await studentsApi.update(studentId, savedStudent, editingStudent.classId);
         showToast(`Profile for "${formData.studentName}" updated successfully!`, "success");
       } else {
         await studentsApi.create(savedStudent);
         showToast(`Profile for "${formData.studentName}" created successfully!`, "success");
       }
+      // Sync in the background silently
       fetchInitialData();
     } catch (err: any) {
       console.error("Server save failed, queueing offline change:", err);
@@ -168,16 +168,19 @@ export const useProfileActions = (
       return;
     }
 
-    try {
-      await studentsApi.delete(studentId);
-      showToast(`Profile for "${name}" deleted successfully!`, "success");
-      fetchInitialData();
-    } catch (err) {
-      console.error("Server delete failed, queueing offline delete:", err);
-      await studentSyncManager.addOfflineChange("delete", studentId, { id: studentId } as Student);
-      showToast(`Profile deleted locally. Synchronization pending.`, "warning");
-      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
-    }
+    // Attempt direct server delete asynchronously in the background
+    (async () => {
+      try {
+        await studentsApi.delete(studentId);
+        showToast(`Profile for "${name}" deleted successfully!`, "success");
+        fetchInitialData();
+      } catch (err) {
+        console.error("Server delete failed, queueing offline delete:", err);
+        await studentSyncManager.addOfflineChange("delete", studentId, { id: studentId } as Student);
+        showToast(`Profile deleted locally. Synchronization pending.`, "warning");
+        window.dispatchEvent(new CustomEvent("offline-queue-changed"));
+      }
+    })();
   }, [students, offlineMode, setStudents, setGlobalStudents, showToast, fetchInitialData]);
 
   const handleMassDelete = useCallback(async (
@@ -215,25 +218,29 @@ export const useProfileActions = (
       return;
     }
 
-    try {
-      if ((studentsApi as any).batchDelete) {
-        await (studentsApi as any).batchDelete(idsToDelete);
-      } else {
-        for (const id of idsToDelete) {
-          await studentsApi.delete(id);
+    // Attempt direct server mass delete asynchronously in the background
+    (async () => {
+      try {
+        if ((studentsApi as any).batchDelete) {
+          await (studentsApi as any).batchDelete(idsToDelete);
+        } else {
+          for (const id of idsToDelete) {
+            await studentsApi.delete(id);
+          }
         }
+        showToast(`Deleted ${idsToDelete.length} profiles successfully!`, "success");
+        fetchInitialData();
+      } catch (error) {
+        console.error("Mass delete server error, queueing offline:", error);
+        for (const id of idsToDelete) {
+          await studentSyncManager.addOfflineChange("delete", id, { id } as Student);
+        }
+        showToast(`Deleted ${idsToDelete.length} profiles locally. Synchronization pending.`, "warning");
+        window.dispatchEvent(new CustomEvent("offline-queue-changed"));
+      } finally {
+        setIsMassDeleting(false);
       }
-      showToast(`Deleted ${idsToDelete.length} profiles successfully!`, "success");
-      fetchInitialData();
-    } catch (error) {
-      console.error("Mass delete server error, queueing offline:", error);
-      for (const id of idsToDelete) {
-        await studentSyncManager.addOfflineChange("delete", id, { id } as Student);
-      }
-      showToast(`Deleted ${idsToDelete.length} profiles locally. Synchronization pending.`, "warning");
-      window.dispatchEvent(new CustomEvent("offline-queue-changed"));
-    }
-    setIsMassDeleting(false);
+    })();
   }, [students, offlineMode, setStudents, setGlobalStudents, showToast, fetchInitialData]);
 
   return useMemo(() => ({

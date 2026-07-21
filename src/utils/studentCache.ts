@@ -1,57 +1,30 @@
-import { openDB, IDBPDatabase } from "idb";
+import { cache } from "../lib/cache";
 import { Student } from "../types";
-
-const DB_NAME = "classroom-manager-student-cache";
-const STORE_NAME = "students";
-const DB_VERSION = 1;
-
-let dbPromise: Promise<IDBPDatabase> | null = null;
-
-const getDB = () => {
-  if (!dbPromise) {
-    dbPromise = openDB(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { keyPath: "id" });
-        }
-      },
-    });
-  }
-  return dbPromise;
-};
 
 export const studentCache = {
   async getAll(): Promise<Student[]> {
-    const db = await getDB();
-    return db.getAll(STORE_NAME);
+    const list = await cache.get("offline_students");
+    return list || [];
   },
 
   async setBatch(students: Student[]) {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
+    const all = await this.getAll();
+    const map = new Map(all.map((s) => [s.id, s]));
     for (const student of students) {
-      tx.store.put(student);
+      map.set(student.id, student);
     }
-    await tx.done;
+    const updatedList = Array.from(map.values());
+    await cache.set("offline_students", updatedList);
   },
 
   async clearAndSet(students: Student[]) {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    await tx.store.clear();
-    for (const student of students) {
-      tx.store.put(student);
-    }
-    await tx.done;
+    await cache.set("offline_students", students);
   },
 
   async deleteBatch(ids: string[]) {
-    const db = await getDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    for (const id of ids) {
-      tx.store.delete(id);
-    }
-    await tx.done;
+    const all = await this.getAll();
+    const filtered = all.filter((s) => !ids.includes(s.id));
+    await cache.set("offline_students", filtered);
   },
 
   async searchLocal(query: string): Promise<Student[]> {

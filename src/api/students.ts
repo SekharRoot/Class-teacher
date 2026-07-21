@@ -41,11 +41,13 @@ function getStudentDocRef(schoolId: string, classId: string, studentId: string) 
   return doc(db, "schools", schoolId, "classes", cId, "students", studentId);
 }
 
-async function findStudentClass(studentId: string): Promise<{ schoolId: string, classId: string, data?: any } | null> {
+async function findStudentClass(studentId: string, bypassCache = false): Promise<{ schoolId: string, classId: string, data?: any } | null> {
   const activeSchoolId = getActiveSchoolId();
-  const cached = studentsCache?.find(s => s.id === studentId);
-  if (cached) {
-    return { schoolId: cached.schoolId || activeSchoolId, classId: cached.classId || "" };
+  if (!bypassCache) {
+    const cached = studentsCache?.find(s => s.id === studentId);
+    if (cached) {
+      return { schoolId: cached.schoolId || activeSchoolId, classId: cached.classId || "", data: cached };
+    }
   }
   const classesList = await classesApi.getAll();
   const classIds = ["unassigned", ...classesList.map(c => c.id)];
@@ -373,12 +375,19 @@ export const studentsApi = {
   async update(
     studentId: string,
     studentData: Partial<Student>,
+    oldClassIdParam?: string,
   ): Promise<void> {
     try {
       const activeSchoolId = getActiveSchoolId();
-      const studentInfo = await findStudentClass(studentId);
-      if (!studentInfo) {
-        throw new Error(`Student not found: ${studentId}`);
+      let oldClassId = oldClassIdParam;
+      let studentInfo: any = null;
+
+      if (!oldClassId) {
+        studentInfo = await findStudentClass(studentId);
+        if (!studentInfo) {
+          throw new Error(`Student not found: ${studentId}`);
+        }
+        oldClassId = studentInfo.classId;
       }
 
       let rtdbImageUrl = studentData.image;
@@ -399,7 +408,6 @@ export const studentsApi = {
         }
       }
 
-      const oldClassId = studentInfo.classId;
       const targetClassId = studentData.classId !== undefined ? studentData.classId : oldClassId;
 
       if (oldClassId !== targetClassId) {
@@ -407,9 +415,13 @@ export const studentsApi = {
         const oldRef = getStudentDocRef(activeSchoolId, oldClassId, studentId);
         await deleteDoc(oldRef);
 
+        if (!studentInfo) {
+          studentInfo = await findStudentClass(studentId);
+        }
+
         const newRef = getStudentDocRef(activeSchoolId, targetClassId, studentId);
         const mergedData = {
-          ...(studentInfo.data || {}),
+          ...(studentInfo?.data || {}),
           ...studentData,
           classId: targetClassId,
           updatedAt: new Date().toISOString(),
@@ -435,7 +447,7 @@ export const studentsApi = {
   async delete(studentId: string): Promise<void> {
     try {
       const activeSchoolId = getActiveSchoolId();
-      const studentInfo = await findStudentClass(studentId);
+      const studentInfo = await findStudentClass(studentId, true);
       if (studentInfo) {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
         await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
@@ -458,7 +470,7 @@ export const studentsApi = {
     try {
       const activeSchoolId = getActiveSchoolId();
       for (const id of studentIds) {
-        const studentInfo = await findStudentClass(id);
+        const studentInfo = await findStudentClass(id, true);
         if (studentInfo) {
           const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, id);
           await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
@@ -477,7 +489,7 @@ export const studentsApi = {
   async restore(studentId: string): Promise<void> {
     try {
       const activeSchoolId = getActiveSchoolId();
-      const studentInfo = await findStudentClass(studentId);
+      const studentInfo = await findStudentClass(studentId, true);
       if (studentInfo) {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
         await setDoc(studentRef, { isActive: true, updatedAt: new Date().toISOString() }, { merge: true });
@@ -496,7 +508,7 @@ export const studentsApi = {
     try {
       const activeSchoolId = getActiveSchoolId();
       for (const id of studentIds) {
-        const studentInfo = await findStudentClass(id);
+        const studentInfo = await findStudentClass(id, true);
         if (studentInfo) {
           const oldClassId = studentInfo.classId;
           if (oldClassId !== targetClassId) {
@@ -527,7 +539,7 @@ export const studentsApi = {
     try {
       const activeSchoolId = getActiveSchoolId();
       for (const id of studentIds) {
-        const studentInfo = await findStudentClass(id);
+        const studentInfo = await findStudentClass(id, true);
         if (studentInfo) {
           const oldRef = getStudentDocRef(activeSchoolId, studentInfo.classId, id);
           await deleteDoc(oldRef);
@@ -555,7 +567,7 @@ export const studentsApi = {
   async permanentlyDelete(studentId: string): Promise<void> {
     try {
       const activeSchoolId = getActiveSchoolId();
-      const studentInfo = await findStudentClass(studentId);
+      const studentInfo = await findStudentClass(studentId, true);
       if (studentInfo) {
         const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
         await deleteDoc(studentRef);
@@ -660,7 +672,7 @@ export const studentsApi = {
    */
   async getStudentFromServer(studentId: string): Promise<Student | null> {
     try {
-      const studentInfo = await findStudentClass(studentId);
+      const studentInfo = await findStudentClass(studentId, true);
       if (studentInfo && studentInfo.data) {
         return { id: studentId, ...studentInfo.data } as Student;
       }
