@@ -52,6 +52,8 @@ export default function Export() {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     format(new Date(), "yyyy-MM"),
   );
+  const [selectedBoarderType, setSelectedBoarderType] = useState<string>("all");
+  const [selectedGender, setSelectedGender] = useState<string>("all");
 
   const handleExport = async () => {
     setLoading(true);
@@ -73,6 +75,17 @@ export default function Export() {
       } else {
         filteredStudents = students.filter(
           (s) => s.classId && authorizedClassIds.includes(s.classId),
+        );
+      }
+
+      if (selectedBoarderType !== "all") {
+        filteredStudents = filteredStudents.filter(
+          (s) => s.boarderType === selectedBoarderType,
+        );
+      }
+      if (selectedGender !== "all") {
+        filteredStudents = filteredStudents.filter(
+          (s) => s.gender === selectedGender,
         );
       }
 
@@ -236,6 +249,17 @@ export default function Export() {
         );
       }
 
+      if (selectedBoarderType !== "all") {
+        filteredStudents = filteredStudents.filter(
+          (s) => s.boarderType === selectedBoarderType,
+        );
+      }
+      if (selectedGender !== "all") {
+        filteredStudents = filteredStudents.filter(
+          (s) => s.gender === selectedGender,
+        );
+      }
+
       let csvContent = "";
       let fileName = "";
 
@@ -371,6 +395,37 @@ export default function Export() {
                     {c.board} - {c.classStandard} {c.section}
                   </MenuItem>
                 ))}
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControl fullWidth>
+              <InputLabel>Boarder Type</InputLabel>
+              <Select
+                value={selectedBoarderType}
+                label="Boarder Type"
+                onChange={(e) => setSelectedBoarderType(e.target.value)}
+              >
+                <MenuItem value="all">All Boarder Types</MenuItem>
+                <MenuItem value="Day Scholar">Day Scholar</MenuItem>
+                <MenuItem value="Day Boarder">Day Boarder</MenuItem>
+                <MenuItem value="Full Boarder">Full Boarder</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControl fullWidth>
+              <InputLabel>Gender</InputLabel>
+              <Select
+                value={selectedGender}
+                label="Gender"
+                onChange={(e) => setSelectedGender(e.target.value)}
+              >
+                <MenuItem value="all">All Genders</MenuItem>
+                <MenuItem value="Male">Male</MenuItem>
+                <MenuItem value="Female">Female</MenuItem>
               </Select>
             </FormControl>
           </Grid>

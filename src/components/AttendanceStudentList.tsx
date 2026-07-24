@@ -52,6 +52,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
 }) => {
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<string>("name-asc");
   const [copied, setCopied] = useState(false);
   const [copiedType, setCopiedType] = useState<"absent" | "present" | null>(null);
 
@@ -178,13 +179,54 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   };
 
   const filteredStudents = useMemo(() => {
-    if (!searchQuery.trim()) return classStudents;
-    const query = searchQuery.toLowerCase();
-    return classStudents.filter(s => 
-      `${s.firstName} ${s.lastName}`.toLowerCase().includes(query) ||
-      (s.rollNumber && s.rollNumber.toLowerCase().includes(query))
-    );
-  }, [classStudents, searchQuery]);
+    let result = [...classStudents];
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(s => 
+        `${s.firstName} ${s.lastName}`.toLowerCase().includes(query) ||
+        (s.rollNumber && s.rollNumber.toLowerCase().includes(query))
+      );
+    }
+
+    if (sortBy === "name-asc") {
+      result.sort((a, b) => {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+    } else if (sortBy === "name-desc") {
+      result.sort((a, b) => {
+        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
+        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        return nameB.localeCompare(nameA);
+      });
+    } else if (sortBy === "boarder-day-scholar") {
+      const order = { "Day Scholar": 1, "Day Boarder": 2, "Full Boarder": 3 };
+      result.sort((a, b) => {
+        const valA = order[a.boarderType as keyof typeof order] || 4;
+        const valB = order[b.boarderType as keyof typeof order] || 4;
+        if (valA !== valB) return valA - valB;
+        return `${a.firstName} ${a.lastName}`.toLowerCase().localeCompare(`${b.firstName} ${b.lastName}`.toLowerCase());
+      });
+    } else if (sortBy === "boarder-day-boarder") {
+      const order = { "Day Boarder": 1, "Day Scholar": 2, "Full Boarder": 3 };
+      result.sort((a, b) => {
+        const valA = order[a.boarderType as keyof typeof order] || 4;
+        const valB = order[b.boarderType as keyof typeof order] || 4;
+        if (valA !== valB) return valA - valB;
+        return `${a.firstName} ${a.lastName}`.toLowerCase().localeCompare(`${b.firstName} ${b.lastName}`.toLowerCase());
+      });
+    } else if (sortBy === "boarder-full-boarder") {
+      const order = { "Full Boarder": 1, "Day Boarder": 2, "Day Scholar": 3 };
+      result.sort((a, b) => {
+        const valA = order[a.boarderType as keyof typeof order] || 4;
+        const valB = order[b.boarderType as keyof typeof order] || 4;
+        if (valA !== valB) return valA - valB;
+        return `${a.firstName} ${a.lastName}`.toLowerCase().localeCompare(`${b.firstName} ${b.lastName}`.toLowerCase());
+      });
+    }
+    return result;
+  }, [classStudents, searchQuery, sortBy]);
 
   const [displayCount, setDisplayCount] = useState(12);
   const observerRef = React.useRef<IntersectionObserver | null>(null);
@@ -314,6 +356,33 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               <MenuItem value="present" sx={{ fontSize: '0.75rem' }}>
                 Copy Present Students ({presents.length})
               </MenuItem>
+            </Select>
+          </FormControl>
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <Select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as string)}
+              displayEmpty
+              sx={{
+                borderRadius: 2,
+                height: 32,
+                fontSize: '0.75rem',
+                '& .MuiSelect-select': {
+                  py: 0.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: "rgba(0,0,0,0.15)"
+                }
+              }}
+            >
+              <MenuItem value="name-asc" sx={{ fontSize: '0.75rem' }}>Name (A-Z)</MenuItem>
+              <MenuItem value="name-desc" sx={{ fontSize: '0.75rem' }}>Name (Z-A)</MenuItem>
+              <MenuItem value="boarder-day-scholar" sx={{ fontSize: '0.75rem' }}>Scholar First</MenuItem>
+              <MenuItem value="boarder-day-boarder" sx={{ fontSize: '0.75rem' }}>Day Boarder First</MenuItem>
+              <MenuItem value="boarder-full-boarder" sx={{ fontSize: '0.75rem' }}>Full Boarder First</MenuItem>
             </Select>
           </FormControl>
           <TextField
