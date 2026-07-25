@@ -15,6 +15,21 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
   selectedClassId,
 }) => {
   const [stats, setStats] = useState<any>(null);
+  const [showLeavesView, setShowLeavesView] = useState(() => {
+    return localStorage.getItem("show_leaves_view") === "true";
+  });
+
+  useEffect(() => {
+    const handleSettingChange = () => {
+      setShowLeavesView(localStorage.getItem("show_leaves_view") === "true");
+    };
+    window.addEventListener("storage", handleSettingChange);
+    window.addEventListener("leaves_setting_changed", handleSettingChange);
+    return () => {
+      window.removeEventListener("storage", handleSettingChange);
+      window.removeEventListener("leaves_setting_changed", handleSettingChange);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -43,19 +58,19 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
       sx={{
         display: "flex",
         justifyContent: "center",
-        gap: 1,
+        gap: 1.5,
         mt: 1,
         flexWrap: "wrap",
       }}
     >
-      <Typography variant="caption" sx={{ color }}>
-        DS: {ds || 0}
+      <Typography variant="caption" sx={{ color, fontWeight: 700 }}>
+        <strong>DS:</strong> {ds || 0}
       </Typography>
-      <Typography variant="caption" sx={{ color }}>
-        DB: {db || 0}
+      <Typography variant="caption" sx={{ color, fontWeight: 700 }}>
+        <strong>DB:</strong> {db || 0}
       </Typography>
-      <Typography variant="caption" sx={{ color }}>
-        B: {fb || 0}
+      <Typography variant="caption" sx={{ color, fontWeight: 700 }}>
+        <strong>B:</strong> {fb || 0}
       </Typography>
     </Box>
   );
@@ -65,17 +80,22 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: {
-            xs: "repeat(2, 1fr)",
-            sm: "repeat(3, 1fr)",
-            md: "repeat(4, 1fr)",
-          },
+          gridTemplateColumns: showLeavesView
+            ? {
+                xs: "repeat(2, 1fr)",
+                sm: "repeat(3, 1fr)",
+                md: "repeat(4, 1fr)",
+              }
+            : {
+                xs: "repeat(1, 1fr)",
+                sm: "repeat(3, 1fr)",
+              },
           gap: 2,
           width: "100%",
           mt: 2,
         }}
       >
-        {[1, 2, 3, 4].map((i) => (
+        {(showLeavesView ? [1, 2, 3, 4] : [1, 2, 3]).map((i) => (
           <Paper
             key={i}
             sx={{
@@ -100,11 +120,16 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
     <Box
       sx={{
         display: "grid",
-        gridTemplateColumns: {
-          xs: "repeat(2, 1fr)",
-          sm: "repeat(3, 1fr)",
-          md: "repeat(4, 1fr)",
-        },
+        gridTemplateColumns: showLeavesView
+          ? {
+              xs: "repeat(2, 1fr)",
+              sm: "repeat(3, 1fr)",
+              md: "repeat(4, 1fr)",
+            }
+          : {
+              xs: "repeat(1, 1fr)",
+              sm: "repeat(3, 1fr)",
+            },
         gap: 2,
         width: "100%",
         mt: 2,
@@ -118,7 +143,9 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
           borderRadius: 2,
           border: "1px solid",
           borderColor: "divider",
-          gridColumn: { xs: "span 2", sm: "span 1" },
+          gridColumn: showLeavesView
+            ? { xs: "span 2", sm: "span 1" }
+            : "span 1",
         }}
       >
         <Typography
@@ -128,7 +155,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
         >
           Total Students
         </Typography>
-        <Typography variant="h5" sx={{ mt: 1 }}>
+        <Typography variant="h5" sx={{ mt: 1, fontWeight: "bold" }}>
           {stats.totalCount || 0}
         </Typography>
         {renderStats(
@@ -155,7 +182,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
         >
           Present
         </Typography>
-        <Typography variant="h5" color="success.main" sx={{ mt: 1 }}>
+        <Typography variant="h5" color="success.main" sx={{ mt: 1, fontWeight: "bold" }}>
           {stats.presentCount || 0}
         </Typography>
         {renderStats(
@@ -182,7 +209,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
         >
           Absent
         </Typography>
-        <Typography variant="h5" color="error.main" sx={{ mt: 1 }}>
+        <Typography variant="h5" color="error.main" sx={{ mt: 1, fontWeight: "bold" }}>
           {stats.absentCount || 0}
         </Typography>
         {renderStats(
@@ -192,33 +219,35 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
           "error.main",
         )}
       </Paper>
-      <Paper
-        sx={{
-          p: 2,
-          textAlign: "center",
-          bgcolor: "info.50",
-          borderRadius: 2,
-          border: "1px solid",
-          borderColor: "info.200",
-        }}
-      >
-        <Typography
-          variant="body2"
-          color="info.main"
-          sx={{ fontWeight: "bold" }}
+      {showLeavesView && (
+        <Paper
+          sx={{
+            p: 2,
+            textAlign: "center",
+            bgcolor: "info.50",
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "info.200",
+          }}
         >
-          Leave
-        </Typography>
-        <Typography variant="h5" color="info.main" sx={{ mt: 1 }}>
-          {stats.leaveCount || 0}
-        </Typography>
-        {renderStats(
-          stats.leaveDayScholar,
-          stats.leaveDayBoarder,
-          stats.leaveFullBoarder,
-          "info.main",
-        )}
-      </Paper>
+          <Typography
+            variant="body2"
+            color="info.main"
+            sx={{ fontWeight: "bold" }}
+          >
+            Leave
+          </Typography>
+          <Typography variant="h5" color="info.main" sx={{ mt: 1, fontWeight: "bold" }}>
+            {stats.leaveCount || 0}
+          </Typography>
+          {renderStats(
+            stats.leaveDayScholar,
+            stats.leaveDayBoarder,
+            stats.leaveFullBoarder,
+            "info.main",
+          )}
+        </Paper>
+      )}
     </Box>
   );
 };

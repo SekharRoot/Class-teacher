@@ -62,10 +62,22 @@ export default function Settings() {
     return localStorage.getItem("allow_edit_old_attendance") === "true";
   });
 
+  const [showLeavesView, setShowLeavesView] = useState(() => {
+    return localStorage.getItem("show_leaves_view") === "true";
+  });
+
   const handleToggleEditOldAttendance = (val: boolean) => {
     setAllowEditOldAttendance(val);
     localStorage.setItem("allow_edit_old_attendance", val ? "true" : "false");
     showToast(`Old attendance editing is now ${val ? "enabled" : "disabled"}.`, "info");
+  };
+
+  const handleToggleLeavesView = (val: boolean) => {
+    setShowLeavesView(val);
+    localStorage.setItem("show_leaves_view", val ? "true" : "false");
+    window.dispatchEvent(new Event("storage"));
+    window.dispatchEvent(new Event("leaves_setting_changed"));
+    showToast(`Leave Requests view is now ${val ? "enabled" : "disabled"}.`, "info");
   };
   
   // Data integrity loading
@@ -335,6 +347,15 @@ export default function Settings() {
                   />
                 }
                 label="Allow Editing Old Attendance Data"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showLeavesView}
+                    onChange={(e) => handleToggleLeavesView(e.target.checked)}
+                  />
+                }
+                label="Enable Leave Requests View & Tab"
               />
             </Box>
 

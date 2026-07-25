@@ -197,15 +197,41 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                   </Box>
                 )}
               </Typography>
-              {approvedLeave && (
-                <Chip
-                  label="On Leave"
-                  size="small"
-                  color="info"
-                  variant="outlined"
-                  sx={{ height: 16, fontSize: "0.6rem", fontWeight: "bold", mt: 0.25 }}
-                />
-              )}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25, flexWrap: "wrap" }}>
+                {student.boarderType && (
+                  <Chip
+                    label={
+                      student.boarderType === "Day Scholar"
+                        ? "DS"
+                        : student.boarderType === "Day Boarder"
+                          ? "DB"
+                          : student.boarderType === "Full Boarder"
+                            ? "B"
+                            : student.boarderType
+                    }
+                    size="small"
+                    variant="outlined"
+                    sx={{
+                      height: 18,
+                      fontSize: "0.65rem",
+                      fontWeight: "bold",
+                      borderColor: "divider",
+                      color: "text.primary",
+                      bgcolor: "action.hover",
+                      px: 0.25,
+                    }}
+                  />
+                )}
+                {approvedLeave && (
+                  <Chip
+                    label="On Leave"
+                    size="small"
+                    color="info"
+                    variant="outlined"
+                    sx={{ height: 18, fontSize: "0.6rem", fontWeight: "bold" }}
+                  />
+                )}
+              </Box>
             </Box>
           </Box>
         </TableCell>

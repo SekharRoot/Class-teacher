@@ -38,10 +38,43 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const hasCachedProfile = () => {
+    try {
+      return !!(localStorage.getItem("cached_user_profile") && localStorage.getItem("cached_auth_uid"));
+    } catch {
+      return false;
+    }
+  };
+
+  const [currentUser, setCurrentUser] = useState<User | null>(() => {
+    try {
+      const cachedUid = localStorage.getItem("cached_auth_uid");
+      const cachedProfile = localStorage.getItem("cached_user_profile");
+      if (cachedUid && cachedProfile) {
+        const p = JSON.parse(cachedProfile);
+        return {
+          uid: cachedUid,
+          email: p.email || "",
+          displayName: p.displayName || "",
+        } as unknown as User;
+      }
+    } catch {
+      // fallback
+    }
+    return null;
+  });
+
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
+    try {
+      const cached = localStorage.getItem("cached_user_profile");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [loading, setLoading] = useState(!hasCachedProfile());
+  const [initialLoad, setInitialLoad] = useState(!hasCachedProfile());
 
   const fetchAndSyncProfile = async (user: User) => {
     try {
@@ -142,9 +175,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       setUserProfile(profile);
+      if (profile) {
+        try {
+          localStorage.setItem("cached_user_profile", JSON.stringify(profile));
+          localStorage.setItem("cached_auth_uid", user.uid);
+        } catch (e) {
+          console.warn("Could not save profile to localStorage cache", e);
+        }
+      }
     } catch (err) {
       console.error("Error fetching or syncing user profile:", err);
-      // In case of complete failure, we don't want to leave userProfile null if we could have made one.
     }
   };
 
@@ -214,12 +254,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
+      // If we don't have a cached profile, show loading while resolving auth
+      if (!hasCachedProfile()) {
+        setLoading(true);
+      }
       setCurrentUser(user);
       if (user) {
+        try {
+          localStorage.setItem("cached_auth_uid", user.uid);
+        } catch {}
         await fetchAndSyncProfile(user);
       } else {
         setUserProfile(null);
+        try {
+          localStorage.removeItem("cached_user_profile");
+          localStorage.removeItem("cached_auth_uid");
+        } catch {}
       }
       setLoading(false);
       setInitialLoad(false);
@@ -234,7 +284,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signOut = () => {
+  const signOut = async () => {
+    try {
+      localStorage.removeItem("cached_user_profile");
+      localStorage.removeItem("cached_auth_uid");
+    } catch {}
     return firebaseSignOut(auth);
   };
 

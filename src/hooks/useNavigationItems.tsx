@@ -19,6 +19,22 @@ export interface MenuItemType {
 }
 
 export function useNavigationItems(userProfile: UserProfile | null) {
+  const [showLeavesView, setShowLeavesView] = React.useState(() => {
+    return localStorage.getItem("show_leaves_view") === "true";
+  });
+
+  React.useEffect(() => {
+    const handleSettingChange = () => {
+      setShowLeavesView(localStorage.getItem("show_leaves_view") === "true");
+    };
+    window.addEventListener("storage", handleSettingChange);
+    window.addEventListener("leaves_setting_changed", handleSettingChange);
+    return () => {
+      window.removeEventListener("storage", handleSettingChange);
+      window.removeEventListener("leaves_setting_changed", handleSettingChange);
+    };
+  }, []);
+
   const primaryMenuItems = useMemo<MenuItemType[]>(() => {
     return [
       { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
@@ -47,7 +63,7 @@ export function useNavigationItems(userProfile: UserProfile | null) {
       });
     }
 
-    if (userProfile.hasLeaveFeatureAccess) {
+    if (userProfile.hasLeaveFeatureAccess && showLeavesView) {
       items.push({
         text: "Leave Requests",
         icon: <DateRangeIcon />,
@@ -80,7 +96,7 @@ export function useNavigationItems(userProfile: UserProfile | null) {
     }
 
     return items;
-  }, [userProfile]);
+  }, [userProfile, showLeavesView]);
 
   return { primaryMenuItems, secondaryMenuItems };
 }
