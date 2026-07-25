@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Outlet, Navigate, useNavigate, useLocation, useOutlet } from "react-router-dom";
+import { Navigate, useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { imageCache } from "../utils/imageCache";
 import { Box, useTheme } from "@mui/material";
@@ -11,8 +11,6 @@ import { PendingApproval } from "../components/navigation/PendingApproval";
 import { LoadingOverlay } from "../components/navigation/LoadingOverlay";
 import { useNavigationItems } from "../hooks/useNavigationItems";
 import { useData } from "../contexts/DataContext";
-import { AnimatePresence } from "motion/react";
-import { PageTransition } from "../components/navigation/PageTransition";
 
 export default function AppShell() {
   const { currentUser, userProfile, loading, signOut } = useAuth();
@@ -20,7 +18,6 @@ export default function AppShell() {
   const location = useLocation();
   const theme = useTheme();
   const { loading: globalLoading } = useData();
-  const outlet = useOutlet();
   const [localSyncing, setLocalSyncing] = useState(false);
   const syncing = globalLoading || localSyncing;
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
@@ -145,13 +142,7 @@ export default function AppShell() {
           }}
         >
           <Box sx={{ width: "100%", height: "100%", display: "flex", flexDirection: "column" }}>
-            <AnimatePresence mode="wait">
-              {outlet && (
-                <PageTransition key={location.pathname}>
-                  {outlet}
-                </PageTransition>
-              )}
-            </AnimatePresence>
+            <Outlet />
             {/* Explicit vertical white space spacer at the bottom of all views */}
             <Box sx={{ height: { xs: 120, sm: 160 }, width: "100%" }} />
           </Box>

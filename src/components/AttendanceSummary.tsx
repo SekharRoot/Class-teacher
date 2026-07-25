@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Paper, Typography, Skeleton } from "@mui/material";
 import { Student, AttendanceStatus } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 
@@ -60,7 +60,41 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
     </Box>
   );
 
-  if (!stats) return null;
+  if (!stats) {
+    return (
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, 1fr)",
+            sm: "repeat(3, 1fr)",
+            md: "repeat(4, 1fr)",
+          },
+          gap: 2,
+          width: "100%",
+          mt: 2,
+        }}
+      >
+        {[1, 2, 3, 4].map((i) => (
+          <Paper
+            key={i}
+            sx={{
+              p: 2,
+              textAlign: "center",
+              bgcolor: "background.paper",
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Skeleton variant="text" width="60%" sx={{ mx: "auto" }} />
+            <Skeleton variant="text" width="40%" height={32} sx={{ mx: "auto", my: 0.5 }} />
+            <Skeleton variant="text" width="70%" sx={{ mx: "auto" }} />
+          </Paper>
+        ))}
+      </Box>
+    );
+  }
 
   return (
     <Box

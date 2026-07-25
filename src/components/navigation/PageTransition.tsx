@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "motion/react";
 
 interface PageTransitionProps {
   children: React.ReactNode;
@@ -7,14 +6,7 @@ interface PageTransitionProps {
 
 export const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -15 }}
-      transition={{
-        duration: 0.3,
-        ease: [0.25, 0.8, 0.25, 1], // Custom elegant cubic-bezier easing
-      }}
+    <div
       style={{
         width: "100%",
         height: "100%",
@@ -24,6 +16,6 @@ export const PageTransition: React.FC<PageTransitionProps> = ({ children }) => {
       }}
     >
       {children}
-    </motion.div>
+    </div>
   );
 };

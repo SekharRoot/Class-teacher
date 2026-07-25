@@ -259,7 +259,7 @@ export default function Attendance() {
             </Box>
           </Paper>
         </Box>
-      ) : loading && students.length === 0 ? (
+      ) : loading && students.length === 0 && !selectedClassId ? (
         <Box
           sx={{
             display: "flex",
@@ -493,6 +493,7 @@ export default function Attendance() {
                 readOnly={!isTakeAttendanceMode || isPrincipal || isLockedOldData}
                 leavesList={leavesList}
                 dateString={dateString}
+                loading={loading}
               />
             </Box>
           )}

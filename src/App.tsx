@@ -75,18 +75,18 @@ const lazyWithRetry = <T extends React.ComponentType<any>>(
   });
 };
 
-const Login = lazyWithRetry(() => import("./pages/Login"));
-const Attendance = lazyWithRetry(() => import("./pages/Attendance"));
-const Classes = lazyWithRetry(() => import("./pages/Classes"));
-const Profiles = lazyWithRetry(() => import("./pages/Profiles"));
-const Reports = lazyWithRetry(() => import("./pages/Reports"));
-const Testing = lazyWithRetry(() => import("./pages/Testing"));
-const AdminPanel = lazyWithRetry(() => import("./pages/AdminPanel"));
-const Leaves = lazyWithRetry(() => import("./pages/Leaves"));
-const InactiveProfiles = lazyWithRetry(() => import("./pages/InactiveProfiles"));
-const Settings = lazyWithRetry(() => import("./pages/Settings"));
-const Export = lazyWithRetry(() => import("./pages/Export"));
-const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+import Login from "./pages/Login";
+import Attendance from "./pages/Attendance";
+import Classes from "./pages/Classes";
+import Profiles from "./pages/Profiles";
+import Reports from "./pages/Reports";
+import Testing from "./pages/Testing";
+import AdminPanel from "./pages/AdminPanel";
+import Leaves from "./pages/Leaves";
+import InactiveProfiles from "./pages/InactiveProfiles";
+import Settings from "./pages/Settings";
+import Export from "./pages/Export";
+import Dashboard from "./pages/Dashboard";
 
 const FallbackLoader = () => (
   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%' }}>

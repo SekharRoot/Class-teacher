@@ -17,6 +17,7 @@ import {
   FormControl,
   Select,
   SelectChangeEvent,
+  Skeleton,
 } from "@mui/material";
 import { ChevronLeft, CloudUpload, Search, ContentCopy, ArrowDropDown } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
@@ -36,6 +37,7 @@ interface AttendanceStudentListProps {
   readOnly?: boolean;
   leavesList?: LeaveRequest[];
   dateString?: string;
+  loading?: boolean;
 }
 
 export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
@@ -49,6 +51,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   readOnly = false,
   leavesList = [],
   dateString = "",
+  loading = false,
 }) => {
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -462,7 +465,29 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredStudents.length === 0 ? (
+            {loading && filteredStudents.length === 0 ? (
+              [1, 2, 3, 4, 5, 6].map((idx) => (
+                <TableRow key={idx}>
+                  <TableCell>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 2, py: 1 }}>
+                      <Skeleton variant="circular" width={36} height={36} />
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Skeleton variant="text" width="40%" height={22} />
+                        <Skeleton variant="text" width="25%" height={16} />
+                      </Box>
+                    </Box>
+                  </TableCell>
+                  <TableCell align="center">
+                    <Skeleton
+                      variant="rectangular"
+                      width={120}
+                      height={32}
+                      sx={{ borderRadius: 2, mx: "auto" }}
+                    />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : filteredStudents.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={2} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
