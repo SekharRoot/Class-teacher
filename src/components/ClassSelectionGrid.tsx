@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Typography, Paper } from "@mui/material";
 import { ClassItem } from "../types";
+import { motion } from "motion/react";
 
 interface ClassSelectionGridProps {
   classes: ClassItem[];
@@ -11,49 +12,89 @@ export const ClassSelectionGrid: React.FC<ClassSelectionGridProps> = ({
   classes,
   onSelectClass,
 }) => {
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.04,
+      }
+    }
+  } as const;
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 15 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 140,
+        damping: 15,
+      }
+    }
+  } as const;
+
   return (
     <Box>
       <Typography variant="h6" sx={{ mb: 2, fontWeight: "bold" }}>
         Select a Class
       </Typography>
-      <Box
-        sx={{
-          display: "grid",
-          gridTemplateColumns: {
-            xs: "1fr",
-            sm: "repeat(2, 1fr)",
-            md: "repeat(3, 1fr)",
-          },
-          gap: 3,
-        }}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
       >
-        {classes.map((cls) => (
-          <Paper
-            key={cls.id}
-            elevation={2}
-            onClick={() => onSelectClass(cls.id)}
-            sx={{
-              p: 3,
-              borderRadius: 3,
-              cursor: "pointer",
-              transition: "transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
-              "&:hover": { transform: "translateY(-4px) scale(1.02)", boxShadow: 6 },
-            }}
-          >
-            <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-              {cls.board} {cls.classStandard}
-            </Typography>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
-              <Typography color="text.secondary" variant="body2">
-                Section: {cls.section}
-              </Typography>
-              <Typography variant="caption" color="primary" sx={{ fontWeight: "bold", fontFamily: "monospace", bgcolor: "action.hover", px: 1, py: 0.25, borderRadius: 1 }}>
-                ID: {cls.id}
-              </Typography>
-            </Box>
-          </Paper>
-        ))}
-      </Box>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "1fr",
+              sm: "repeat(2, 1fr)",
+              md: "repeat(3, 1fr)",
+            },
+            gap: 3,
+          }}
+        >
+          {classes.map((cls) => (
+            <motion.div
+              key={cls.id}
+              variants={itemVariants}
+              whileHover={{ y: -4, scale: 1.015 }}
+              whileTap={{ scale: 0.985 }}
+              style={{ height: "100%", width: "100%" }}
+            >
+              <Paper
+                elevation={2}
+                onClick={() => onSelectClass(cls.id)}
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  cursor: "pointer",
+                  height: "100%",
+                  transition: "box-shadow 0.25s ease, background-color 0.25s ease",
+                  "&:hover": { 
+                    boxShadow: 6,
+                    bgcolor: "action.hover"
+                  },
+                }}
+              >
+                <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+                  {cls.board} {cls.classStandard}
+                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
+                  <Typography color="text.secondary" variant="body2">
+                    Section: {cls.section}
+                  </Typography>
+                  <Typography variant="caption" color="primary" sx={{ fontWeight: "bold", fontFamily: "monospace", bgcolor: "action.hover", px: 1, py: 0.25, borderRadius: 1 }}>
+                    ID: {cls.id}
+                  </Typography>
+                </Box>
+              </Paper>
+            </motion.div>
+          ))}
+        </Box>
+      </motion.div>
     </Box>
   );
 };

@@ -38,6 +38,7 @@ import { ProfileFilters } from "../components/ProfileFilters";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { useProfileActions } from "../hooks/useProfileActions";
+import { AnimatedList, AnimatedItem } from "../components/navigation/AnimatedList";
 import { useAuth } from "../contexts/AuthContext";
 import { useData } from "../contexts/DataContext";
 
@@ -649,33 +650,34 @@ export default function Profiles() {
         </Paper>
       ) : (
         <>
-          <Box
-            sx={{
+          <AnimatedList
+            style={{
               display: "grid",
               gridTemplateColumns:
                 viewType === "grid"
-                  ? { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }
+                  ? "repeat(auto-fill, minmax(280px, 1fr))"
                   : viewType === "grid_compact"
-                    ? { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(4, 1fr)", lg: "repeat(5, 1fr)" }
+                    ? "repeat(auto-fill, minmax(170px, 1fr))"
                     : "1fr",
-              gap: viewType === "grid_compact" ? 1.5 : 3,
+              gap: viewType === "grid_compact" ? "12px" : "24px",
             }}
           >
             {filteredStudents.slice(0, displayCount).map((item) => (
-              <StudentCard
-                key={item.id}
-                item={item}
-                classes={classes}
-                onViewDetails={handleOpenDetail}
-                onEdit={handleOpenEditDialog}
-                onDelete={handleDeleteProfile}
-                readOnly={isStudentReadOnly(item)}
-                selected={selectedIds.includes(item.id)}
-                onSelect={editMode ? handleSelectStudent : undefined}
-                layout={viewType}
-              />
+              <AnimatedItem key={item.id}>
+                <StudentCard
+                  item={item}
+                  classes={classes}
+                  onViewDetails={handleOpenDetail}
+                  onEdit={handleOpenEditDialog}
+                  onDelete={handleDeleteProfile}
+                  readOnly={isStudentReadOnly(item)}
+                  selected={selectedIds.includes(item.id)}
+                  onSelect={editMode ? handleSelectStudent : undefined}
+                  layout={viewType}
+                />
+              </AnimatedItem>
             ))}
-          </Box>
+          </AnimatedList>
           {(displayCount < filteredStudents.length || hasMore) && (
             <Box
               ref={setLoadMoreRef}

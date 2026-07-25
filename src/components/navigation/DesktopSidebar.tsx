@@ -16,6 +16,7 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigationItems } from "../../hooks/useNavigationItems";
+import { motion } from "motion/react";
 
 interface DesktopSidebarProps {
   sidebarOpen: boolean;
@@ -140,48 +141,83 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                     justifyContent: sidebarOpen ? "initial" : "center",
                     px: 2.5,
                     borderRadius: "8px",
+                    position: "relative",
+                    bgcolor: "transparent",
+                    color: active ? "primary.main" : "text.secondary",
                     "&.Mui-selected": {
-                      bgcolor:
-                        theme.palette.mode === "dark"
-                          ? "rgba(25, 118, 210, 0.15)"
-                          : "rgba(25, 118, 210, 0.08)",
+                      bgcolor: "transparent",
                       color: "primary.main",
                       "& .MuiListItemIcon-root": {
                         color: "primary.main",
                       },
                       "&:hover": {
-                        bgcolor:
-                          theme.palette.mode === "dark"
-                            ? "rgba(25, 118, 210, 0.2)"
-                            : "rgba(25, 118, 210, 0.12)",
+                        bgcolor: "transparent",
                       },
+                    },
+                    "&:hover": {
+                      bgcolor: theme.palette.mode === "dark"
+                        ? "rgba(255, 255, 255, 0.04)"
+                        : "rgba(0, 0, 0, 0.04)",
                     },
                   }}
                 >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: sidebarOpen ? 2 : "auto",
-                      justifyContent: "center",
-                      color: active ? "primary.main" : "text.secondary",
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  {sidebarOpen && (
-                    <ListItemText
-                      primary={
-                        <Typography
-                          sx={{
-                            fontSize: "0.9rem",
-                            fontWeight: active ? 600 : 500,
-                          }}
-                        >
-                          {item.text}
-                        </Typography>
-                      }
+                  {active && (
+                    <motion.div
+                      layoutId="desktopSidebarActivePill"
+                      style={{
+                        position: "absolute",
+                        left: 4,
+                        right: 4,
+                        top: 4,
+                        bottom: 4,
+                        borderRadius: "8px",
+                        backgroundColor:
+                          theme.palette.mode === "dark"
+                            ? "rgba(25, 118, 210, 0.15)"
+                            : "rgba(25, 118, 210, 0.08)",
+                        zIndex: 0,
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 380,
+                        damping: 30,
+                      }}
                     />
                   )}
+                  <Box
+                    sx={{
+                      zIndex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      width: "100%",
+                      justifyContent: sidebarOpen ? "initial" : "center",
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        minWidth: 0,
+                        mr: sidebarOpen ? 2 : 0,
+                        justifyContent: "center",
+                        color: active ? "primary.main" : "text.secondary",
+                      }}
+                    >
+                      {item.icon}
+                    </ListItemIcon>
+                    {sidebarOpen && (
+                      <ListItemText
+                        primary={
+                          <Typography
+                            sx={{
+                              fontSize: "0.9rem",
+                              fontWeight: active ? 600 : 500,
+                            }}
+                          >
+                            {item.text}
+                          </Typography>
+                        }
+                      />
+                    )}
+                  </Box>
                 </ListItemButton>
               </Tooltip>
             </ListItem>

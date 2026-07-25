@@ -8,6 +8,7 @@ import {
   useTheme,
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import { motion } from "motion/react";
 
 interface NavItem {
   text: string;
@@ -107,11 +108,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 onClick={() => onNavigate(item.path)}
                 sx={{
                   color: active ? "primary.main" : "text.secondary",
-                  bgcolor: active
-                    ? theme.palette.mode === "dark"
-                      ? "rgba(25, 118, 210, 0.15)"
-                      : "rgba(25, 118, 210, 0.08)"
-                    : "transparent",
+                  bgcolor: "transparent",
                   borderRadius: "18px",
                   px: { xs: 1.5, sm: 2 },
                   py: { xs: 1, sm: 1.25 },
@@ -120,28 +117,50 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                   gap: 0.25,
                   minWidth: { xs: 50, sm: 70 },
                   flexShrink: 0,
-                  transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
+                  position: "relative",
+                  transition: "color 0.2s ease, transform 0.2s ease",
                   "&:hover": {
                     color: "primary.main",
                     transform: "translateY(-1px) scale(1.05)",
-                    bgcolor:
-                      theme.palette.mode === "dark"
-                        ? "rgba(25, 118, 210, 0.1)"
-                        : "rgba(25, 118, 210, 0.04)",
                   },
                 }}
               >
-                {item.icon}
-                <Typography
-                  variant="caption"
-                  sx={{
-                    fontWeight: active ? 700 : 500,
-                    fontSize: { xs: "0.65rem", sm: "0.72rem" },
-                    display: { xs: "none", sm: "block" },
-                  }}
-                >
-                  {item.text}
-                </Typography>
+                {active && (
+                  <motion.div
+                    layoutId="bottomNavActivePill"
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      bottom: 0,
+                      borderRadius: "18px",
+                      backgroundColor:
+                        theme.palette.mode === "dark"
+                          ? "rgba(25, 118, 210, 0.15)"
+                          : "rgba(25, 118, 210, 0.08)",
+                      zIndex: 0,
+                    }}
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 30,
+                    }}
+                  />
+                )}
+                <Box sx={{ zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 0.25 }}>
+                  {item.icon}
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      fontWeight: active ? 700 : 500,
+                      fontSize: { xs: "0.65rem", sm: "0.72rem" },
+                      display: { xs: "none", sm: "block" },
+                    }}
+                  >
+                    {item.text}
+                  </Typography>
+                </Box>
               </IconButton>
             </Tooltip>
           );

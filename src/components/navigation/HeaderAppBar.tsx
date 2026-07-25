@@ -5,15 +5,12 @@ import {
   Box,
   Typography,
   IconButton,
-  Tooltip,
   Chip,
   FormControl,
   Select,
   MenuItem,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import SyncIcon from "@mui/icons-material/Sync";
-import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuth } from "../../contexts/AuthContext";
 import { schoolsApi } from "../../api/schools";
 import { School } from "../../types";
@@ -228,17 +225,6 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
           </FormControl>
         )}
         <Box sx={{ flexGrow: 1 }} />
-        {isDashboard && (
-          <Tooltip title="Logout">
-            <IconButton
-              id="btn-logout"
-              color="inherit"
-              onClick={onLogoutClick}
-            >
-              <LogoutIcon />
-            </IconButton>
-          </Tooltip>
-        )}
       </Toolbar>
     </AppBar>
   );

@@ -30,6 +30,7 @@ import { useClassesData } from "../hooks/useClassesData";
 import { useAuth } from "../contexts/AuthContext";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { TransferClassSchoolDialog } from "../components/TransferClassSchoolDialog";
+import { AnimatedList, AnimatedItem } from "../components/navigation/AnimatedList";
 
 export default function Classes() {
   const { userProfile } = useAuth();
@@ -370,42 +371,39 @@ export default function Classes() {
             </Typography>
           </Box>
 
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: {
-                xs: "1fr",
-                sm: "repeat(2, 1fr)",
-                md: "repeat(3, 1fr)",
-              },
-              gap: 3,
-            }}
-          >
-            {classStudents.length === 0 ? (
-              <Typography
-                variant="body1"
-                color="text.secondary"
-                sx={{ gridColumn: "1 / -1", textAlign: "center", py: 4 }}
-              >
-                No students are currently assigned to this class.
-              </Typography>
-            ) : (
-              classStudents.map((student) => (
-                <StudentCard
-                  key={student.id}
-                  item={student}
-                  classes={classesList}
-                  onViewDetails={(st) => {
-                    setSelectedStudent(st);
-                    setOpenDetailDialog(true);
-                  }}
-                  onEdit={() => {}}
-                  onDelete={() => {}}
-                  readOnly={true}
-                />
-              ))
-            )}
-          </Box>
+          {classStudents.length === 0 ? (
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ textAlign: "center", py: 4, width: "100%" }}
+            >
+              No students are currently assigned to this class.
+            </Typography>
+          ) : (
+            <AnimatedList
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+                gap: "24px",
+              }}
+            >
+              {classStudents.map((student) => (
+                <AnimatedItem key={student.id}>
+                  <StudentCard
+                    item={student}
+                    classes={classesList}
+                    onViewDetails={(st) => {
+                      setSelectedStudent(st);
+                      setOpenDetailDialog(true);
+                    }}
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                    readOnly={true}
+                  />
+                </AnimatedItem>
+              ))}
+            </AnimatedList>
+          )}
         </Box>
       ) : loading && classesList.length === 0 ? (
         <Box
@@ -464,39 +462,36 @@ export default function Classes() {
           )}
         </Paper>
       ) : (
-        <Box
-          sx={{
+        <AnimatedList
+          style={{
             display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "repeat(2, 1fr)",
-              md: "repeat(3, 1fr)",
-            },
-            gap: 3,
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "24px",
           }}
         >
           {filteredClasses.map((item) => (
-            <ClassCard
-              key={item.id}
-              item={item}
-              onDelete={handleDeleteClassRequest}
-              onEdit={(c) => {
-                setEditingClass(c);
-                setOpenDialog(true);
-              }}
-              onTransferSchool={
-                isOwnerOrSuperAdmin
-                  ? (c) => {
-                      setClassToTransfer(c);
-                      setTransferSchoolDialogOpen(true);
-                    }
-                  : undefined
-              }
-              onClick={(cls) => setSelectedClass(cls)}
-              readOnly={isReadOnly}
-            />
+            <AnimatedItem key={item.id}>
+              <ClassCard
+                item={item}
+                onDelete={handleDeleteClassRequest}
+                onEdit={(c) => {
+                  setEditingClass(c);
+                  setOpenDialog(true);
+                }}
+                onTransferSchool={
+                  isOwnerOrSuperAdmin
+                    ? (c) => {
+                        setClassToTransfer(c);
+                        setTransferSchoolDialogOpen(true);
+                      }
+                    : undefined
+                }
+                onClick={(cls) => setSelectedClass(cls)}
+                readOnly={isReadOnly}
+              />
+            </AnimatedItem>
           ))}
-        </Box>
+        </AnimatedList>
       )}
 
       <ClassFormDialog
