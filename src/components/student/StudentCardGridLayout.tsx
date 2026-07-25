@@ -237,18 +237,18 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
           <IconButton
             id={`btn-delete-profile-${item.id}`}
             color="error"
-            size="small"
+            size="medium"
             onClick={() => onDelete(item.id, fullName)}
             title="Delete Student Profile"
             sx={{
               "&:hover": {
                 bgcolor: "error.50",
-                transform: "scale(1.1)",
+                transform: "scale(1.15)",
               },
               transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
             }}
           >
-            <Delete fontSize="small" />
+            <Delete fontSize="medium" />
           </IconButton>
         )}
       </CardActions>

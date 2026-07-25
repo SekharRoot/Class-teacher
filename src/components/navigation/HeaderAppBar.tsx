@@ -168,7 +168,7 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               letterSpacing: "-0.02em",
             }}
           >
-            School Management System
+            SMCS by Sekhar
           </Typography>
           <Typography
             variant="caption"

@@ -10,6 +10,8 @@ import {
   Chip,
   Checkbox,
   FormControlLabel,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import {
   Add,
@@ -361,16 +363,24 @@ export default function Profiles() {
           </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            disabled={isSyncing}
-            startIcon={isSyncing ? <CircularProgress size={20} color="inherit" /> : <Sync />}
-            onClick={() => handleSync(!lastSyncTime)}
-            sx={{ textTransform: "none", borderRadius: 2 }}
-          >
-            {lastSyncTime ? "Refresh Profiles" : "Download All Profiles"}
-          </Button>
+          <Tooltip title={lastSyncTime ? "Refresh Profiles" : "Download All Profiles"}>
+            <IconButton
+              color="primary"
+              disabled={isSyncing}
+              onClick={() => handleSync(!lastSyncTime)}
+              sx={{
+                border: "1px solid",
+                borderColor: "primary.main",
+                borderRadius: 2,
+                p: 1,
+                "&:hover": {
+                  bgcolor: "rgba(25, 118, 210, 0.04)",
+                },
+              }}
+            >
+              {isSyncing ? <CircularProgress size={24} color="inherit" /> : <Sync />}
+            </IconButton>
+          </Tooltip>
 
           {!isReadOnly && (
             <>

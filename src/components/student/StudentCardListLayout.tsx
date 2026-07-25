@@ -111,16 +111,16 @@ export const StudentCardListLayout: React.FC<StudentCardListLayoutProps> = ({
       </Box>
 
       <Box sx={{ display: "flex", gap: 0.5 }}>
-        <IconButton size="small" onClick={() => onViewDetails(item)} color="primary">
-          <Person fontSize="small" />
+        <IconButton size="medium" onClick={() => onViewDetails(item)} color="primary">
+          <Person fontSize="medium" />
         </IconButton>
         {!readOnly && onSelect && (
           <>
-            <IconButton size="small" onClick={() => onEdit(item)} color="secondary">
-              <Edit fontSize="small" />
+            <IconButton size="medium" onClick={() => onEdit(item)} color="secondary">
+              <Edit fontSize="medium" />
             </IconButton>
-            <IconButton size="small" onClick={() => onDelete(item.id, fullName)} color="error">
-              <Delete fontSize="small" />
+            <IconButton size="medium" onClick={() => onDelete(item.id, fullName)} color="error">
+              <Delete fontSize="medium" />
             </IconButton>
           </>
         )}
