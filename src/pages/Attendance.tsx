@@ -75,7 +75,6 @@ export default function Attendance() {
 
   const isPrincipal = isReadOnly;
   const isTeacher = userProfile?.role === "class_teacher";
-  const [isSubstituteMode, setIsSubstituteMode] = React.useState<boolean>(false);
   const [isTakeAttendanceMode, setIsTakeAttendanceMode] = React.useState<boolean>(isTeacher);
 
   const todayDateString = format(new Date(), "yyyy-MM-dd");
@@ -86,12 +85,11 @@ export default function Attendance() {
   useEffect(() => {
     if (userProfile) {
       // Teachers always default to take attendance mode
-      // Others can toggle, but we initialize it to true for substitute mode or for teachers
-      if (userProfile.role === "class_teacher" || isSubstituteMode) {
+      if (userProfile.role === "class_teacher") {
         setIsTakeAttendanceMode(true);
       }
     }
-  }, [userProfile?.role, isSubstituteMode]);
+  }, [userProfile?.role]);
 
   useEffect(() => {
     if (!userProfile || loadingScope) return;
@@ -101,24 +99,17 @@ export default function Attendance() {
       if (!isAuthorized) {
         if (
           userProfile.role === "class_teacher" &&
-          (userProfile.assignedClassId || userProfile.assignedClassId2) &&
-          !isSubstituteMode
+          (userProfile.assignedClassId || userProfile.assignedClassId2)
         ) {
           navigate(`/attendance/${userProfile.assignedClassId || userProfile.assignedClassId2}`);
         } else {
-          // Check if class exists even if not authorized yet
-          const classExists = classes.some(c => c.id === classId);
-          if (isSubstituteMode && classExists && authorizedClassIds.includes(classId)) {
-            setSelectedClassId(classId);
-          } else {
-            navigate("/attendance");
-          }
+          navigate("/attendance");
         }
       } else {
         setSelectedClassId(classId);
       }
     } else {
-      if (userProfile.role === "class_teacher" && (userProfile.assignedClassId || userProfile.assignedClassId2) && !isSubstituteMode) {
+      if (userProfile.role === "class_teacher" && (userProfile.assignedClassId || userProfile.assignedClassId2)) {
         navigate(`/attendance/${userProfile.assignedClassId || userProfile.assignedClassId2}`);
       } else {
         setSelectedClassId(null);
@@ -131,7 +122,6 @@ export default function Attendance() {
     navigate,
     authorizedClassIds,
     loadingScope,
-    isSubstituteMode,
     isTeacher,
     classes,
   ]);
@@ -189,11 +179,7 @@ export default function Attendance() {
 
   const filteredClasses = classes.filter((cls) => {
     if (userProfile?.role === "class_teacher") {
-      if (isSubstituteMode) {
-        return userProfile.alternateClassIds?.includes(cls.id) || false;
-      } else {
-        return cls.id === userProfile.assignedClassId || cls.id === userProfile.assignedClassId2;
-      }
+      return cls.id === userProfile.assignedClassId || cls.id === userProfile.assignedClassId2;
     }
     return authorizedClassIds.includes(cls.id);
   });
@@ -232,36 +218,7 @@ export default function Attendance() {
             )}
           </Typography>
         </Box>
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {isTeacher && userProfile?.alternateClassIds && userProfile.alternateClassIds.length > 0 && (
-            <Box sx={{ display: "flex", bgcolor: "action.hover", p: 0.5, borderRadius: 2 }}>
-              <Button
-                size="small"
-                variant={!isSubstituteMode ? "contained" : "text"}
-                onClick={() => {
-                  setIsSubstituteMode(false);
-                  if (userProfile.assignedClassId) {
-                    navigate(`/attendance/${userProfile.assignedClassId}`);
-                  }
-                }}
-                sx={{ textTransform: "none", fontWeight: "bold", borderRadius: 1.5 }}
-              >
-                My Class
-              </Button>
-              <Button
-                size="small"
-                variant={isSubstituteMode ? "contained" : "text"}
-                onClick={() => {
-                  setIsSubstituteMode(true);
-                  navigate("/attendance");
-                }}
-                sx={{ textTransform: "none", fontWeight: "bold", borderRadius: 1.5 }}
-              >
-                Substitute Attendance
-              </Button>
-            </Box>
-          )}
-        </Box>
+        <Box sx={{ display: "flex", gap: 1 }} />
       </Box>
 
       {error ? (
@@ -357,7 +314,7 @@ export default function Attendance() {
         </>
       ) : (
         <Box>
-          {(userProfile?.role !== "class_teacher" || isSubstituteMode) && (
+          {userProfile?.role !== "class_teacher" && (
             <Box
               sx={{
                 display: "flex",

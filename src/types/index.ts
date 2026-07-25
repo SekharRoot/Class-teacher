@@ -43,7 +43,7 @@ export interface UserProfile {
   schoolName?: string | null; // Selected school name
   assignedClassId?: string | null; // For class_teacher
   assignedClassId2?: string | null; // Second assigned class for class_teacher
-  alternateClassIds?: string[]; // For alternate/temporary class assignments (substitute teachers)
+  alternateClassIds?: string[]; // @deprecated: For alternate/temporary class assignments (substitute teachers)
   coordinatorIds?: string[]; // Links class_teacher -> multiple academic_coordinators
   coordinatorId?: string | null; // @deprecated: Links class_teacher -> academic_coordinator
   principalId?: string | null; // Links academic_coordinator -> principal

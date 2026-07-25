@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import {
   initializeFirestore,
@@ -49,6 +49,16 @@ import firebaseConfig from "../../firebase-applet-config.json";
 
 export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+
+// Explicitly set browser local persistence for long-lived sessions (1 year duration)
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log("Firebase Auth browser local persistence set successfully.");
+  })
+  .catch((err) => {
+    console.warn("Failed to set Firebase Auth persistence:", err);
+  });
+
 export { firebaseConfig };
 
 const firestoreInstanceCache: Record<string, any> = {};

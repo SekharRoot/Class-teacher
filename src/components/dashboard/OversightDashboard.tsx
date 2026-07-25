@@ -29,7 +29,6 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { UserProfile } from "../../types";
 import { DailyStatusReport } from "./DailyStatusReport";
-import { SubstituteAssignmentsManager } from "./SubstituteAssignmentsManager";
 
 interface ClassStat {
   classId: string;
@@ -110,11 +109,6 @@ export const OversightDashboard = React.memo(({
         >
           <Tab label="School Overview" />
           <Tab label="Daily Status Report" />
-          {(userProfile?.role === "admin" ||
-            userProfile?.role === "owner" ||
-            userProfile?.role === "academic_coordinator") && (
-            <Tab label="Substitute Assignments" />
-          )}
         </Tabs>
       </Box>
 
@@ -439,12 +433,6 @@ export const OversightDashboard = React.memo(({
           classes={classes}
           authorizedClassIds={authorizedClassIds}
         />
-      )}
-
-      {activeTab === 2 && (userProfile?.role === "admin" ||
-        userProfile?.role === "owner" ||
-        userProfile?.role === "academic_coordinator") && (
-        <SubstituteAssignmentsManager />
       )}
     </Box>
   );

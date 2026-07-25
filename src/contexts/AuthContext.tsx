@@ -199,6 +199,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 100);
   };
 
+  // Request durable persistent storage from the browser to prevent cache eviction
+  useEffect(() => {
+    if (typeof window !== "undefined" && navigator.storage && navigator.storage.persist) {
+      navigator.storage.persist().then((persistent) => {
+        if (persistent) {
+          console.log("Durable storage granted! Browser will not clear cached student profiles.");
+        } else {
+          console.log("Storage is best-effort. Browser may evict local cache under storage pressure.");
+        }
+      });
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);

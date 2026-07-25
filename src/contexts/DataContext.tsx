@@ -357,9 +357,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // 3. Check and auto-trigger offline student profiles sync (initial login & weekly scheduled)
       try {
         const triggered = await studentSyncManager.checkAndAutoTriggerSync();
-        if (triggered && active) {
-          const cachedStudentsAfterSync = await cache.get("offline_students");
-          if (cachedStudentsAfterSync) setStudents(cachedStudentsAfterSync);
+        if (triggered) {
+          if (active) {
+            const cachedStudentsAfterSync = await cache.get("offline_students");
+            if (cachedStudentsAfterSync) setStudents(cachedStudentsAfterSync);
+          }
+        } else {
+          // If a full sync wasn't auto-triggered, always perform a silent background incremental sync
+          // to pull any fresh changes without the user having to click manual refresh!
+          console.log("Auto-triggering silent background incremental student profile sync...");
+          const res = await studentSyncManager.performSync(false);
+          if (res.success && active && (res.syncedCount > 0 || res.deletedCount > 0)) {
+            const cachedStudentsAfterSync = await cache.get("offline_students");
+            if (cachedStudentsAfterSync) {
+              setStudents(cachedStudentsAfterSync);
+              console.log(`Silent background sync completed. UI updated with ${res.syncedCount} changes.`);
+            }
+          }
         }
       } catch (syncErr) {
         console.error("Background student profile sync check failed:", syncErr);

@@ -2,6 +2,7 @@ import { calculateHistory, calculateLocalHistory } from "./calculations/history"
 import { calculateSummary } from "./calculations/summary";
 import { calculateDashboardStats } from "./calculations/stats";
 import { calculateMonthlyReport } from "./calculations/report";
+import { tryCloudCalculation } from "../utils/cloudFallback";
 
 export function runCalculationLocally(type: string, payload: any): any {
   if (type === "CALCULATE_HISTORY") {
@@ -27,9 +28,16 @@ export const runCalculationWorker = async (
   payload: any,
 ): Promise<any> => {
   try {
+    // 1. Attempt delegation to Cloud Functions (minimizes client-side query / processing loads on Blaze plan)
+    const cloudResult = await tryCloudCalculation(type, payload);
+    if (cloudResult !== null && cloudResult !== undefined) {
+      return cloudResult;
+    }
+
+    // 2. Fall back to local calculation if not deployed or Spark tier
     return runCalculationLocally(type, payload);
   } catch (error) {
-    console.error("Local calculation error:", error);
+    console.error("Calculation error:", error);
     return getEmptyResult(type);
   }
 };
