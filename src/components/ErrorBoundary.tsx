@@ -44,17 +44,28 @@ export class ErrorBoundary extends Component<Props, State> {
       errorStack.includes("chunkloaderror") ||
       errorStack.includes("loading chunk");
 
-    if (isChunkError) {
-      console.warn("Chunk load error detected in ErrorBoundary. Attempting automated page recovery...");
+    const isChunkOrCacheError = 
+      isChunkError ||
+      errorMessage.includes("userprofile") ||
+      errorMessage.includes("cannot read property") ||
+      errorMessage.includes("cannot read properties") ||
+      errorMessage.includes("is not iterable") ||
+      errorStack.includes("authcontext") ||
+      errorStack.includes("datacontext");
+
+    if (isChunkOrCacheError) {
+      console.warn("Chunk/Cache load error detected in ErrorBoundary. Attempting automated page recovery...");
       const lastReloadStr = localStorage.getItem("last_chunk_retry_time");
       const now = Date.now();
       // Only reload if we haven't reloaded in the last 10 seconds to avoid infinite reload loops
       if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 10000) {
         localStorage.setItem("last_chunk_retry_time", now.toString());
         
-        // Purge cache and reload with cache buster
+        // Purge profile cache and reload smoothly
         (async () => {
           try {
+            localStorage.removeItem("cached_user_profile");
+            localStorage.removeItem("cached_auth_uid");
             if ("serviceWorker" in navigator) {
               const registrations = await navigator.serviceWorker.getRegistrations();
               for (const registration of registrations) {

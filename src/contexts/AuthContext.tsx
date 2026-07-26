@@ -38,6 +38,23 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const normalizeProfile = (p: any): UserProfile | null => {
+    if (!p || typeof p !== "object") return null;
+    return {
+      uid: p.uid || "",
+      email: p.email || "",
+      displayName: p.displayName || "",
+      role: p.role || "class_teacher",
+      status: p.status || "active",
+      schoolId: p.schoolId || "default_school",
+      schoolName: p.schoolName || "Default School",
+      assignedClassId: p.assignedClassId || null,
+      coordinatorIds: Array.isArray(p.coordinatorIds) ? p.coordinatorIds : [],
+      principalId: p.principalId || null,
+      hasLeaveFeatureAccess: !!p.hasLeaveFeatureAccess,
+    };
+  };
+
   const hasCachedProfile = () => {
     try {
       return !!(localStorage.getItem("cached_user_profile") && localStorage.getItem("cached_auth_uid"));
@@ -67,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(() => {
     try {
       const cached = localStorage.getItem("cached_user_profile");
-      return cached ? JSON.parse(cached) : null;
+      return cached ? normalizeProfile(JSON.parse(cached)) : null;
     } catch {
       return null;
     }
@@ -174,10 +191,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           );
         }
       }
-      setUserProfile(profile);
-      if (profile) {
+      const normalized = normalizeProfile(profile);
+      setUserProfile(normalized);
+      if (normalized) {
         try {
-          localStorage.setItem("cached_user_profile", JSON.stringify(profile));
+          localStorage.setItem("cached_user_profile", JSON.stringify(normalized));
           localStorage.setItem("cached_auth_uid", user.uid);
         } catch (e) {
           console.warn("Could not save profile to localStorage cache", e);
