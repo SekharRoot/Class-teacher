@@ -28,8 +28,8 @@ var import_fs = __toESM(require("fs"), 1);
 var currentDirname = typeof __dirname !== "undefined" ? __dirname : process.cwd();
 async function startServer() {
   const app = (0, import_express.default)();
-  const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
-  const PORT = process.env.K_SERVICE && process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
+  const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE || !!process.env.PORT && process.env.PORT !== "3000" || import_fs.default.existsSync(import_path.default.join(process.cwd(), "dist", "index.html"));
   console.log(
     `Starting server in ${isProduction ? "production" : "development"} mode on port ${PORT}...`
   );
