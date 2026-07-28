@@ -13,7 +13,7 @@ import InfoIcon from "@mui/icons-material/Info";
 import VerifiedIcon from "@mui/icons-material/Verified";
 import CodeIcon from "@mui/icons-material/Code";
 import SpeedIcon from "@mui/icons-material/Speed";
-import { ProfileCard, Strands, SplitText } from "../components/reactbits";
+import { ProfileCard, SplitText } from "../components/reactbits";
 
 export default function AppInfo() {
   const theme = useTheme();
@@ -78,42 +78,8 @@ export default function AppInfo() {
                   : "rgba(0,0,0,0.06)",
             }}
           >
-            {/* Animated Strands Background placed directly above/behind the Profile Card */}
-            <Box
-              sx={{
-                width: "100%",
-                height: { xs: "280px", sm: "340px" },
-                position: "relative",
-                borderRadius: "20px",
-                overflow: "hidden",
-                mb: -10, // Overlay depth
-                zIndex: 0,
-              }}
-            >
-              <Strands
-                colors={["#F97316","#7C3AED","#06B6D4"]}
-                count={5}
-                speed={0.5}
-                amplitude={1}
-                waviness={2.4}
-                thickness={0.7}
-                glow={2.6}
-                taper={1.3}
-                spread={1}
-                intensity={0.65}
-                saturation={2}
-                opacity={1}
-                scale={1.6}
-                glass={false}
-                refraction={1}
-                dispersion={1}
-                glassSize={1}
-                hueShift={0}
-              />
-            </Box>
-
             {/* Profile Card Component */}
-            <Box sx={{ position: "relative", zIndex: 1, mt: 2 }}>
+            <Box sx={{ position: "relative", zIndex: 1, my: 2 }}>
               <ProfileCard
                 name="Sekhar"
                 title="Physics Teacher and Programmer"
