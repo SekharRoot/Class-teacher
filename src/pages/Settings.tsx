@@ -296,7 +296,6 @@ export default function Settings() {
 
       showToast(`Successfully imported ${studentsToCreate.length} student profiles!`, "success");
       setImportDialogOpen(false);
-      fetchInitialData();
     } catch (err: any) {
       console.error("Failed to apply CSV import:", err);
       showToast("Error applying CSV import: " + err.message, "error");

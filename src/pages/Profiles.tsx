@@ -26,6 +26,8 @@ import {
   Edit,
 } from "@mui/icons-material";
 import { studentSyncManager } from "../utils/studentSyncManager";
+import { cache } from "../lib/cache";
+import { studentCache } from "../utils/studentCache";
 import { studentsApi, schoolsApi } from "../api";
 import { Student, School } from "../types";
 import { imageCache } from "../utils/imageCache";
@@ -212,32 +214,40 @@ export default function Profiles() {
     try {
       await studentsApi.transferStudents(selectedIds, targetClassId);
       showToast(`Successfully transferred ${selectedIds.length} students!`, "success");
+      const updated = students.map((s) => selectedIds.includes(s.id) ? { ...s, classId: targetClassId } : s);
+      setStudents(updated);
+      cache.set("offline_students", updated);
+      studentCache.setBatch(
+        students.filter((s) => selectedIds.includes(s.id)).map((s) => ({ ...s, classId: targetClassId }))
+      );
       setSelectedIds([]);
       setTransferDialogOpen(false);
-      fetchInitialData();
     } catch (error) {
       console.error("Transfer error", error);
       showToast("Failed to transfer students.", "error");
     } finally {
       setIsTransferring(false);
     }
-  }, [selectedIds, showToast, fetchInitialData]);
+  }, [selectedIds, students, setStudents, showToast]);
 
   const handleTransferSchool = useCallback(async (targetSchoolId: string) => {
     setIsSchoolTransferring(true);
     try {
       await studentsApi.transferSchool(selectedIds, targetSchoolId);
       showToast(`Successfully transferred ${selectedIds.length} students to the target school!`, "success");
+      const updated = students.filter((s) => !selectedIds.includes(s.id));
+      setStudents(updated);
+      cache.set("offline_students", updated);
+      studentCache.deleteBatch(selectedIds);
       setSelectedIds([]);
       setTransferSchoolDialogOpen(false);
-      fetchInitialData();
     } catch (error) {
       console.error("School transfer error", error);
       showToast("Failed to transfer students to school.", "error");
     } finally {
       setIsSchoolTransferring(false);
     }
-  }, [selectedIds, showToast, fetchInitialData]);
+  }, [selectedIds, students, setStudents, showToast]);
 
   const handleDeleteProfile = useCallback(async (studentId: string, name: string) => {
     setStudentToDelete({ id: studentId, name });
@@ -767,10 +777,27 @@ export default function Profiles() {
         allStudents={students}
         classes={classes}
         currentClassFilter={classFilter}
-        onSuccess={(updatedCount) => {
+        onSuccess={(updatedCount, updatePayload) => {
           showToast(`Successfully updated ${updatedCount} student profile${updatedCount !== 1 ? 's' : ''}!`, "success");
           setSelectedIds([]);
-          fetchInitialData();
+          if (updatePayload && updatePayload.length > 0) {
+            const patchMap = new Map(updatePayload.map((item) => [item.id, item.data]));
+            const updated = students.map((s) => {
+              const patch = patchMap.get(s.id);
+              return patch ? { ...s, ...patch } : s;
+            });
+            setStudents(updated);
+            cache.set("offline_students", updated);
+            const batchToCache = updatePayload
+              .map((item) => {
+                const original = students.find((s) => s.id === item.id);
+                return original ? { ...original, ...item.data } : null;
+              })
+              .filter(Boolean) as Student[];
+            if (batchToCache.length > 0) {
+              studentCache.setBatch(batchToCache);
+            }
+          }
         }}
       />
 

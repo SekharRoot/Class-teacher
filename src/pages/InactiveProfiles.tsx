@@ -70,8 +70,6 @@ export default function InactiveProfiles() {
       if (restored) {
         await studentCache.setBatch([{ ...restored, isActive: true }]);
       }
-
-      fetchInitialData();
     } catch (error) {
       setToast({ open: true, message: "Failed to restore profile.", severity: "error" });
     }
@@ -95,8 +93,6 @@ export default function InactiveProfiles() {
       setStudents(updatedList);
       await cache.set("offline_students", updatedList);
       await studentCache.deleteBatch([targetId]);
-
-      fetchInitialData();
     } catch (error) {
       setToast({ open: true, message: "Failed to delete profile permanently.", severity: "error" });
     } finally {

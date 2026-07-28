@@ -138,7 +138,6 @@ export const useProfileActions = (
         await studentsApi.create(savedStudent);
         showToast(`Profile for "${formData.studentName}" successfully created on the server!`, "success");
       }
-      fetchInitialData();
     } catch (err: any) {
       console.error("Server save failed, queueing offline change:", err);
       await studentSyncManager.addOfflineChange(
@@ -188,7 +187,6 @@ export const useProfileActions = (
     try {
       await studentsApi.delete(studentId);
       showToast(`Profile for "${name}" deleted successfully!`, "success");
-      fetchInitialData();
     } catch (err) {
       console.error("Server delete failed, queueing offline delete:", err);
       await studentSyncManager.addOfflineChange("delete", studentId, { id: studentId } as Student);
@@ -239,7 +237,6 @@ export const useProfileActions = (
         }
       }
       showToast(`Deleted ${idsToDelete.length} profiles successfully!`, "success");
-      fetchInitialData();
     } catch (error) {
       console.error("Mass delete server error, queueing offline:", error);
       for (const id of idsToDelete) {

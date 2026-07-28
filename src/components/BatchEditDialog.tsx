@@ -48,7 +48,7 @@ interface BatchEditDialogProps {
   allStudents: Student[];
   classes: ClassItem[];
   currentClassFilter: string;
-  onSuccess: (updatedCount: number) => void;
+  onSuccess: (updatedCount: number, updatePayload?: Array<{ id: string; data: Partial<Student> }>) => void;
 }
 
 export const BatchEditDialog: React.FC<BatchEditDialogProps> = ({
@@ -252,7 +252,7 @@ export const BatchEditDialog: React.FC<BatchEditDialogProps> = ({
         setProgress({ processed, total });
       });
 
-      onSuccess(updatePayload.length);
+      onSuccess(updatePayload.length, updatePayload);
       handleResetAndClose();
     } catch (err: any) {
       console.error("Batch update error:", err);
