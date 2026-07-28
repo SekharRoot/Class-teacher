@@ -64,7 +64,7 @@ interface ClassStat {
 export default function Dashboard() {
   const theme = useTheme();
   const navigate = useNavigate();
-  const { currentUser, userProfile } = useAuth();
+  const { currentUser, userProfile, authResolved } = useAuth();
   const { authorizedClassIds, isReadOnly, loadingScope, allClasses, allUsers } =
     useHierarchyScope();
   const {
@@ -102,7 +102,7 @@ export default function Dashboard() {
   }, [userProfile, allClasses]);
 
   useEffect(() => {
-    if (loadingScope || globalLoading) return;
+    if (loadingScope || !authResolved || (globalLoading && students.length === 0)) return;
 
     let active = true;
     let summaryLoaded = false;
@@ -353,6 +353,7 @@ export default function Dashboard() {
         selectedClassId={selectedTeacherClassId}
         onClassChange={setSelectedTeacherClassId}
         availableClasses={teacherAvailableClasses}
+        syncing={globalLoading}
       />
     );
   }
@@ -369,6 +370,7 @@ export default function Dashboard() {
       students={students}
       classes={classes}
       authorizedClassIds={authorizedClassIds}
+      syncing={globalLoading}
     />
   );
 }

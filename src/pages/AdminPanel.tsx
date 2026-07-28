@@ -47,7 +47,7 @@ import { useAdminUsers } from "../hooks/useAdminUsers";
 import { useAdminDatabase } from "../hooks/useAdminDatabase";
 
 export default function AdminPanel() {
-  const { userProfile } = useAuth();
+  const { userProfile, authResolved } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const location = useLocation();
@@ -73,6 +73,7 @@ export default function AdminPanel() {
   });
 
   const loadData = async () => {
+    if (!authResolved) return;
     try {
       const cachedUsers = await cache.get("offline_users");
       const cachedClasses = await cache.get("offline_classes");
@@ -127,7 +128,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [authResolved]);
 
   const adminUsers = useAdminUsers({
     users,

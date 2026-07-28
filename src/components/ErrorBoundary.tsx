@@ -26,91 +26,80 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // If the error occurred during a logout transition, bypass error UI and redirect to login
+    if (typeof window !== "undefined" && sessionStorage.getItem("is_logging_out") === "true") {
+      console.log("ErrorBoundary caught transient error during logout transition. Redirecting to login...");
+      this.setState({ hasError: false, error: null, errorInfo: null });
+      window.location.replace("/login");
+      return;
+    }
+
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
     this.setState({ errorInfo });
 
-    // Check if the error is related to dynamic chunk loading failure
-    const errorMessage = (error.message || "").toLowerCase();
-    const errorStack = (error.stack || "").toLowerCase();
-    const isChunkError = 
-      errorMessage.includes("failed to fetch dynamically imported module") ||
-      errorMessage.includes("error loading dynamically imported module") ||
-      errorMessage.includes("dynamically imported module") ||
-      errorMessage.includes("chunkloaderror") ||
-      errorMessage.includes("loading chunk") ||
-      errorStack.includes("failed to fetch dynamically imported module") ||
-      errorStack.includes("error loading dynamically imported module") ||
-      errorStack.includes("dynamically imported module") ||
-      errorStack.includes("chunkloaderror") ||
-      errorStack.includes("loading chunk");
-
-    const isChunkOrCacheError = 
-      isChunkError ||
-      errorMessage.includes("userprofile") ||
-      errorMessage.includes("cannot read property") ||
-      errorMessage.includes("cannot read properties") ||
-      errorMessage.includes("is not iterable") ||
-      errorStack.includes("authcontext") ||
-      errorStack.includes("datacontext");
-
-    if (isChunkOrCacheError) {
-      console.warn("Chunk/Cache load error detected in ErrorBoundary. Attempting automated page recovery...");
-      const lastReloadStr = localStorage.getItem("last_chunk_retry_time");
-      const now = Date.now();
-      // Only reload if we haven't reloaded in the last 10 seconds to avoid infinite reload loops
-      if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 10000) {
-        localStorage.setItem("last_chunk_retry_time", now.toString());
-        
-        // Purge profile cache and reload smoothly
-        (async () => {
-          try {
-            localStorage.removeItem("cached_user_profile");
-            localStorage.removeItem("cached_auth_uid");
-            if ("serviceWorker" in navigator) {
-              const registrations = await navigator.serviceWorker.getRegistrations();
-              for (const registration of registrations) {
-                await registration.unregister();
-              }
+    // We extend the automated recovery to handle ANY unexpected crash (including React Minified Errors).
+    // This provides a powerful workaround for data-handling bugs by purging corrupted local caches automatically.
+    console.warn("Crash detected in ErrorBoundary. Attempting automated page recovery...");
+    const lastReloadStr = localStorage.getItem("last_crash_recovery_time");
+    const now = Date.now();
+    
+    // Only auto-reload if we haven't crashed in the last 30 seconds to prevent infinite reload loops.
+    // This allows the app to self-heal from corrupted local caches or transient React Hook errors.
+    if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 30000) {
+      localStorage.setItem("last_crash_recovery_time", now.toString());
+      
+      (async () => {
+        try {
+          // Comprehensive data purge
+          localStorage.removeItem("cached_user_profile");
+          localStorage.removeItem("cached_auth_uid");
+          localStorage.removeItem("last_global_sync");
+          sessionStorage.clear();
+          
+          if ("serviceWorker" in navigator) {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            for (const registration of registrations) {
+              await registration.unregister();
             }
-            if ("caches" in window) {
-              const keys = await window.caches.keys();
-              for (const key of keys) {
-                await window.caches.delete(key);
-              }
-            }
-            sessionStorage.clear();
-            const url = new URL(window.location.href);
-            url.searchParams.set("t", Date.now().toString());
-            window.location.replace(url.toString());
-          } catch (e) {
-            console.error("Failed during ErrorBoundary force recovery:", e);
-            window.location.reload();
           }
-        })();
-      }
+          
+          if ("caches" in window) {
+            const keys = await window.caches.keys();
+            for (const key of keys) {
+              await window.caches.delete(key);
+            }
+          }
+          
+          // Force a hard reload with a cache-busting timestamp
+          const url = new URL(window.location.href);
+          url.searchParams.set("t", Date.now().toString());
+          window.location.replace(url.toString());
+        } catch (e) {
+          console.error("Failed during ErrorBoundary force recovery:", e);
+          window.location.reload();
+        }
+      })();
     }
   }
 
   private handleReset = async () => {
     try {
-      // Clear localStorage
-      localStorage.clear();
+      // Clear session keys while keeping offline IndexedDB data intact
+      sessionStorage.clear();
+      localStorage.removeItem("last_global_sync");
       
-      // Clear all cache stores if possible
-      if (typeof window !== "undefined" && window.indexedDB) {
-        const databases = await window.indexedDB.databases();
-        databases.forEach((db) => {
-          if (db.name) {
-            window.indexedDB.deleteDatabase(db.name);
-          }
-        });
+      // Clear HTTP service worker caches
+      if (typeof window !== "undefined" && "caches" in window) {
+        const keys = await window.caches.keys();
+        for (const key of keys) {
+          await window.caches.delete(key);
+        }
       }
       
       // Reload page
       window.location.reload();
     } catch (e) {
-      console.error("Failed to clear IndexedDB fully:", e);
-      localStorage.clear();
+      console.error("Failed during light cache clear:", e);
       window.location.reload();
     }
   };

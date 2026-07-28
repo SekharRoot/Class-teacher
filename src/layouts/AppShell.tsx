@@ -17,19 +17,25 @@ export default function AppShell() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useTheme();
-  const { loading: globalLoading } = useData();
+  const { loading: globalLoading, students } = useData();
   const [localSyncing, setLocalSyncing] = useState(false);
   const syncing = globalLoading || localSyncing;
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeSidebarTab, setActiveSidebarTab] = useState("profile");
 
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
   const handleLogout = async () => {
     try {
+      setIsLoggingOut(true);
+      sessionStorage.setItem("is_logging_out", "true");
+      navigate("/login", { replace: true });
       await signOut();
-      navigate("/login");
     } catch (error) {
       console.error("Failed to log out", error);
+      setIsLoggingOut(false);
+      sessionStorage.removeItem("is_logging_out");
     }
   };
 
@@ -41,11 +47,13 @@ export default function AppShell() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
-  if (!currentUser) {
+  const { primaryMenuItems, secondaryMenuItems } = useNavigationItems(userProfile);
+
+  if (isLoggingOut || !currentUser) {
     return <Navigate to="/login" replace />;
   }
 
-  if (loading) {
+  if (loading || (globalLoading && students.length === 0)) {
     return <LoadingOverlay />;
   }
 
@@ -78,7 +86,6 @@ export default function AppShell() {
     }, 1500);
   };
 
-  const { primaryMenuItems, secondaryMenuItems } = useNavigationItems(userProfile);
 
   // Bottom bar items will be exactly the same as sidebar items
   const bottomBarPrimaryItems = primaryMenuItems;
@@ -113,6 +120,7 @@ export default function AppShell() {
         setSidebarOpen={setSidebarOpen}
         activeSidebarTab={activeSidebarTab}
         setActiveSidebarTab={setActiveSidebarTab}
+        onLogoutClick={() => setLogoutDialogOpen(true)}
       />
 
       {/* Main Content Wrapper Box */}

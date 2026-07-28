@@ -117,11 +117,17 @@ export const studentSyncManager = {
     let syncedCount = 0;
     let conflictedCount = 0;
     const errors: string[] = [];
+    const failedStudentIds = new Set<string>();
 
     // Keep an array to process in order
     const pendingChanges = [...changes];
 
     for (const change of pendingChanges) {
+      if (change.studentId && failedStudentIds.has(change.studentId)) {
+        errors.push(`Skipped change ${change.id} due to dependency on failed student ${change.studentId}`);
+        continue;
+      }
+
       try {
         // Fetch server state for conflict detection
         let serverStudent: Student | null = null;
@@ -221,8 +227,11 @@ export const studentSyncManager = {
       } catch (err: any) {
         console.error(`Failed to synchronize offline change ${change.id}:`, err);
         errors.push(err.message || String(err));
-        // Stop sequential execution to prevent cascading dependencies/ordering errors
-        break;
+        if (change.studentId) {
+          failedStudentIds.add(change.studentId);
+        }
+        // Continue sequential execution to allow other unrelated changes to sync
+        continue;
       }
     }
 

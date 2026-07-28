@@ -4,7 +4,7 @@ import { UserProfile, ClassItem } from "../types";
 import { useData } from "../contexts/DataContext";
 
 export function useHierarchyScope() {
-  const { userProfile } = useAuth();
+  const { userProfile, authResolved } = useAuth();
   const {
     users: allUsers,
     classes: allClasses,

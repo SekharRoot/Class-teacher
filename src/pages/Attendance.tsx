@@ -155,7 +155,10 @@ export default function Attendance() {
       syncAttendance();
     };
     window.addEventListener("force-sync", handleGlobalSync);
-    return () => window.removeEventListener("force-sync", handleGlobalSync);
+  
+  
+
+  return () => window.removeEventListener("force-sync", handleGlobalSync);
   }, [syncAttendance]);
 
   const handleDateShift = (days: number) => {

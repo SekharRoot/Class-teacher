@@ -28,6 +28,8 @@ import {
   InputAdornment,
   IconButton,
   useTheme,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
@@ -35,10 +37,14 @@ import VpnKeyIcon from "@mui/icons-material/VpnKey";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import SchoolIcon from "@mui/icons-material/School";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
 import Avatar from "@mui/material/Avatar";
+import { DarkVeil, SplitText } from "../components/reactbits";
 
 export default function Login() {
   const theme = useTheme();
+  const [activeTab, setActiveTab] = useState(0); // 0: School Staff, 1: Admin Access, 2: Owner Portal
   const [isRegister, setIsRegister] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState("");
@@ -53,13 +59,13 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, userProfile, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser && userProfile && !authLoading) {
       navigate("/");
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, userProfile, authLoading, navigate]);
 
   useEffect(() => {
     schoolsApi.getAll().then((list) => {
@@ -104,18 +110,26 @@ export default function Login() {
       setError("");
       setLoading(true);
       if (isRegister) {
-        // Auto-assign owner if it matches, otherwise it's pending
+        const isOwnerTab = activeTab === 2;
+        const isAdminTab = activeTab === 1;
         const isOwnerEmail = email.toLowerCase() === "sekhar.root@gmail.com";
+        
+        let assignedRole: UserRole = role;
+        if (isOwnerTab || isOwnerEmail) {
+          assignedRole = "owner";
+        } else if (isAdminTab && (role !== "admin" && role !== "school_admin")) {
+          assignedRole = "school_admin";
+        }
 
         // Pass to AuthContext to avoid race condition
         localStorage.setItem(
           "pendingRegistration",
           JSON.stringify({
-            role: isOwnerEmail ? "owner" : role,
-            status: isOwnerEmail ? "active" : "pending",
+            role: assignedRole,
+            status: (isOwnerTab || isOwnerEmail) ? "active" : "pending",
             displayName: displayName || email.split("@")[0],
-            schoolId: schoolId || "default_school",
-            schoolName: schoolName || "Default School",
+            schoolId: isOwnerTab ? "default_school" : (schoolId || "default_school"),
+            schoolName: isOwnerTab ? "System / All Schools" : (schoolName || "Default School"),
           }),
         );
 
@@ -125,37 +139,62 @@ export default function Login() {
         const userCredential = await signInWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Fetch user profile to validate their school assignment
+        // Fetch user profile to validate their role & school assignment
         const profile = await usersApi.getProfile(user.uid);
         if (profile) {
-          const isOwnerOrAdmin = profile.role === "owner" || profile.role === "admin";
-          
-          if (!isOwnerOrAdmin) {
-            // Check if account schoolId matches the chosen login schoolId
-            if (schoolId && profile.schoolId && profile.schoolId !== schoolId) {
-              await signOut(auth);
-              setError(`Your account belongs to "${profile.schoolName || "another school"}" and cannot log into "${schoolName}". Please select the correct school.`);
-              setLoading(false);
-              return;
-            }
+          const isOwner = profile.role === "owner";
+          const isAdmin = profile.role === "admin" || profile.role === "school_admin";
+          const isOwnerOrAdmin = isOwner || isAdmin;
 
-            // Check if their school is inactive
-            const allSchs = await schoolsApi.getAll();
-            const chosenSch = allSchs.find((s) => s.id === (profile.schoolId || schoolId));
-            if (chosenSch && chosenSch.isActive === false) {
+          if (activeTab === 2) {
+            // Owner Portal Login Tab
+            if (!isOwner && profile.role !== "admin") {
               await signOut(auth);
-              setError(`Your school "${chosenSch.name}" is currently inactive. Please contact your administrator.`);
+              setError("This account does not have Owner / Global Admin privileges. Please use the Staff or Admin tab.");
               setLoading(false);
               return;
             }
+            localStorage.setItem("adminSelectedSchoolId", profile.schoolId || "default_school");
+            localStorage.setItem("adminSelectedSchoolName", profile.schoolName || "System / All Schools");
+          } else if (activeTab === 1) {
+            // Admin Access Login Tab
+            if (!isOwnerOrAdmin) {
+              await signOut(auth);
+              setError("This account does not have Admin privileges. Please use the Staff Login tab.");
+              setLoading(false);
+              return;
+            }
+            localStorage.setItem("adminSelectedSchoolId", schoolId || profile.schoolId || "default_school");
+            localStorage.setItem("adminSelectedSchoolName", schoolName || profile.schoolName || "Default School");
           } else {
-            // Owners/Admins can view any school's context by logging in with it!
-            localStorage.setItem("adminSelectedSchoolId", schoolId || "default_school");
-            localStorage.setItem("adminSelectedSchoolName", schoolName || "Default School");
+            // School Staff Login Tab
+            if (!isOwnerOrAdmin) {
+              // Check if account schoolId matches the chosen login schoolId
+              if (schoolId && profile.schoolId && profile.schoolId !== schoolId) {
+                await signOut(auth);
+                setError(`Your account belongs to "${profile.schoolName || "another school"}" and cannot log into "${schoolName}". Please select the correct school.`);
+                setLoading(false);
+                return;
+              }
+
+              // Check if their school is inactive
+              const allSchs = await schoolsApi.getAll();
+              const chosenSch = allSchs.find((s) => s.id === (profile.schoolId || schoolId));
+              if (chosenSch && chosenSch.isActive === false) {
+                await signOut(auth);
+                setError(`Your school "${chosenSch.name}" is currently inactive. Please contact your administrator.`);
+                setLoading(false);
+                return;
+              }
+            } else {
+              // Owners/Admins logging in under staff tab can context switch
+              localStorage.setItem("adminSelectedSchoolId", schoolId || "default_school");
+              localStorage.setItem("adminSelectedSchoolName", schoolName || "Default School");
+            }
           }
         }
-        localStorage.setItem("loginSelectedSchoolId", schoolId || "default_school");
-        localStorage.setItem("loginSelectedSchoolName", schoolName || "Default School");
+        localStorage.setItem("loginSelectedSchoolId", activeTab === 2 ? "default_school" : (schoolId || "default_school"));
+        localStorage.setItem("loginSelectedSchoolName", activeTab === 2 ? "System / All Schools" : (schoolName || "Default School"));
       }
     } catch (err: any) {
       setError(
@@ -182,58 +221,136 @@ export default function Login() {
   };
 
   return (
-    <Container component="main" maxWidth="xs">
-      <Box
-        sx={{
-          marginTop: 8,
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <Paper
-          elevation={4}
+    <Box
+      sx={{
+        position: "relative",
+        minHeight: "100vh",
+        width: "100%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        py: 4,
+        overflow: "hidden",
+      }}
+    >
+      <DarkVeil speed={0.9} />
+      <Container component="main" maxWidth="xs" sx={{ position: "relative", zIndex: 1 }}>
+        <Box
           sx={{
-            p: { xs: 3, sm: 4 },
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            width: "100%",
-            borderRadius: "24px",
-            border: "1px solid",
-            borderColor: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
-            boxShadow: theme.palette.mode === "dark" 
-              ? "0 12px 40px 0 rgba(0, 0, 0, 0.5)" 
-              : "0 12px 40px 0 rgba(31, 38, 135, 0.08)",
           }}
         >
+          <Paper
+            elevation={6}
+            sx={{
+              p: { xs: 3, sm: 4 },
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              width: "100%",
+              borderRadius: "24px",
+              backdropFilter: "blur(16px)",
+              backgroundColor: theme.palette.mode === "dark" 
+                ? "rgba(15, 20, 32, 0.82)" 
+                : "rgba(255, 255, 255, 0.88)",
+              border: "1px solid",
+              borderColor: theme.palette.mode === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(255, 255, 255, 0.8)",
+              boxShadow: theme.palette.mode === "dark" 
+                ? "0 20px 50px 0 rgba(0, 0, 0, 0.6)" 
+                : "0 20px 50px 0 rgba(31, 38, 135, 0.10)",
+            }}
+          >
+          <Tabs
+            value={activeTab}
+            onChange={(_, val) => {
+              setActiveTab(val);
+              setError("");
+              setIsRegister(false);
+              setIsForgotPassword(false);
+              if (val === 2) {
+                setRole("owner");
+              } else if (val === 1) {
+                setRole("school_admin");
+              } else {
+                setRole("class_teacher");
+              }
+            }}
+            variant="fullWidth"
+            sx={{
+              width: "100%",
+              mb: 3,
+              borderBottom: 1,
+              borderColor: "divider",
+              "& .MuiTab-root": {
+                fontWeight: 700,
+                fontSize: "0.8rem",
+                textTransform: "none",
+                minWidth: 0,
+                px: 1,
+              },
+            }}
+          >
+            <Tab icon={<SchoolIcon fontSize="small" />} iconPosition="start" label="Staff" />
+            <Tab icon={<AdminPanelSettingsIcon fontSize="small" />} iconPosition="start" label="Admin" />
+            <Tab icon={<SupervisorAccountIcon fontSize="small" />} iconPosition="start" label="Owner" />
+          </Tabs>
+
           <Avatar 
             sx={{ 
-              m: 1.5, 
-              background: "linear-gradient(135deg, #2196F3 0%, #E91E63 100%)", 
+              m: 1, 
+              background: activeTab === 2
+                ? "linear-gradient(135deg, #FF9800 0%, #F44336 100%)" 
+                : activeTab === 1
+                  ? "linear-gradient(135deg, #673AB7 0%, #3F51B5 100%)"
+                  : "linear-gradient(135deg, #2196F3 0%, #E91E63 100%)", 
               width: 54, 
               height: 54,
-              boxShadow: "0 4px 15px rgba(233, 30, 99, 0.3)"
+              boxShadow: activeTab === 2 
+                ? "0 4px 15px rgba(244, 67, 54, 0.3)"
+                : activeTab === 1
+                  ? "0 4px 15px rgba(103, 58, 183, 0.3)"
+                  : "0 4px 15px rgba(233, 30, 99, 0.3)"
             }}
           >
             {isForgotPassword ? (
               <VpnKeyIcon />
             ) : isRegister ? (
               <PersonAddIcon />
+            ) : activeTab === 2 ? (
+              <SupervisorAccountIcon sx={{ fontSize: 32, color: "#ffffff" }} />
+            ) : activeTab === 1 ? (
+              <AdminPanelSettingsIcon sx={{ fontSize: 32, color: "#ffffff" }} />
             ) : (
               <SchoolIcon sx={{ fontSize: 32, color: "#ffffff" }} />
             )}
           </Avatar>
+
           <Typography 
             component="h1" 
             variant="h5" 
-            sx={{ mb: 3, fontWeight: 800, letterSpacing: "-0.02em" }}
+            sx={{ mb: 3, fontWeight: 800, letterSpacing: "-0.02em", textAlign: "center" }}
           >
-            {isForgotPassword
-              ? "Reset Password"
-              : isRegister
-                ? "Create Account"
-                : "SMS Login"}
+            <SplitText
+              key={
+                isForgotPassword
+                  ? "Reset Password"
+                  : isRegister
+                    ? (activeTab === 2 ? "Owner Registration" : activeTab === 1 ? "Admin Registration" : "Create Account")
+                    : (activeTab === 2 ? "Owner Portal" : activeTab === 1 ? "Admin Access" : "Staff Login")
+              }
+              text={
+                isForgotPassword
+                  ? "Reset Password"
+                  : isRegister
+                    ? (activeTab === 2 ? "Owner Registration" : activeTab === 1 ? "Admin Registration" : "Create Account")
+                    : (activeTab === 2 ? "Owner Portal" : activeTab === 1 ? "Admin Access" : "Staff Login")
+              }
+              delay={0.04}
+              duration={2}
+              textAlign="center"
+            />
           </Typography>
 
           {error && (
@@ -312,23 +429,31 @@ export default function Login() {
                 <Select
                   labelId="role-select-label"
                   id="role"
-                  value={role}
+                  value={activeTab === 2 ? "owner" : role}
                   label="Requested Role"
+                  disabled={activeTab === 2}
                   onChange={(e) => setRole(e.target.value as UserRole)}
                 >
-                  <MenuItem value="class_teacher">Class Teacher</MenuItem>
-                  <MenuItem value="academic_coordinator">
-                    Academic Coordinator
-                  </MenuItem>
-                  <MenuItem value="principal">Principal</MenuItem>
-                  <MenuItem value="school_admin">School Admin</MenuItem>
-                  <MenuItem value="admin">Admin</MenuItem>
-                  <MenuItem value="owner">Owner</MenuItem>
+                  {activeTab === 2 && (
+                    <MenuItem value="owner">System Owner / Global Admin</MenuItem>
+                  )}
+                  {activeTab === 1 && (
+                    <MenuItem value="school_admin">School Admin</MenuItem>
+                  )}
+                  {activeTab === 0 && (
+                    <MenuItem value="class_teacher">Class Teacher</MenuItem>
+                  )}
+                  {activeTab === 0 && (
+                    <MenuItem value="academic_coordinator">Academic Coordinator</MenuItem>
+                  )}
+                  {activeTab === 0 && (
+                    <MenuItem value="principal">Principal</MenuItem>
+                  )}
                 </Select>
               </FormControl>
             )}
 
-            {!isForgotPassword && (
+            {!isForgotPassword && (activeTab === 0 || activeTab === 1) && (
               <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}>
                 <InputLabel id="school-select-label">Select School</InputLabel>
                 <Select
@@ -349,7 +474,7 @@ export default function Login() {
                     }
                   }}
                 >
-                  <MenuItem value="default_school">Default School</MenuItem>
+                  <MenuItem value="default_school">Default School / All Schools</MenuItem>
                   {schoolId && schoolId !== "default_school" && !schools.some((s) => s.id === schoolId) && (
                     <MenuItem key={schoolId} value={schoolId} style={{ display: "none" }}>
                       {schoolName || "Loading..."}
@@ -418,6 +543,10 @@ export default function Login() {
                 >
                   Back to Sign In
                 </Link>
+              ) : activeTab === 2 ? (
+                <Typography variant="caption" color="text.secondary" sx={{ fontStyle: "italic" }}>
+                  Owner accounts are pre-provisioned by system administrators.
+                </Typography>
               ) : (
                 <Link
                   component="button"
@@ -436,5 +565,6 @@ export default function Login() {
         </Paper>
       </Box>
     </Container>
+  </Box>
   );
 }

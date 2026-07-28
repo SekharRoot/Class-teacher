@@ -172,21 +172,6 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 {student.firstName ? student.firstName[0] : ""}
                 {student.lastName?.[0] || ""}
               </Avatar>
-              <IconButton
-                size="small"
-                onClick={fetchStudentHistory}
-                sx={{
-                  position: "absolute",
-                  bottom: -4,
-                  right: -4,
-                  bgcolor: "background.paper",
-                  boxShadow: 1,
-                  p: 0.25,
-                  "&:hover": { bgcolor: "action.hover" },
-                }}
-              >
-                <HistoryIcon sx={{ fontSize: 12 }} />
-              </IconButton>
             </Box>
             <Box>
               <Typography variant="body2" sx={{ fontWeight: "bold" }}>

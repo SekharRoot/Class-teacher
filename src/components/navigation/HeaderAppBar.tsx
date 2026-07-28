@@ -9,8 +9,11 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Tooltip,
+  Button,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuth } from "../../contexts/AuthContext";
 import { schoolsApi } from "../../api/schools";
 import { School } from "../../types";
@@ -225,6 +228,26 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
           </FormControl>
         )}
         <Box sx={{ flexGrow: 1 }} />
+        <Tooltip title="Log Out">
+          <Button
+            variant="outlined"
+            color="error"
+            size="small"
+            onClick={onLogoutClick}
+            startIcon={<LogoutIcon />}
+            sx={{
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 600,
+              px: { xs: 1.5, sm: 2 },
+              ml: 1,
+            }}
+          >
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+              Log Out
+            </Box>
+          </Button>
+        </Tooltip>
       </Toolbar>
     </AppBar>
   );

@@ -20,6 +20,7 @@ interface AuthContextType {
   activeSchoolId: string;
   activeSchoolName: string;
   setActiveSchool: (schoolId: string, schoolName: string) => void;
+  authResolved: boolean;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -31,6 +32,7 @@ const AuthContext = createContext<AuthContextType>({
   activeSchoolId: "default_school",
   activeSchoolName: "Default School",
   setActiveSchool: () => {},
+  authResolved: false,
 });
 
 export function useAuth() {
@@ -40,16 +42,20 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const normalizeProfile = (p: any): UserProfile | null => {
     if (!p || typeof p !== "object") return null;
+    const isOwnerEmail = p.email === "sekhar.root@gmail.com";
     return {
       uid: p.uid || "",
       email: p.email || "",
-      displayName: p.displayName || "",
-      role: p.role || "class_teacher",
+      displayName: p.displayName || (p.email ? p.email.split("@")[0] : "User"),
+      role: isOwnerEmail ? "owner" : (p.role || "class_teacher"),
       status: p.status || "active",
       schoolId: p.schoolId || "default_school",
       schoolName: p.schoolName || "Default School",
       assignedClassId: p.assignedClassId || null,
+      assignedClassId2: p.assignedClassId2 || null,
+      alternateClassIds: Array.isArray(p.alternateClassIds) ? p.alternateClassIds : [],
       coordinatorIds: Array.isArray(p.coordinatorIds) ? p.coordinatorIds : [],
+      coordinatorId: p.coordinatorId || null,
       principalId: p.principalId || null,
       hasLeaveFeatureAccess: !!p.hasLeaveFeatureAccess,
     };
@@ -92,6 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const [loading, setLoading] = useState(!hasCachedProfile());
   const [initialLoad, setInitialLoad] = useState(!hasCachedProfile());
+  const [authResolved, setAuthResolved] = useState(false);
 
   const fetchAndSyncProfile = async (user: User) => {
     try {
@@ -179,9 +186,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             );
           }
         }
-      } else if (isOwnerEmail && profile.role !== "owner") {
-        // Force update existing profile for sekhar.root@gmail.com to owner
+      } else if (isOwnerEmail && (profile.role !== "owner" || profile.status !== "active")) {
+        // Force update existing profile for sekhar.root@gmail.com to owner and active status
         profile.role = "owner";
+        profile.status = "active";
         try {
           await usersApi.saveProfile(user.uid, profile);
         } catch (e) {
@@ -271,7 +279,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setAuthResolved(true);
+
       // If we don't have a cached profile, show loading while resolving auth
       if (!hasCachedProfile()) {
         setLoading(true);
@@ -280,6 +291,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (user) {
         try {
           localStorage.setItem("cached_auth_uid", user.uid);
+          sessionStorage.removeItem("is_logging_out");
         } catch {}
         await fetchAndSyncProfile(user);
       } else {
@@ -287,6 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.removeItem("cached_user_profile");
           localStorage.removeItem("cached_auth_uid");
+          sessionStorage.removeItem("is_logging_out");
         } catch {}
       }
       setLoading(false);
@@ -304,6 +317,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      sessionStorage.setItem("is_logging_out", "true");
       localStorage.removeItem("cached_user_profile");
       localStorage.removeItem("cached_auth_uid");
     } catch {}
@@ -321,6 +335,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         activeSchoolId,
         activeSchoolName,
         setActiveSchool,
+        authResolved,
       }}
     >
       {initialLoad ? (

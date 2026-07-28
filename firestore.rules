@@ -28,6 +28,18 @@ service cloud.firestore {
       return isActive() && getUserData().role == 'academic_coordinator';
     }
 
+    function getSchoolId() {
+      return getUserData().get('schoolId', '');
+    }
+
+    function belongsToSchool(schoolId) {
+      return isActive() && schoolId != '' && getSchoolId() == schoolId;
+    }
+
+    function isDocTenant(docData) {
+      return isActive() && getSchoolId() != '' && docData.get('schoolId', '') == getSchoolId();
+    }
+
     // Global default-deny catch-all
     match /{document=**} {
       allow read, write: if false;
@@ -35,20 +47,31 @@ service cloud.firestore {
 
     // Collection Group Queries
     match /{path=**}/students/{studentId} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
     
     match /{path=**}/leaves/{leaveId} {
-      allow read: if isActive() || isAdminOrOwner();
-      allow write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || (isDocTenant(request.resource.data) && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data) && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
     
     match /{path=**}/attendance/{date} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
 
     match /{path=**}/attendance_summary/{date} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
 
     // Classroom manager collections
@@ -61,56 +84,71 @@ service cloud.firestore {
       allow write: if isAdminOrOwner();
 
       match /attendance_summaries/{date} {
-        allow read, write: if isActive() || isAdminOrOwner();
+        allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
       }
 
       match /classes/{classId} {
-        allow read, write: if isActive() || isAdminOrOwner();
+        allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
 
         match /students/{studentId} {
-          allow read, write: if isActive() || isAdminOrOwner();
+          allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
         }
 
         match /leaves/{leaveId} {
-          allow read: if isActive() || isAdminOrOwner();
-          allow write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+          allow read: if belongsToSchool(schoolId) || isAdminOrOwner();
+          allow write: if isAdminOrOwner() || (belongsToSchool(schoolId) && getUserData().get('hasLeaveFeatureAccess', false) == true);
         }
 
         match /attendance/{date} {
-          allow read, write: if isActive() || isAdminOrOwner();
+          allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
         }
 
         match /attendance_summary/{date} {
-          allow read, write: if isActive() || isAdminOrOwner();
+          allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
         }
       }
     }
 
     match /students/{studentId} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
     
     match /attendance/{date} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
 
     match /attendance_summaries/{date} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
 
     match /class_daily_attendance/{docId} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
     
     match /classes/{classId} {
-      allow read, write: if isActive() || isAdminOrOwner();
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || isDocTenant(request.resource.data);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data));
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
 
     match /leaves/{leaveId} {
-      // Allow read for all active users so they can see their relevant data
-      // Write remains restricted to admin/owner or those with explicit access
-      allow read: if isActive() || isAdminOrOwner();
-      allow write: if isAdminOrOwner() || (isActive() && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      allow read: if isAdminOrOwner() || isDocTenant(resource.data);
+      allow create: if isAdminOrOwner() || (isDocTenant(request.resource.data) && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      allow update: if isAdminOrOwner() || (isDocTenant(resource.data) && isDocTenant(request.resource.data) && getUserData().get('hasLeaveFeatureAccess', false) == true);
+      allow delete: if isAdminOrOwner() || isDocTenant(resource.data);
     }
 
     match /users/{userId} {
@@ -126,10 +164,12 @@ service cloud.firestore {
         isAdminOrOwner() ||
         // Academic Coordinators can update substitute teacher classes (only for class_teacher accounts to prevent privilege escalation)
         (isCoordinator() && resource.data.role == 'class_teacher') ||
-        // Users can update their own profile, BUT they cannot change their role or status
+        // Users can update their own profile, BUT they cannot change their role, status, schoolId, or hasLeaveFeatureAccess
         (request.auth.uid == userId && 
          request.resource.data.role == resource.data.role && 
-         request.resource.data.status == resource.data.status)
+         request.resource.data.status == resource.data.status &&
+         request.resource.data.get('schoolId', '') == resource.data.get('schoolId', '') &&
+         request.resource.data.get('hasLeaveFeatureAccess', false) == resource.data.get('hasLeaveFeatureAccess', false))
       );
       
       // Only Admins/Owners can delete users, OR a user can delete their own pre-configured profile

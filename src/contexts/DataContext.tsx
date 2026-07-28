@@ -6,6 +6,7 @@ import { cache } from "../lib/cache";
 import { useAuth } from "./AuthContext";
 import { studentSyncManager } from "../utils/studentSyncManager";
 import { studentCache } from "../utils/studentCache";
+import { dataObserver } from "../utils/dataObserver";
 
 interface DataContextType {
   students: Student[]; setStudents: React.Dispatch<React.SetStateAction<Student[]>>;
@@ -27,7 +28,7 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const { userProfile, currentUser } = useAuth();
+  const { userProfile, currentUser, authResolved } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [leaves, setLeaves] = useState<LeaveRequest[]>([]);
@@ -39,6 +40,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [pendingChanges, setPendingChanges] = useState<OfflineStudentChange[]>([]);
   const [conflicts, setConflicts] = useState<ConflictItem[]>([]);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "error" | "success">("idle");
+
+  // Register DataObserver subscribers for silent background merging across all collections
+  useEffect(() => {
+    const unsubStudents = dataObserver.subscribe<Student[]>("students", (fresh) => {
+      setStudents(fresh);
+    });
+    const unsubClasses = dataObserver.subscribe<ClassItem[]>("classes", (fresh) => {
+      setClasses(fresh);
+    });
+    const unsubLeaves = dataObserver.subscribe<LeaveRequest[]>("leaves", (fresh) => {
+      setLeaves(fresh);
+    });
+    const unsubUsers = dataObserver.subscribe<UserProfile[]>("users", (fresh) => {
+      setUsers(fresh);
+    });
+
+    return () => {
+      unsubStudents();
+      unsubClasses();
+      unsubLeaves();
+      unsubUsers();
+    };
+  }, []);
 
   const refreshPendingChanges = useCallback(async () => {
     const list = await studentSyncManager.getOfflineChanges();
@@ -178,23 +202,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const [classesList, leavesList, usersList] =
       await Promise.all(promises);
 
-    setClasses(classesList || []);
-    setLeaves(leavesList || []);
-    setUsers(usersList || []);
-
     await Promise.all([
-      cache.set("offline_classes", classesList || []),
-      cache.set("offline_leaves", leavesList || []),
-      cache.set("offline_users", usersList || []),
+      dataObserver.notifyAndCache("classes", classesList || []),
+      dataObserver.notifyAndCache("leaves", leavesList || []),
+      dataObserver.notifyAndCache("users", usersList || []),
     ]);
 
-    // 2. Set loading false early once lightweight meta collections are ready,
-    // so the main interface renders snapily. Then download profiles progressively.
-    setLoading(false);
-
-    // Only download student profiles if forced, OR if we don't have any students in our cache/state.
+    // Check if we already have cached students available locally
     const cachedStudents = await cache.get("offline_students");
     const hasCachedStudents = !!(cachedStudents && cachedStudents.length > 0);
+
+    // If we already have cached students and are not forcing a refresh, set loading false early
+    if (hasCachedStudents && !forceRefreshStudents) {
+      setLoading(false);
+    }
 
     if (forceRefreshStudents || !hasCachedStudents) {
       // Method 1: If forcing refresh and we already have cached students, perform an incremental sync first
@@ -207,6 +228,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (freshStudents) {
               setStudents(freshStudents);
               console.log(`Incremental sync completed successfully. Synced: ${syncResult.syncedCount}, Deleted: ${syncResult.deletedCount}`);
+              setLoading(false);
               return;
             }
           }
@@ -235,10 +257,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         
         const finalStudents = Array.from(mergedMap.values()) as Student[];
         
-        setStudents(finalStudents);
-        await cache.set("offline_students", finalStudents);
-        // Also update the studentCache for consistency
-        await studentCache.clearAndSet(finalStudents);
+        await dataObserver.notifyAndCache("students", finalStudents);
       } catch (err) {
         console.error("Progressive parallel chunk student download failed, trying standard:", err);
         const studentsList = await studentsApi.getAll(true);
@@ -254,20 +273,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
         studentsToPreserve.forEach(s => mergedMap.set(s.id, s));
         const finalStudents = Array.from(mergedMap.values()) as Student[];
 
-        setStudents(finalStudents);
-        await cache.set("offline_students", finalStudents);
-        await studentCache.clearAndSet(finalStudents);
+        await dataObserver.notifyAndCache("students", finalStudents);
+      } finally {
+        setLoading(false);
       }
     } else {
       console.log("Skipping automatic student profiles re-download as they are already cached offline.");
       if (cachedStudents) {
         setStudents(cachedStudents);
       }
+      setLoading(false);
     }
   }, [userProfile]);
 
   const fetchInitialData = useCallback(async () => {
-    if (!currentUser || userProfile?.status !== "active") return;
+    if (!currentUser || userProfile?.status !== "active" || !authResolved) return;
 
     try {
       const cachedStudents = await cache.get("offline_students");
@@ -306,7 +326,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [currentUser, userProfile?.status, fetchAndCacheAll]);
+  }, [currentUser, userProfile?.status, authResolved, fetchAndCacheAll]);
 
   useEffect(() => {
     let active = true;
@@ -330,6 +350,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (cachedStudents || cachedClasses) {
         setLoading(false);
       }
+
+      // If Firebase Auth hasn't fully settled, wait before doing network syncs to avoid 'Missing permissions' errors
+      if (!authResolved) return;
 
       // 2. Sequentially trigger server fetch in background to download fresh data
       const lastSync = parseInt(localStorage.getItem("last_global_sync") || "0");
@@ -394,7 +417,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [currentUser, userProfile?.status, fetchInitialData, fetchAndCacheAll]);
+  }, [currentUser, userProfile?.status, authResolved, fetchInitialData, fetchAndCacheAll]);
 
   const handleForceSync = async () => {
     try {

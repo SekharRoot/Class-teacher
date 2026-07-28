@@ -8,8 +8,10 @@ import { AttendanceStatus, LeaveRequest, Student } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 import { cache } from "../lib/cache";
 import { useData } from "../contexts/DataContext";
+import { useAuth } from "../contexts/AuthContext";
 
 export function useAttendanceData() {
+  const { authResolved } = useAuth();
   const {
     classes,
     students,
@@ -64,6 +66,7 @@ export function useAttendanceData() {
   };
 
   const fetchAttendanceForDate = async (dateStr: string) => {
+    if (!authResolved) return;
     if (offlineMode) {
       try {
         setLoading(true);
@@ -109,6 +112,7 @@ export function useAttendanceData() {
   };
 
   const fetchHistory = async () => {
+    if (!authResolved) return;
     try {
       // Fetch students for the selected class specifically to save reads
       let classStudents: Student[] = [];
@@ -194,7 +198,7 @@ export function useAttendanceData() {
 
   // 4. Background Real-time sync for selected date attendance
   useEffect(() => {
-    if (offlineMode || !selectedClassId) return;
+    if (offlineMode || !selectedClassId || !authResolved) return;
 
     const activeSchoolId = getActiveSchoolId();
     const docRef = doc(db, "schools", activeSchoolId, "classes", selectedClassId, "attendance", dateString);
@@ -206,8 +210,8 @@ export function useAttendanceData() {
           const data = docSnap.data();
           // Merge with existing attendance to preserve data for other classes
           setAttendance(prev => ({
-            ...data, // Start with server data for the current class
-            ...prev  // Overwrite with existing state (which might have unsynced changes for this or other classes)
+            ...prev,  // Keep existing state for other classes
+            ...data   // Overwrite with fresh server data for the current class/students
           }));
           localStorage.setItem(`attendance_${dateString}`, JSON.stringify({
             ...JSON.parse(localStorage.getItem(`attendance_${dateString}`) || '{}'),
@@ -230,19 +234,19 @@ export function useAttendanceData() {
   // 5. Run connection check and initial sync
   useEffect(() => {
     fetchAttendanceForDate(dateString);
-  }, [dateString]);
+  }, [dateString, authResolved]);
 
   // 6. Recalculate history whenever selected class, student database, historyLimit, activeTab, or dateString updates (but not on live attendance changes)
   useEffect(() => {
     if (activeTab === 1) {
       fetchHistory();
     }
-  }, [selectedClassId, students, dateString, historyLimit, activeTab]);
+  }, [selectedClassId, students, dateString, historyLimit, activeTab, authResolved]);
 
   // Also fetch history on dateString change to keep track of date-wise history switch
   useEffect(() => {
     fetchHistory();
-  }, [dateString]);
+  }, [dateString, authResolved]);
 
   // Reset history limit when switching class
   useEffect(() => {

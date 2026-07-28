@@ -23,6 +23,7 @@ import {
   SwapHoriz,
   Business,
   Sync,
+  Edit,
 } from "@mui/icons-material";
 import { studentSyncManager } from "../utils/studentSyncManager";
 import { studentsApi, schoolsApi } from "../api";
@@ -34,6 +35,7 @@ import { StudentFormDialog } from "../components/StudentFormDialog";
 import { StudentDeleteDialog } from "../components/StudentDeleteDialog";
 import { TransferClassDialog } from "../components/TransferClassDialog";
 import { TransferSchoolDialog } from "../components/TransferSchoolDialog";
+import { BatchEditDialog } from "../components/BatchEditDialog";
 import { ProfileFilters } from "../components/ProfileFilters";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
@@ -46,13 +48,14 @@ export default function Profiles() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editMode, setEditMode] = useState(false);
   const [massDeleteDialogOpen, setMassDeleteDialogOpen] = useState(false);
+  const [batchEditDialogOpen, setBatchEditDialogOpen] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
-  const { userProfile } = useAuth();
+  const { userProfile, authResolved } = useAuth();
   const {
     pendingChanges,
     conflicts,
@@ -70,14 +73,14 @@ export default function Profiles() {
     userProfile?.email === "sekhar.root@gmail.com";
 
   useEffect(() => {
-    if (isOwnerOrSuperAdmin) {
+    if (isOwnerOrSuperAdmin && authResolved) {
       schoolsApi.getAll().then((data) => {
         setSchoolsList(data);
       }).catch((err) => {
         console.error("Error loading schools in profiles", err);
       });
     }
-  }, [isOwnerOrSuperAdmin]);
+  }, [isOwnerOrSuperAdmin, authResolved]);
 
   useEffect(() => {
     // Run image cache cleanup on mount (once a week internally)
@@ -386,6 +389,15 @@ export default function Profiles() {
           {!isReadOnly && (
             <>
               <Button
+                variant="outlined"
+                color="primary"
+                startIcon={<Edit />}
+                onClick={() => setBatchEditDialogOpen(true)}
+                sx={{ textTransform: "none", borderRadius: 2, fontWeight: 600 }}
+              >
+                Batch Edit
+              </Button>
+              <Button
                 variant={editMode ? "contained" : "outlined"}
                 color="info"
                 startIcon={<PlaylistAddCheck />}
@@ -561,6 +573,15 @@ export default function Profiles() {
           />
           {selectedIds.length > 0 && (
             <Box sx={{ display: "flex", gap: 1 }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Edit />}
+                onClick={() => setBatchEditDialogOpen(true)}
+                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+              >
+                Batch Edit ({selectedIds.length})
+              </Button>
               {isOwnerOrSuperAdmin && (
                 <Button
                   id="btn-transfer-school"
@@ -737,6 +758,20 @@ export default function Profiles() {
         onTransfer={handleTransferStudents}
         classes={classes}
         selectedCount={selectedIds.length}
+      />
+
+      <BatchEditDialog
+        open={batchEditDialogOpen}
+        onClose={() => setBatchEditDialogOpen(false)}
+        selectedIds={selectedIds}
+        allStudents={students}
+        classes={classes}
+        currentClassFilter={classFilter}
+        onSuccess={(updatedCount) => {
+          showToast(`Successfully updated ${updatedCount} student profile${updatedCount !== 1 ? 's' : ''}!`, "success");
+          setSelectedIds([]);
+          fetchInitialData();
+        }}
       />
 
       {isOwnerOrSuperAdmin && (

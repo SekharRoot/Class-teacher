@@ -17,7 +17,7 @@ export function useProfilesData(
     offlineMode,
   } = useData();
 
-  const { userProfile } = useAuth();
+  const { userProfile, authResolved } = useAuth();
 
   // Local student state with paginated, cached, and searched data
   const [students, setStudents] = useState<Student[]>([]);
@@ -68,7 +68,7 @@ export function useProfilesData(
       }
 
       // 2. Fetch fresh first page from server in the background
-      if (!offlineMode) {
+      if (!offlineMode && authResolved) {
         const { students: serverStudents, lastVisible: nextLastVisible } =
           await studentsApi.getPaginated(40, null);
 
@@ -101,7 +101,7 @@ export function useProfilesData(
     } finally {
       setLoading(false);
     }
-  }, [offlineMode, showToast]);
+  }, [offlineMode, showToast, authResolved]);
 
   // Load next page on scroll
   const loadMore = useCallback(async () => {
@@ -160,7 +160,7 @@ export function useProfilesData(
               setStudents(localClassStudents);
             }
 
-            if (!offlineMode) {
+            if (!offlineMode && authResolved) {
               const serverClassStudents = await studentsApi.getByClass(classFilter);
               setStudents((prev) => {
                 const mergedMap = new Map(prev.map((s) => [s.id, s]));
@@ -235,7 +235,7 @@ export function useProfilesData(
         clearTimeout(searchTimeoutRef.current);
       }
     };
-  }, [searchQuery, classFilter, offlineMode, fetchInitialData]);
+  }, [searchQuery, classFilter, offlineMode, fetchInitialData, authResolved]);
 
   // Load specific class students on filter select
   useEffect(() => {
@@ -263,7 +263,7 @@ export function useProfilesData(
           }
 
           // 2. Load from server
-          if (!offlineMode) {
+          if (!offlineMode && authResolved) {
             const serverClassStudents = await studentsApi.getByClass(classFilter);
             
             // Merge local and server data

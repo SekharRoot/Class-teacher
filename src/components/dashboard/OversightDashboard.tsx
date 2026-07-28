@@ -54,6 +54,7 @@ interface OversightDashboardProps {
   students: any[];
   classes: any[];
   authorizedClassIds: string[];
+  syncing?: boolean;
 }
 
 export const OversightDashboard = React.memo(({
@@ -66,6 +67,7 @@ export const OversightDashboard = React.memo(({
   students,
   classes,
   authorizedClassIds,
+  syncing = false,
 }: OversightDashboardProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -80,7 +82,7 @@ export const OversightDashboard = React.memo(({
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
         Oversight Dashboard
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: syncing ? 2 : 4 }}>
         Welcome,{" "}
         {userProfile?.role === "owner"
           ? "Owner"
@@ -91,6 +93,32 @@ export const OversightDashboard = React.memo(({
               : "Administrator"}
         . School oversight metrics and structural reports for today.
       </Typography>
+
+      {syncing && (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            p: 2,
+            mb: 4,
+            borderRadius: 3,
+            bgcolor: "action.hover",
+            border: "1px dashed",
+            borderColor: "primary.light",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+            <Typography variant="body2" color="primary.main" sx={{ fontWeight: "bold" }}>
+              Syncing in progress...
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Updating your dashboard silently with the latest school registers
+            </Typography>
+          </Box>
+          <LinearProgress color="primary" sx={{ borderRadius: 1, height: 4 }} />
+        </Box>
+      )}
 
       <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 4 }}>
         <Tabs

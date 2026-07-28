@@ -18,6 +18,7 @@ import {
   ListItemText,
   Select,
   MenuItem,
+  LinearProgress,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
@@ -42,6 +43,7 @@ interface TeacherDashboardProps {
   selectedClassId?: string;
   onClassChange?: (classId: string) => void;
   availableClasses?: ClassItem[];
+  syncing?: boolean;
 }
 
 export const TeacherDashboard = React.memo(({
@@ -54,6 +56,7 @@ export const TeacherDashboard = React.memo(({
   selectedClassId,
   onClassChange,
   availableClasses,
+  syncing = false,
 }: TeacherDashboardProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -63,10 +66,36 @@ export const TeacherDashboard = React.memo(({
       <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
         Teacher Portal
       </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+      <Typography variant="body1" color="text.secondary" sx={{ mb: syncing ? 2 : 2 }}>
         Welcome back, {userProfile?.displayName}. Here is today's overview for
         your assigned class.
       </Typography>
+
+      {syncing && (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            p: 2,
+            mb: 4,
+            borderRadius: 3,
+            bgcolor: "action.hover",
+            border: "1px dashed",
+            borderColor: "primary.light",
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+            <Typography variant="body2" color="primary.main" sx={{ fontWeight: "bold" }}>
+              Syncing in progress...
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Updating your dashboard silently with the latest school registers
+            </Typography>
+          </Box>
+          <LinearProgress color="primary" sx={{ borderRadius: 1, height: 4 }} />
+        </Box>
+      )}
 
       {userProfile && userProfile.assignedClassId2 && availableClasses && availableClasses.length > 0 && (
         <Box sx={{ mb: 4, display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>

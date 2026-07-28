@@ -1,3 +1,14 @@
+function unwrapStatus(val: any): string {
+  if (!val) return "";
+  if (typeof val === "string") return val.trim();
+  if (typeof val === "object" && val !== null) {
+    if ("status" in val && val.status !== undefined) {
+      return unwrapStatus(val.status);
+    }
+  }
+  return String(val || "").trim();
+}
+
 export function calculateSummary(payload: any): any {
   const { students, attendance, selectedClassId } = payload;
   const classStudents = students.filter((st: any) => 
@@ -12,7 +23,7 @@ export function calculateSummary(payload: any): any {
 
   const presentStudents = classStudents.filter((st: any) => {
     const val = attendance[st.id];
-    const status = (typeof val === "object" && val !== null ? val.status : val || "").toLowerCase();
+    const status = unwrapStatus(val).toLowerCase();
     return status === "present";
   });
   const presentCount = presentStudents.length;
@@ -22,7 +33,7 @@ export function calculateSummary(payload: any): any {
 
   const absentStudents = classStudents.filter((st: any) => {
     const val = attendance[st.id];
-    const status = (typeof val === "object" && val !== null ? val.status : val || "").toLowerCase();
+    const status = unwrapStatus(val).toLowerCase();
     return status === "absent" || status === "leave";
   });
   const absentCount = absentStudents.length;
@@ -32,7 +43,7 @@ export function calculateSummary(payload: any): any {
 
   const leaveStudents = classStudents.filter((st: any) => {
     const val = attendance[st.id];
-    const status = (typeof val === "object" && val !== null ? val.status : val || "").toLowerCase();
+    const status = unwrapStatus(val).toLowerCase();
     return status === "leave";
   });
   const leaveCount = leaveStudents.length;

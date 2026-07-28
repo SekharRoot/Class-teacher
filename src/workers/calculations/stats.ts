@@ -1,3 +1,14 @@
+function unwrapStatus(val: any): string {
+  if (!val) return "";
+  if (typeof val === "string") return val.trim();
+  if (typeof val === "object" && val !== null) {
+    if ("status" in val && val.status !== undefined) {
+      return unwrapStatus(val.status);
+    }
+  }
+  return String(val || "").trim();
+}
+
 export function calculateDashboardStats(payload: any): any {
   const { classes, students, authorizedClassIds, todayRecords } = payload;
   
@@ -20,12 +31,7 @@ export function calculateDashboardStats(payload: any): any {
       if (!belongsToScope) return;
 
       const val = todayRecords[studentId];
-      let status = "";
-      if (typeof val === "object" && val !== null) {
-        status = val.status || "";
-      } else {
-        status = String(val);
-      }
+      const status = unwrapStatus(val);
       if (status) {
         todayTotalMarked++;
         const lowerStatus = status.toLowerCase();
@@ -52,14 +58,7 @@ export function calculateDashboardStats(payload: any): any {
 
     classStudents.forEach((student: any) => {
       const record = todayRecords ? todayRecords[student.id] : null;
-      let status = "";
-      if (record) {
-        if (typeof record === "object" && record !== null) {
-          status = record.status || "";
-        } else {
-          status = String(record);
-        }
-      }
+      const status = unwrapStatus(record);
 
       if (status) {
         marked++;

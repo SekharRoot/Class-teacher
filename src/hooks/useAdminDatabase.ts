@@ -4,6 +4,7 @@ import { db } from "../lib/firebase";
 import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 import { attendanceApi } from "../api";
 import { School, UserProfile } from "../types";
+import { useAuth } from "../contexts/AuthContext";
 
 interface UseAdminDatabaseProps {
   schools: School[];
@@ -12,6 +13,7 @@ interface UseAdminDatabaseProps {
 }
 
 export function useAdminDatabase({ schools, setError, setSuccess }: UseAdminDatabaseProps) {
+  const { authResolved } = useAuth();
   const [dbSelectedSchoolId, setDbSelectedSchoolId] = useState<string>("");
   const [dbSelectedSchoolName, setDbSelectedSchoolName] = useState<string>("Default School");
   const [dbCounts, setDbCounts] = useState<{
@@ -44,6 +46,7 @@ export function useAdminDatabase({ schools, setError, setSuccess }: UseAdminData
   const [migrationSuccess, setMigrationSuccess] = useState(false);
 
   const fetchDbCounts = useCallback(async (schoolId: string) => {
+    if (!authResolved) return;
     if (!schoolId) return;
     try {
       setDbCountsLoading(true);
@@ -83,7 +86,7 @@ export function useAdminDatabase({ schools, setError, setSuccess }: UseAdminData
     } finally {
       setDbCountsLoading(false);
     }
-  }, [setError]);
+  }, [setError, authResolved]);
 
   useEffect(() => {
     if (!dbSelectedSchoolId && schools.length > 0) {

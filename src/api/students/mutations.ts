@@ -1,5 +1,5 @@
-import { setDoc, deleteDoc } from "firebase/firestore";
-import { handleFirestoreError, OperationType } from "../../lib/firebase";
+import { setDoc, deleteDoc, writeBatch } from "firebase/firestore";
+import { handleFirestoreError, OperationType, db } from "../../lib/firebase";
 import { getActiveSchoolId } from "../../lib/activeSchoolHelper";
 import { Student } from "../../types";
 import { getStudentDocRef, findStudentClass, clearStudentsCache } from "./core";
@@ -22,8 +22,10 @@ export async function create(student: Student): Promise<void> {
     let rtdbImageUrl = student.image || "";
     if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
       try {
-        await saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
-        rtdbImageUrl = "rtdb";
+        const savedInRtdb = await saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
+        if (savedInRtdb) {
+          rtdbImageUrl = "rtdb";
+        }
       } catch (rtdbErr) {
         console.warn("Failed to save image in Realtime Database during create:", rtdbErr);
       }
@@ -76,12 +78,16 @@ export async function update(
       throw new Error(`Student not found: ${studentId}`);
     }
 
-    let rtdbImageUrl = studentData.image;
+    const payload = { ...studentData };
+
+    let rtdbImageUrl = payload.image;
     if (rtdbImageUrl !== undefined) {
       if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
         try {
-          await saveStudentImageInRtdb(activeSchoolId, studentId, rtdbImageUrl);
-          studentData.image = "rtdb";
+          const savedInRtdb = await saveStudentImageInRtdb(activeSchoolId, studentId, rtdbImageUrl);
+          if (savedInRtdb) {
+            payload.image = "rtdb";
+          }
         } catch (rtdbErr) {
           console.warn("Failed to save image in Realtime Database during update:", rtdbErr);
         }
@@ -95,7 +101,7 @@ export async function update(
     }
 
     const oldClassId = studentInfo.classId;
-    const targetClassId = studentData.classId !== undefined ? studentData.classId : oldClassId;
+    const targetClassId = payload.classId !== undefined ? payload.classId : oldClassId;
 
     console.log(`[studentsApi] Updating student ${studentId}. Class transition: ${oldClassId} -> ${targetClassId}`);
 
@@ -109,7 +115,7 @@ export async function update(
 
       const mergedData = {
         ...(studentInfo.data || {}),
-        ...studentData,
+        ...payload,
         classId: targetClassId,
         updatedAt: new Date().toISOString(),
       };
@@ -118,7 +124,7 @@ export async function update(
       const ref = getStudentDocRef(activeSchoolId, oldClassId, studentId);
       console.log(`[studentsApi] Updating existing record at: ${ref.path}`);
       await setDoc(ref, {
-        ...studentData,
+        ...payload,
         updatedAt: new Date().toISOString(),
       }, { merge: true });
     }
@@ -205,36 +211,56 @@ export async function permanentlyDelete(studentId: string): Promise<void> {
 export async function seedDemo(studentsList: Student[]): Promise<void> {
   try {
     const activeSchoolId = getActiveSchoolId();
-    for (const student of studentsList) {
-      const classId = student.classId || "";
-      const studentRef = getStudentDocRef(activeSchoolId, classId, student.id);
+    const chunks: Student[][] = [];
+    
+    // Chunk lists into batches of 500
+    for (let i = 0; i < studentsList.length; i += 500) {
+      chunks.push(studentsList.slice(i, i + 500));
+    }
 
-      let rtdbImageUrl = student.image || "";
-      if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
-        try {
-          await saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
-          rtdbImageUrl = "rtdb";
-        } catch (rtdbErr) {
-          console.warn("Failed to save image in Realtime Database during seedDemo:", rtdbErr);
+    for (const chunk of chunks) {
+      const batch = writeBatch(db);
+      
+      // Save images to RTDB in parallel before batch commit
+      const imagePromises = chunk.map(async (student) => {
+        let rtdbImageUrl = student.image || "";
+        if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
+          try {
+            const savedInRtdb = await saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
+            if (savedInRtdb) return "rtdb";
+          } catch (rtdbErr) {
+            console.warn("Failed to save image in Realtime Database during seedDemo:", rtdbErr);
+          }
         }
-      }
-
-      await setDoc(studentRef, {
-        firstName: student.firstName,
-        lastName: student.lastName,
-        rollNumber: student.rollNumber,
-        classId: classId,
-        gender: student.gender || "Male",
-        fatherName: student.fatherName || "",
-        motherName: student.motherName || "",
-        phoneNumber: student.phoneNumber || "",
-        boarderType: student.boarderType || "Day Scholar",
-        image: rtdbImageUrl,
-        profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-        isActive: student.isActive !== undefined ? student.isActive : true,
-        schoolId: student.schoolId || activeSchoolId,
-        updatedAt: new Date().toISOString(),
+        return rtdbImageUrl;
       });
+
+      const resolvedImages = await Promise.all(imagePromises);
+
+      chunk.forEach((student, index) => {
+        const classId = student.classId || "";
+        const studentRef = getStudentDocRef(activeSchoolId, classId, student.id);
+        const rtdbImageUrl = resolvedImages[index];
+
+        batch.set(studentRef, {
+          firstName: student.firstName,
+          lastName: student.lastName,
+          rollNumber: student.rollNumber,
+          classId: classId,
+          gender: student.gender || "Male",
+          fatherName: student.fatherName || "",
+          motherName: student.motherName || "",
+          phoneNumber: student.phoneNumber || "",
+          boarderType: student.boarderType || "Day Scholar",
+          image: rtdbImageUrl,
+          profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          isActive: student.isActive !== undefined ? student.isActive : true,
+          schoolId: student.schoolId || activeSchoolId,
+          updatedAt: new Date().toISOString(),
+        });
+      });
+
+      await batch.commit();
     }
     clearStudentsCache();
   } catch (error) {
@@ -244,4 +270,67 @@ export async function seedDemo(studentsList: Student[]): Promise<void> {
 
 export async function batchCreate(studentsList: Student[]): Promise<void> {
   return seedDemo(studentsList);
+}
+
+export async function batchUpdateProfiles(
+  updates: { id: string; data: Partial<Student> }[],
+  onProgress?: (processed: number, total: number) => void
+): Promise<void> {
+  try {
+    const activeSchoolId = getActiveSchoolId();
+    const total = updates.length;
+    if (total === 0) return;
+
+    let processed = 0;
+    const chunkSize = 500;
+
+    for (let i = 0; i < total; i += chunkSize) {
+      const chunk = updates.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+
+      for (const item of chunk) {
+        const studentInfo = await findStudentClass(item.id);
+        if (studentInfo) {
+          const oldClassId = studentInfo.classId;
+          const targetClassId = item.data.classId !== undefined ? item.data.classId : oldClassId;
+
+          if (oldClassId !== targetClassId) {
+            const oldRef = getStudentDocRef(activeSchoolId, oldClassId, item.id);
+            batch.delete(oldRef);
+
+            const newRef = getStudentDocRef(activeSchoolId, targetClassId, item.id);
+            const mergedData = {
+              ...(studentInfo.data || {}),
+              ...item.data,
+              classId: targetClassId,
+              schoolId: activeSchoolId,
+              updatedAt: new Date().toISOString(),
+            };
+            batch.set(newRef, mergedData);
+          } else {
+            const ref = getStudentDocRef(activeSchoolId, oldClassId, item.id);
+            batch.set(
+              ref,
+              {
+                ...item.data,
+                updatedAt: new Date().toISOString(),
+              },
+              { merge: true }
+            );
+          }
+        }
+        processed++;
+        if (onProgress) {
+          onProgress(processed, total);
+        }
+      }
+
+      await batch.commit();
+    }
+
+    clearStudentsCache();
+  } catch (error) {
+    console.error("[studentsApi] batchUpdateProfiles error:", error);
+    handleFirestoreError(error, OperationType.WRITE, "students");
+  }
 }

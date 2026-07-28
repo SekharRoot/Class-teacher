@@ -18,6 +18,7 @@ import { AttendanceStatus } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 import { classesApi } from "./classes";
 import { studentsApi } from "./students";
+import { unwrapStatus } from "../utils/statusHelper";
 
 export interface AttendanceRecordSummary {
   date: string;
@@ -113,7 +114,11 @@ export const attendanceApi = {
         if (!classIdToRecords[classId]) {
           classIdToRecords[classId] = {};
         }
-        classIdToRecords[classId][studentId] = val;
+        const statusStr = unwrapStatus(val);
+        const isObj = typeof val === "object" && val !== null;
+        classIdToRecords[classId][studentId] = isObj
+          ? { ...val, status: statusStr, classId }
+          : { status: statusStr, classId };
       });
 
       // Save class-level attendance
@@ -275,14 +280,7 @@ export const attendanceApi = {
 
         allUniqueStudentIds.forEach((studentId) => {
           const val = mergedClassRecords[studentId];
-          let status = "";
-          if (val) {
-            if (typeof val === "object" && val !== null) {
-              status = val.status || "";
-            } else {
-              status = String(val);
-            }
-          }
+          const status = unwrapStatus(val);
 
           const boarderType = getBoarderType(studentId, val);
 
@@ -343,17 +341,9 @@ export const attendanceApi = {
 
       await Promise.all(classSummaryPromises);
 
-      // 4. Query all class summaries for this dateString using highly optimized collectionGroup query
-      const q = query(
-        collectionGroup(db, "attendance_summary"),
-        where("date", "==", dateString),
-        where("schoolId", "==", activeSchoolId)
-      );
-      const snap = await getDocs(q);
-
-      // 5. Merge existing class summaries with the newly computed ones
+      // 4. Query all class summaries for this dateString
       const finalClassStatsMap: Record<string, any> = {};
-      
+
       // Seed with all classes from the classes list to ensure every class has an entry
       classesList.forEach((cls) => {
         finalClassStatsMap[cls.id] = {
@@ -383,12 +373,32 @@ export const attendanceApi = {
         };
       });
 
-      snap.forEach(docSnap => {
-        const data = docSnap.data();
-        if (data.classId) {
-          finalClassStatsMap[data.classId] = data;
-        }
-      });
+      try {
+        const q = query(
+          collectionGroup(db, "attendance_summary"),
+          where("date", "==", dateString),
+          where("schoolId", "==", activeSchoolId)
+        );
+        const snap = await getDocs(q);
+        snap.forEach(docSnap => {
+          const data = docSnap.data();
+          if (data.classId) {
+            finalClassStatsMap[data.classId] = data;
+          }
+        });
+      } catch (cgErr) {
+        console.warn("CollectionGroup summary query fallback:", cgErr);
+        const fallbackPromises = classesList.map(async (cls) => {
+          try {
+            const summaryRef = doc(db, "schools", activeSchoolId, "classes", cls.id, "attendance_summary", dateString);
+            const snap = await getDoc(summaryRef);
+            if (snap.exists()) {
+              finalClassStatsMap[cls.id] = snap.data();
+            }
+          } catch (e) {}
+        });
+        await Promise.all(fallbackPromises);
+      }
 
       // Override with newly computed class stats to handle latency/updates
       Object.entries(newlyComputedClassStats).forEach(([cId, stat]) => {

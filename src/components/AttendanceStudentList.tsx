@@ -22,6 +22,7 @@ import {
 import { ChevronLeft, CloudUpload, Search, ContentCopy, ArrowDropDown } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
 import { AttendanceRow } from "./AttendanceRow";
+import { unwrapStatus } from "../utils/statusHelper";
 
 interface AttendanceStudentListProps {
   students: Student[];
@@ -109,7 +110,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   const absentees = useMemo(() => {
     return classStudents.filter((student) => {
       const att = attendance[student.id];
-      const status = typeof att === 'object' && att !== null ? att.status : att;
+      const status = unwrapStatus(att);
       return status === "absent";
     });
   }, [classStudents, attendance]);
@@ -117,7 +118,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   const presents = useMemo(() => {
     return classStudents.filter((student) => {
       const att = attendance[student.id];
-      const status = typeof att === 'object' && att !== null ? att.status : att;
+      const status = unwrapStatus(att);
       return status === "present";
     });
   }, [classStudents, attendance]);
@@ -501,11 +502,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                   <AttendanceRow
                     key={student.id}
                     student={student}
-                    status={
-                      typeof attendance[student.id] === 'object' && attendance[student.id] !== null 
-                        ? attendance[student.id].status 
-                        : attendance[student.id]
-                    }
+                    status={unwrapStatus(attendance[student.id]) as AttendanceStatus}
                     onMarkStatus={onMarkAttendance}
                     index={idx}
                     disabled={readOnly}

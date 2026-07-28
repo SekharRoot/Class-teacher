@@ -3,6 +3,7 @@ import { AttendanceStatus, Student } from "../types";
 import { attendanceApi, classesApi, studentsApi } from "../api";
 import { cache } from "../lib/cache";
 import { useAuth } from "../contexts/AuthContext";
+import { unwrapStatus } from "../utils/statusHelper";
 
 export function useAttendanceActions(
   attendance: Record<string, AttendanceStatus>,
@@ -29,9 +30,9 @@ export function useAttendanceActions(
     const enriched: Record<string, any> = {};
     Object.entries(clientAtt).forEach(([sId, val]) => {
       const student = students.find((s) => s.id === sId);
-      const isObj = typeof val === 'object' && val !== null;
+      const statusStr = unwrapStatus(val);
       enriched[sId] = {
-        status: (isObj ? val.status : val) || undefined,
+        status: statusStr || undefined,
         classId: student?.classId ?? "",
         boarderType: student?.boarderType ?? "",
       };
@@ -45,22 +46,15 @@ export function useAttendanceActions(
     studentId: string,
     status: AttendanceStatus | null,
   ) => {
-    setAttendance((prev) => {
-      const updated = { ...prev };
-      if (status === null) {
-        delete updated[studentId];
-      } else {
-        updated[studentId] = status;
-      }
-      
-      // Perform side effect in a microtask to keep updater pure
-      Promise.resolve().then(() => {
-        updateLocalCache(updated);
-      });
-
-      return updated;
-    });
-  }, [updateLocalCache, setAttendance]);
+    const updated = { ...attendance };
+    if (status === null) {
+      delete updated[studentId];
+    } else {
+      updated[studentId] = status;
+    }
+    setAttendance(updated);
+    updateLocalCache(updated);
+  }, [attendance, updateLocalCache, setAttendance]);
 
   const markAllStatus = useCallback((
     status: AttendanceStatus,
@@ -68,19 +62,14 @@ export function useAttendanceActions(
   ) => {
     if (classStudents.length === 0) return;
 
-    setAttendance((prev) => {
-      const updated = { ...prev };
-      classStudents.forEach((student) => {
-        updated[student.id] = status;
-      });
-
-      Promise.resolve().then(() => {
-        updateLocalCache(updated);
-      });
-
-      return updated;
+    const updated = { ...attendance };
+    classStudents.forEach((student) => {
+      updated[student.id] = status;
     });
-  }, [updateLocalCache, setAttendance]);
+
+    setAttendance(updated);
+    updateLocalCache(updated);
+  }, [attendance, updateLocalCache, setAttendance]);
 
   const syncAttendance = useCallback(async () => {
     if (offlineMode) {
@@ -93,6 +82,8 @@ export function useAttendanceActions(
       // Always update the server-side lightweight summary document on sync for correct administrative totals
       await attendanceApi.saveByDate(dateString, enriched, false);
       localStorage.removeItem(`unsynced_${dateString}`);
+      localStorage.removeItem(`summary_${dateString}`);
+      localStorage.removeItem(`attendance_${dateString}`);
       showToast("Attendance successfully synced with server!", "success");
       fetchHistory();
     } catch (err) {
@@ -102,6 +93,13 @@ export function useAttendanceActions(
       setLoading(false);
     }
   }, [attendance, offlineMode, dateString, showToast, fetchHistory, updateLocalCache, setLoading]);
+
+  const chunkProcess = async <T>(items: T[], fn: (item: T) => Promise<any>, chunkSize: number = 20): Promise<void> => {
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      await Promise.all(chunk.map(fn));
+    }
+  };
 
   const clearAllData = useCallback(async () => {
     if (
@@ -132,21 +130,18 @@ export function useAttendanceActions(
         return;
       }
 
-      // Parallelize deletions where possible
-      await Promise.all([
-        ...historyDates.map((h) => attendanceApi.deleteRecord(h.date)),
-        attendanceApi.deleteRecord(dateString),
-      ]);
+      // Clear attendance records in chunks of 20
+      const datesToDelete = [...historyDates.map((h) => h.date), dateString];
+      await chunkProcess(datesToDelete, (d) => attendanceApi.deleteRecord(d));
 
       const [studentsList, classesList] = await Promise.all([
         studentsApi.getAll(),
         classesApi.getAll(),
       ]);
 
-      await Promise.all([
-        ...studentsList.map((s) => studentsApi.delete(s.id)),
-        ...classesList.map((c) => classesApi.delete(c.id)),
-      ]);
+      // Clear students and classes in chunks of 20
+      await chunkProcess(studentsList, (s) => studentsApi.delete(s.id));
+      await chunkProcess(classesList, (c) => classesApi.delete(c.id));
 
       showToast(
         "Cloud Firestore and local databases wiped successfully!",

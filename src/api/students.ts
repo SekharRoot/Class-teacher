@@ -22,7 +22,9 @@ import {
   permanentlyDelete,
   batchCreate,
   seedDemo,
+  batchUpdateProfiles,
 } from "./students/mutations";
+
 import {
   transferStudents,
   transferSchool,
@@ -50,6 +52,7 @@ export const studentsApi = {
   permanentlyDelete,
   batchCreate,
   seedDemo,
+  batchUpdateProfiles,
   transferStudents,
   transferSchool,
   assignMissingProfileIds,

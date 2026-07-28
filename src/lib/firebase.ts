@@ -187,3 +187,17 @@ export function getRtdb(): any {
   }
 }
 
+
+// Helper to wait for auth to resolve before making network requests
+export const waitForAuthInit = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if (auth.currentUser) {
+      resolve();
+      return;
+    }
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      unsubscribe();
+      resolve();
+    });
+  });
+};

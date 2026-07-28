@@ -36,9 +36,14 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     const dashboardItem = allItems.find((item) => item.text === "Dashboard");
     const attendanceItem = allItems.find((item) => item.text === "Attendance");
     const profilesItem = allItems.find((item) => item.text === "Profiles");
+    const appInfoItem = allItems.find((item) => item.text === "App Info");
     
     const otherItems = allItems.filter(
-      (item) => item.text !== "Dashboard" && item.text !== "Attendance" && item.text !== "Profiles"
+      (item) =>
+        item.text !== "Dashboard" &&
+        item.text !== "Attendance" &&
+        item.text !== "Profiles" &&
+        item.text !== "App Info"
     );
     otherItems.sort((a, b) => a.text.localeCompare(b.text));
 
@@ -47,6 +52,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     if (attendanceItem) result.push(attendanceItem);
     if (profilesItem) result.push(profilesItem);
     result.push(...otherItems);
+    if (appInfoItem) result.push(appInfoItem);
 
     return result;
   }, [primaryMenuItems, secondaryMenuItems]);

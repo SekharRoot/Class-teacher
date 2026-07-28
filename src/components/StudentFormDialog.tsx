@@ -6,23 +6,17 @@ import {
   DialogActions,
   Box,
   Typography,
-  TextField,
   Button,
   IconButton,
-  Avatar,
   Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-  FormLabel,
   CircularProgress,
 } from "@mui/material";
-import { Close, PhotoCamera, Upload } from "@mui/icons-material";
+import { Close } from "@mui/icons-material";
 import { Student, ClassItem } from "../types";
+import { PhotoCaptureSection } from "./student-form/PhotoCaptureSection";
+import { GeneralInfoSection } from "./student-form/GeneralInfoSection";
+import { FamilyInfoSection } from "./student-form/FamilyInfoSection";
+import { resolveStudentImage } from "../utils/imageCache";
 
 interface StudentFormDialogProps {
   open: boolean;
@@ -69,6 +63,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
     "Day Boarder" | "Day Scholar" | "Full Boarder"
   >("Day Scholar");
   const [imageUrl, setImageUrl] = useState<string>(""); // base64 representation
+  const [imageChanged, setImageChanged] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Camera capture state
@@ -91,7 +86,13 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
         setMotherName(editingStudent.motherName || "");
         setPhoneNumber(editingStudent.phoneNumber || "");
         setBoarderType((editingStudent.boarderType as any) || "Day Scholar");
-        setImageUrl(editingStudent.image || "");
+        
+        // Asynchronously resolve image if it is stored in RTDB or starts with http
+        setImageUrl("");
+        setImageChanged(false);
+        resolveStudentImage(editingStudent).then((resolvedUrl) => {
+          setImageUrl(resolvedUrl || "");
+        });
       } else {
         setStudentName("");
         setRollNumber("");
@@ -103,6 +104,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
         setPhoneNumber("");
         setBoarderType("Day Scholar");
         setImageUrl("");
+        setImageChanged(false);
       }
       setShowCamera(false);
       setCameraError(null);
@@ -163,6 +165,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
 
           const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
           setImageUrl(dataUrl);
+          setImageChanged(true);
           showToast("Photo captured successfully!", "success");
           stopCameraStream();
         }
@@ -199,6 +202,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
             ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 250, 250);
             const compressed = canvas.toDataURL("image/jpeg", 0.8);
             setImageUrl(compressed);
+            setImageChanged(true);
             showToast("Photo uploaded successfully!", "success");
           }
         };
@@ -209,6 +213,11 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleSetImageUrl = (url: string) => {
+    setImageUrl(url);
+    setImageChanged(true);
   };
 
   const handleLocalSubmit = async (e: React.FormEvent) => {
@@ -233,7 +242,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
         motherName,
         phoneNumber,
         boarderType,
-        imageUrl,
+        imageUrl: imageChanged ? imageUrl : (editingStudent?.image || ""),
       });
       if (success) {
         onClose();
@@ -275,353 +284,38 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
         </DialogTitle>
         <DialogContent dividers sx={{ py: 2.5 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* PHOTO CAPTURE & AVATAR BOX */}
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: "center",
-                gap: 3,
-                justifyContent: "center",
-              }}
-            >
-              <Box sx={{ position: "relative" }}>
-                {imageUrl ? (
-                  <Avatar
-                    variant="rounded"
-                    src={imageUrl}
-                    sx={{
-                      width: 120,
-                      height: 120,
-                      border: "3px solid",
-                      borderColor: "primary.main",
-                      borderRadius: "2px",
-                      boxShadow: 2,
-                    }}
-                  />
-                ) : (
-                  <Avatar
-                    variant="rounded"
-                    sx={{
-                      width: 120,
-                      height: 120,
-                      bgcolor: "primary.light",
-                      color: "primary.contrastText",
-                      fontSize: "2.5rem",
-                      fontWeight: "bold",
-                      borderRadius: "2px",
-                      boxShadow: 1,
-                    }}
-                  >
-                    {studentName ? studentName.trim()[0].toUpperCase() : "?"}
-                  </Avatar>
-                )}
-                {imageUrl && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    color="error"
-                    onClick={() => setImageUrl("")}
-                    sx={{
-                      position: "absolute",
-                      bottom: -10,
-                      left: "50%",
-                      transform: "translateX(-50%)",
-                      borderRadius: 4,
-                      textTransform: "none",
-                      px: 1,
-                      minWidth: "fit-content",
-                      height: 20,
-                      fontSize: "0.65rem",
-                    }}
-                  >
-                    Clear Photo
-                  </Button>
-                )}
-              </Box>
+            <PhotoCaptureSection 
+              imageUrl={imageUrl} 
+              setImageUrl={handleSetImageUrl} 
+              studentName={studentName} 
+              showCamera={showCamera} 
+              startCamera={startCamera} 
+              stopCameraStream={stopCameraStream} 
+              capturePhoto={capturePhoto} 
+              handleImageUpload={handleImageUpload} 
+              videoRef={videoRef} 
+              cameraError={cameraError} 
+            />
+            
+            <Divider sx={{ my: 1, borderColor: "rgba(0,0,0,0.04)" }} />
+            
+            <GeneralInfoSection 
+              studentName={studentName} setStudentName={setStudentName}
+              rollNumber={rollNumber} setRollNumber={setRollNumber}
+              profileId={profileId} setProfileId={setProfileId}
+              classId={classId} setClassId={setClassId}
+              boarderType={boarderType} setBoarderType={setBoarderType}
+              gender={gender} setGender={setGender}
+              classes={classes}
+            />
 
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 1.2,
-                  width: { xs: "100%", sm: "auto" },
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ textAlign: { xs: "center", sm: "left" } }}
-                >
-                  Capture snapshot via web camera or upload custom student photo
-                  file.
-                </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 1.5,
-                    justifyContent: { xs: "center", sm: "flex-start" },
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <Button
-                    id="btn-trigger-camera"
-                    variant="outlined"
-                    color="primary"
-                    startIcon={<PhotoCamera />}
-                    onClick={showCamera ? capturePhoto : startCamera}
-                    sx={{ textTransform: "none", borderRadius: 2 }}
-                    size="small"
-                  >
-                    {showCamera ? "Capture Frame" : "Use Camera"}
-                  </Button>
+            <Divider sx={{ my: 1, borderColor: "rgba(0,0,0,0.04)" }} />
 
-                  <Button
-                    component="label"
-                    variant="outlined"
-                    color="secondary"
-                    startIcon={<Upload />}
-                    sx={{ textTransform: "none", borderRadius: 2 }}
-                    size="small"
-                  >
-                    Upload File
-                    <input
-                      type="file"
-                      accept="image/*"
-                      hidden
-                      onChange={handleImageUpload}
-                    />
-                  </Button>
-
-                  {showCamera && (
-                    <Button
-                      variant="text"
-                      color="inherit"
-                      onClick={stopCameraStream}
-                      sx={{ textTransform: "none" }}
-                      size="small"
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                </Box>
-              </Box>
-            </Box>
-
-            {/* LIVE CAMERA ELEMENT */}
-            {showCamera && (
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  p: 1.5,
-                  bgcolor: "grey.900",
-                  borderRadius: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <video
-                  ref={videoRef}
-                  style={{
-                    width: "100%",
-                    maxWidth: "280px",
-                    height: "auto",
-                    borderRadius: 8,
-                    transform: "scaleX(-1)",
-                  }}
-                  muted
-                  playsInline
-                />
-                <Typography
-                  variant="caption"
-                  sx={{ color: "grey.400", mt: 1, display: "block" }}
-                >
-                  Point camera at student face and click "Capture Frame" above
-                </Typography>
-              </Box>
-            )}
-
-            {cameraError && (
-              <Typography
-                variant="caption"
-                color="error"
-                sx={{
-                  textAlign: "center",
-                  display: "block",
-                  fontWeight: "bold",
-                }}
-              >
-                {cameraError}
-              </Typography>
-            )}
-
-            <Divider />
-
-            {/* GENERAL FORM FIELDS */}
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-                gap: 2.5,
-              }}
-            >
-              <TextField
-                id="input-student-name"
-                label="Full Name (First and Last Name)"
-                placeholder="e.g. Alice Smith"
-                required
-                fullWidth
-                value={studentName}
-                onChange={(e) => setStudentName(e.target.value)}
-                variant="outlined"
-              />
-
-              <TextField
-                id="input-roll-number"
-                label="Roll Number / Class ID"
-                placeholder="e.g. ROLL-04"
-                required
-                fullWidth
-                value={rollNumber}
-                onChange={(e) => setRollNumber(e.target.value)}
-                variant="outlined"
-              />
-
-              <TextField
-                id="input-profile-id"
-                label="Profile Integration ID (Optional)"
-                placeholder="Leave blank to auto-generate"
-                helperText="A unique ID will be automatically assigned if left blank."
-                fullWidth
-                value={profileId}
-                onChange={(e) => setProfileId(e.target.value)}
-                variant="outlined"
-              />
-
-              <FormControl required fullWidth>
-                <InputLabel id="select-class-label">
-                  Assigned Class Config
-                </InputLabel>
-                <Select
-                  labelId="select-class-label"
-                  id="select-class"
-                  value={classId}
-                  label="Assigned Class Config"
-                  onChange={(e) => setClassId(e.target.value)}
-                >
-                  <MenuItem value="">
-                    <em>-- Select Classroom --</em>
-                  </MenuItem>
-                  {classes.map((cls) => (
-                    <MenuItem key={cls.id} value={cls.id}>
-                      {cls.board} {cls.classStandard} {cls.section} (ID:{" "}
-                      {cls.id})
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl fullWidth>
-                <InputLabel id="select-boarder-label">
-                  Boarding / Housing Type
-                </InputLabel>
-                <Select
-                  labelId="select-boarder-label"
-                  id="select-boarder"
-                  value={boarderType}
-                  label="Boarding / Housing Type"
-                  onChange={(e) => setBoarderType(e.target.value as any)}
-                >
-                  <MenuItem value="Day Scholar">Day Scholar</MenuItem>
-                  <MenuItem value="Day Boarder">Day Boarder</MenuItem>
-                  <MenuItem value="Full Boarder">Full Boarder</MenuItem>
-                </Select>
-              </FormControl>
-            </Box>
-
-            {/* RADIOS */}
-            <FormControl component="fieldset">
-              <FormLabel
-                component="legend"
-                sx={{ fontWeight: "bold", mb: 0.5, fontSize: "0.9rem" }}
-              >
-                Gender
-              </FormLabel>
-              <RadioGroup
-                row
-                value={gender}
-                onChange={(e) => setGender(e.target.value as any)}
-              >
-                <FormControlLabel
-                  value="Male"
-                  control={<Radio size="small" />}
-                  label="Male"
-                />
-                <FormControlLabel
-                  value="Female"
-                  control={<Radio size="small" />}
-                  label="Female"
-                />
-                <FormControlLabel
-                  value="Transgender"
-                  control={<Radio size="small" />}
-                  label="Transgender"
-                />
-              </RadioGroup>
-            </FormControl>
-
-            <Divider />
-
-            {/* GUARDIAN & FAMILY INFO */}
-            <Typography
-              variant="subtitle2"
-              sx={{ fontWeight: "bold", color: "primary.main", mb: -1.5 }}
-            >
-              Guardian & Contact Details
-            </Typography>
-
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-                gap: 2.5,
-              }}
-            >
-              <TextField
-                id="input-father-name"
-                label="Father's Name / Primary Guardian"
-                placeholder="e.g. John Smith"
-                fullWidth
-                value={fatherName}
-                onChange={(e) => setFatherName(e.target.value)}
-                variant="outlined"
-              />
-
-              <TextField
-                id="input-mother-name"
-                label="Mother's Name / Secondary Guardian"
-                placeholder="e.g. Sarah Smith"
-                fullWidth
-                value={motherName}
-                onChange={(e) => setMotherName(e.target.value)}
-                variant="outlined"
-              />
-
-              <TextField
-                id="input-phone"
-                label="Contact Mobile Phone Number"
-                placeholder="e.g. +1 (555) 019-2834"
-                fullWidth
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                variant="outlined"
-                slotProps={{
-                  htmlInput: { type: "tel" },
-                }}
-              />
-            </Box>
+            <FamilyInfoSection 
+              fatherName={fatherName} setFatherName={setFatherName}
+              motherName={motherName} setMotherName={setMotherName}
+              phoneNumber={phoneNumber} setPhoneNumber={setPhoneNumber}
+            />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2.5, pt: 1.5 }}>

@@ -33,7 +33,7 @@ import { TransferClassSchoolDialog } from "../components/TransferClassSchoolDial
 import { AnimatedList, AnimatedItem } from "../components/navigation/AnimatedList";
 
 export default function Classes() {
-  const { userProfile } = useAuth();
+  const { userProfile, authResolved } = useAuth();
   const { authorizedClassIds, isReadOnly: hierarchyReadOnly } =
     useHierarchyScope();
   const [toastMessage, setToastMessage] = useState("");
@@ -58,14 +58,14 @@ export default function Classes() {
     userProfile?.email === "sekhar.root@gmail.com";
 
   useEffect(() => {
-    if (isOwnerOrSuperAdmin) {
+    if (isOwnerOrSuperAdmin && authResolved) {
       schoolsApi.getAll().then((data) => {
         setSchoolsList(data);
       }).catch((err) => {
         console.error("Error loading schools in classes", err);
       });
     }
-  }, [isOwnerOrSuperAdmin]);
+  }, [isOwnerOrSuperAdmin, authResolved]);
 
   const handleTransferClass = async (targetSchoolId: string) => {
     if (!classToTransfer) return;
@@ -274,6 +274,9 @@ export default function Classes() {
         .toLowerCase()
         .includes(searchQuery.toLowerCase()),
     );
+
+
+  
 
   return (
     <Box sx={{ maxWidth: "lg", mx: "auto", pb: 6 }}>

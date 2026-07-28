@@ -19,6 +19,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { attendanceApi } from "../../api";
 import { Student, ClassItem } from "../../types";
+import { unwrapStatus } from "../../utils/statusHelper";
 
 interface DailyStatusReportProps {
   students: Student[];
@@ -127,14 +128,7 @@ export const DailyStatusReport = React.memo(({
 
       classStudents.forEach((student) => {
         const record = attendance[student.id];
-        let status = "";
-        if (record) {
-          if (typeof record === "object" && record !== null) {
-            status = (record as any).status || "";
-          } else {
-            status = String(record);
-          }
-        }
+        const status = unwrapStatus(record);
 
         const normalizedStatus = status.toLowerCase();
         const isPresent = normalizedStatus === "present";
