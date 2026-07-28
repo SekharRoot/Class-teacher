@@ -146,32 +146,22 @@ export const fetchAndCacheImage = async (url: string): Promise<string> => {
 };
 
 import { Student } from "../types";
-import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 
 export const resolveStudentImage = async (student: Student): Promise<string> => {
   if (!student) return "";
   const imageUrl = student.image || "";
-  if (!imageUrl) return "";
-
-  if (imageUrl === "rtdb") {
-    // 1. Check local cache (IndexedDB)
-    const cacheKey = `rtdb_student_${student.id}`;
+  if (!imageUrl || imageUrl === "rtdb") {
+    // Check IndexedDB local cache if image key exists
+    const cacheKey = `student_img_${student.id}`;
     const cached = await imageCache.get(cacheKey);
-    if (cached) return cached;
+    return cached || "";
+  }
 
-    // 2. Load from Realtime Database dynamically
-    try {
-      const { studentsApi } = await import("../api/students");
-      const schoolId = student.schoolId || getActiveSchoolId();
-      const rtdbImage = await studentsApi.getStudentImageFromRtdb(schoolId, student.id);
-      if (rtdbImage) {
-        await imageCache.set(cacheKey, rtdbImage);
-        return rtdbImage;
-      }
-    } catch (err) {
-      console.error(`Failed to dynamically import or fetch RTDB image for student ${student.id}:`, err);
-    }
-    return "";
+  const cacheKey = `student_img_${student.id}`;
+
+  if (imageUrl.startsWith("data:image/")) {
+    imageCache.set(cacheKey, imageUrl).catch(() => {});
+    return imageUrl;
   }
 
   if (imageUrl.startsWith("http")) {

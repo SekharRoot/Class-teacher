@@ -4,6 +4,7 @@ import { studentsApi } from "../api";
 import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 import { cache } from "../lib/cache";
 import { studentCache } from "../utils/studentCache";
+import { imageCache } from "../utils/imageCache";
 import { studentSyncManager } from "../utils/studentSyncManager";
 import { useData } from "../contexts/DataContext";
 
@@ -96,6 +97,9 @@ export const useProfileActions = (
     }
     await cache.set("offline_students", updatedFullList);
     await studentCache.setBatch([savedStudent]);
+    if (savedStudent.image) {
+      await imageCache.set(`student_img_${studentId}`, savedStudent.image);
+    }
 
     // Show immediate status toast
     showToast(

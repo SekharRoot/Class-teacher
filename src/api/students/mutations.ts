@@ -3,7 +3,6 @@ import { handleFirestoreError, OperationType, db } from "../../lib/firebase";
 import { getActiveSchoolId } from "../../lib/activeSchoolHelper";
 import { Student } from "../../types";
 import { getStudentDocRef, findStudentClass, clearStudentsCache } from "./core";
-import { saveStudentImageInRtdb, deleteStudentImageFromRtdb } from "./images";
 
 export async function create(student: Student): Promise<void> {
   try {
@@ -19,24 +18,6 @@ export async function create(student: Student): Promise<void> {
       lastName: student.lastName
     });
 
-    let rtdbImageUrl = student.image || "";
-    if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
-      try {
-        const savedInRtdb = await saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
-        if (savedInRtdb) {
-          rtdbImageUrl = "rtdb";
-        }
-      } catch (rtdbErr) {
-        console.warn("Failed to save image in Realtime Database during create:", rtdbErr);
-      }
-    } else if (!rtdbImageUrl) {
-      try {
-        await deleteStudentImageFromRtdb(activeSchoolId, student.id);
-      } catch (rtdbErr) {
-        console.warn("Failed to delete image from Realtime Database during create:", rtdbErr);
-      }
-    }
-
     const data = {
       firstName: student.firstName,
       lastName: student.lastName,
@@ -47,7 +28,7 @@ export async function create(student: Student): Promise<void> {
       motherName: student.motherName || "",
       phoneNumber: student.phoneNumber || "",
       boarderType: student.boarderType || "Day Scholar",
-      image: rtdbImageUrl,
+      image: student.image || "",
       profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
       isActive: student.isActive !== undefined ? student.isActive : true,
       schoolId: activeSchoolId,
@@ -79,26 +60,6 @@ export async function update(
     }
 
     const payload = { ...studentData };
-
-    let rtdbImageUrl = payload.image;
-    if (rtdbImageUrl !== undefined) {
-      if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
-        try {
-          const savedInRtdb = await saveStudentImageInRtdb(activeSchoolId, studentId, rtdbImageUrl);
-          if (savedInRtdb) {
-            payload.image = "rtdb";
-          }
-        } catch (rtdbErr) {
-          console.warn("Failed to save image in Realtime Database during update:", rtdbErr);
-        }
-      } else if (!rtdbImageUrl) {
-        try {
-          await deleteStudentImageFromRtdb(activeSchoolId, studentId);
-        } catch (rtdbErr) {
-          console.warn("Failed to delete image from Realtime Database during update:", rtdbErr);
-        }
-      }
-    }
 
     const oldClassId = studentInfo.classId;
     const targetClassId = payload.classId !== undefined ? payload.classId : oldClassId;
@@ -192,11 +153,6 @@ export async function permanentlyDelete(studentId: string): Promise<void> {
     if (studentInfo) {
       const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
       await deleteDoc(studentRef);
-      try {
-        await deleteStudentImageFromRtdb(activeSchoolId, studentId);
-      } catch (rtdbErr) {
-        console.warn("Failed to delete image from Realtime Database during permanentlyDelete:", rtdbErr);
-      }
     }
     clearStudentsCache();
   } catch (error) {
@@ -220,27 +176,10 @@ export async function seedDemo(studentsList: Student[]): Promise<void> {
 
     for (const chunk of chunks) {
       const batch = writeBatch(db);
-      
-      // Save images to RTDB in parallel before batch commit
-      const imagePromises = chunk.map(async (student) => {
-        let rtdbImageUrl = student.image || "";
-        if (rtdbImageUrl && rtdbImageUrl.startsWith("data:image/")) {
-          try {
-            const savedInRtdb = await saveStudentImageInRtdb(activeSchoolId, student.id, rtdbImageUrl);
-            if (savedInRtdb) return "rtdb";
-          } catch (rtdbErr) {
-            console.warn("Failed to save image in Realtime Database during seedDemo:", rtdbErr);
-          }
-        }
-        return rtdbImageUrl;
-      });
 
-      const resolvedImages = await Promise.all(imagePromises);
-
-      chunk.forEach((student, index) => {
+      chunk.forEach((student) => {
         const classId = student.classId || "";
         const studentRef = getStudentDocRef(activeSchoolId, classId, student.id);
-        const rtdbImageUrl = resolvedImages[index];
 
         batch.set(studentRef, {
           firstName: student.firstName,
@@ -252,7 +191,7 @@ export async function seedDemo(studentsList: Student[]): Promise<void> {
           motherName: student.motherName || "",
           phoneNumber: student.phoneNumber || "",
           boarderType: student.boarderType || "Day Scholar",
-          image: rtdbImageUrl,
+          image: student.image || "",
           profileId: student.profileId || `PRFL-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
           isActive: student.isActive !== undefined ? student.isActive : true,
           schoolId: student.schoolId || activeSchoolId,
