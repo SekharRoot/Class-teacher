@@ -48,7 +48,27 @@ export function calculateDashboardStats(payload: any): any {
       : null;
 
   const classStats = filteredClasses.map((cls: any) => {
-    const classStudents = filteredStudents.filter((s: any) => s.classId === cls.id);
+    const activeClassStudents = filteredStudents.filter((s: any) => s.classId === cls.id);
+    const activeStudentIds = new Set(activeClassStudents.map((s: any) => s.id));
+    const loggedStudents: any[] = [];
+
+    if (todayRecords) {
+      Object.entries(todayRecords).forEach(([studentId, val]: [string, any]) => {
+        if (activeStudentIds.has(studentId)) return;
+        const isObj = typeof val === "object" && val !== null;
+        const recordClassId = isObj ? val.classId : null;
+        if (
+          recordClassId === cls.id ||
+          (!recordClassId && students.find((s: any) => s.id === studentId)?.classId === cls.id)
+        ) {
+          const found = students.find((s: any) => s.id === studentId);
+          if (found) loggedStudents.push(found);
+          else loggedStudents.push({ id: studentId, classId: cls.id });
+        }
+      });
+    }
+
+    const classStudents = [...activeClassStudents, ...loggedStudents];
     const total = classStudents.length;
 
     let present = 0;

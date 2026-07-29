@@ -319,8 +319,8 @@ export const DailyStatusReport = React.memo(({
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present Boarders</TableCell>
                 
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent DS</TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent DB</TableCell>
+                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent DS</TableCell>
                 <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent Boarders</TableCell>
               </TableRow>
             </TableHead>
@@ -339,8 +339,8 @@ export const DailyStatusReport = React.memo(({
                   <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentBoarder}</TableCell>
                   
                   <TableCell align="center" sx={{ fontWeight: "bold", color: "error.main" }}>{row.absent}</TableCell>
-                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentDS}</TableCell>
                   <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentDB}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentDS}</TableCell>
                   <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentBoarder}</TableCell>
                 </TableRow>
               ))}

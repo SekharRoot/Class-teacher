@@ -11,10 +11,42 @@ function unwrapStatus(val: any): string {
 
 export function calculateSummary(payload: any): any {
   const { students, attendance, selectedClassId } = payload;
-  const classStudents = students.filter((st: any) => 
+  
+  const activeStudents = (students || []).filter((st: any) => 
     (!selectedClassId || st.classId === selectedClassId) && 
     st.isActive !== false
   );
+  
+  const activeStudentIds = new Set(activeStudents.map((st: any) => st.id));
+  const loggedStudentsMap = new Map<string, any>();
+
+  if (attendance) {
+    Object.entries(attendance).forEach(([studentId, val]: [string, any]) => {
+      if (activeStudentIds.has(studentId)) return;
+
+      const isObj = typeof val === "object" && val !== null;
+      const recordClassId = isObj ? val.classId : null;
+
+      if (
+        (selectedClassId && (recordClassId === selectedClassId || (!recordClassId && students.find((s: any) => s.id === studentId)?.classId === selectedClassId))) ||
+        !selectedClassId
+      ) {
+        const foundStudent = students.find((s: any) => s.id === studentId);
+        if (foundStudent) {
+          loggedStudentsMap.set(studentId, foundStudent);
+        } else {
+          loggedStudentsMap.set(studentId, {
+            id: studentId,
+            classId: selectedClassId,
+            boarderType: isObj ? val.boarderType || "Day Scholar" : "Day Scholar",
+            isActive: false,
+          });
+        }
+      }
+    });
+  }
+
+  const classStudents = [...activeStudents, ...Array.from(loggedStudentsMap.values())];
   
   const totalCount = classStudents.length;
   const totalDayScholar = classStudents.filter((st: any) => st.boarderType === "Day Scholar").length;
@@ -22,7 +54,7 @@ export function calculateSummary(payload: any): any {
   const totalFullBoarder = classStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
 
   const presentStudents = classStudents.filter((st: any) => {
-    const val = attendance[st.id];
+    const val = attendance ? attendance[st.id] : null;
     const status = unwrapStatus(val).toLowerCase();
     return status === "present";
   });
@@ -32,9 +64,9 @@ export function calculateSummary(payload: any): any {
   const presentFullBoarder = presentStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
 
   const absentStudents = classStudents.filter((st: any) => {
-    const val = attendance[st.id];
+    const val = attendance ? attendance[st.id] : null;
     const status = unwrapStatus(val).toLowerCase();
-    return status === "absent" || status === "leave";
+    return status === "absent";
   });
   const absentCount = absentStudents.length;
   const absentDayScholar = absentStudents.filter((st: any) => st.boarderType === "Day Scholar").length;
@@ -42,7 +74,7 @@ export function calculateSummary(payload: any): any {
   const absentFullBoarder = absentStudents.filter((st: any) => st.boarderType === "Full Boarder").length;
 
   const leaveStudents = classStudents.filter((st: any) => {
-    const val = attendance[st.id];
+    const val = attendance ? attendance[st.id] : null;
     const status = unwrapStatus(val).toLowerCase();
     return status === "leave";
   });

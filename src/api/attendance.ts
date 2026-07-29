@@ -276,6 +276,9 @@ export const attendanceApi = {
         let absentDS = 0;
         let absentBoarder = 0;
         let leave = 0;
+        let leaveDB = 0;
+        let leaveDS = 0;
+        let leaveBoarder = 0;
         let marked = 0;
 
         allUniqueStudentIds.forEach((studentId) => {
@@ -299,6 +302,9 @@ export const attendanceApi = {
               else if (boarderType === "Full Boarder") absentBoarder++;
             } else if (lowerStatus === "leave") {
               leave++;
+              if (boarderType === "Day Boarder") leaveDB++;
+              else if (boarderType === "Day Scholar") leaveDS++;
+              else if (boarderType === "Full Boarder") leaveBoarder++;
             }
           }
         });
@@ -325,6 +331,9 @@ export const attendanceApi = {
           absentBoarder,
           leave: leave,
           leaveCount: leave,
+          leaveDB,
+          leaveDS,
+          leaveBoarder,
           markedCount: marked,
           attendanceRate: rate,
           date: dateString,
