@@ -253,6 +253,54 @@ export function useAttendanceData() {
     setHistoryLimit(6);
   }, [selectedClassId]);
 
+  // Fetch fresh class students only when switching to a class or if local roster is incomplete/missing images
+  useEffect(() => {
+    if (!selectedClassId || offlineMode || !authResolved) return;
+
+    // Check if we already have complete student records with images in memory
+    const classStudents = students.filter((s) => s.classId === selectedClassId);
+    const hasMissingImages = classStudents.length === 0 || classStudents.some((s) => !s.image);
+
+    // If local memory already has complete data for all students in this class, skip network call
+    if (!hasMissingImages && classStudents.length > 0) return;
+
+    let active = true;
+    studentsApi.getByClass(selectedClassId).then((freshClassStudents) => {
+      if (!active || !freshClassStudents || freshClassStudents.length === 0) return;
+
+      setStudents((prev) => {
+        const freshMap = new Map(freshClassStudents.map((s) => [s.id, s]));
+        let changed = false;
+        const updated = prev.map((s) => {
+          const fresh = freshMap.get(s.id);
+          if (fresh) {
+            if (s.image !== fresh.image || s.firstName !== fresh.firstName || s.lastName !== fresh.lastName) {
+              changed = true;
+            }
+            return fresh;
+          }
+          return s;
+        });
+
+        // Add any missing students
+        freshClassStudents.forEach((fresh) => {
+          if (!prev.some((p) => p.id === fresh.id)) {
+            updated.push(fresh);
+            changed = true;
+          }
+        });
+
+        return changed ? updated : prev;
+      });
+    }).catch((err) => {
+      console.warn("Failed to fetch fresh class students for attendance sheet:", err);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [selectedClassId, offlineMode, authResolved, students.length]);
+
   // 7. Sync leaves from DataContext
   useEffect(() => {
     setLeavesList(contextLeaves || []);

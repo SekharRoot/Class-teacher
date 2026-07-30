@@ -149,17 +149,22 @@ import { Student } from "../types";
 
 export const resolveStudentImage = async (student: Student): Promise<string> => {
   if (!student) return "";
-  const imageUrl = student.image || "";
-  if (!imageUrl || imageUrl === "rtdb") {
-    // Check IndexedDB local cache if image key exists
-    const cacheKey = `student_img_${student.id}`;
-    const cached = await imageCache.get(cacheKey);
-    return cached || "";
-  }
-
   const cacheKey = `student_img_${student.id}`;
 
+  // 1. Prioritize IndexedDB local cache as single source of truth (0 network calls)
+  const cached = await imageCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  // 2. Fall back to student object properties if not yet cached in IndexedDB
+  const imageUrl = student.image || "";
+  if (!imageUrl || imageUrl === "rtdb") {
+    return "";
+  }
+
   if (imageUrl.startsWith("data:image/")) {
+    // Save to IndexedDB so all future loads use local IndexedDB cache
     imageCache.set(cacheKey, imageUrl).catch(() => {});
     return imageUrl;
   }

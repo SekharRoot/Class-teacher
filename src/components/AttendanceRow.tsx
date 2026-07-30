@@ -59,7 +59,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
 
   React.useEffect(() => {
     resolveStudentImage(student).then(setDisplayImage);
-  }, [student]);
+  }, [student, student?.image]);
 
   const timerRef = React.useRef<NodeJS.Timeout | undefined>(undefined);
   const isLongPress = React.useRef(false);
