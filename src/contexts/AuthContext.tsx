@@ -4,7 +4,8 @@ import {
   onAuthStateChanged,
   signOut as firebaseSignOut,
 } from "firebase/auth";
-import { auth } from "../lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../lib/firebase";
 import { UserProfile, UserRole } from "../types";
 import { usersApi } from "../api/users";
 import { LoadingOverlay } from "../components/navigation/LoadingOverlay";
@@ -279,21 +280,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let profileUnsub: (() => void) | null = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setAuthResolved(true);
+
+      if (profileUnsub) {
+        profileUnsub();
+        profileUnsub = null;
+      }
 
       // If we don't have a cached profile, show loading while resolving auth
       if (!hasCachedProfile()) {
         setLoading(true);
       }
       setCurrentUser(user);
+
       if (user) {
         try {
           localStorage.setItem("cached_auth_uid", user.uid);
           sessionStorage.removeItem("is_logging_out");
         } catch {}
+
         await fetchAndSyncProfile(user);
+
+        // Attach real-time snapshot listener for live permission/class assignment updates
+        profileUnsub = onSnapshot(
+          doc(db, "users", user.uid),
+          (snapshot) => {
+            if (snapshot.exists()) {
+              const liveData = snapshot.data();
+              const normalized = normalizeProfile({ uid: snapshot.id, ...liveData });
+              if (normalized) {
+                setUserProfile(normalized);
+                try {
+                  localStorage.setItem("cached_user_profile", JSON.stringify(normalized));
+                } catch {}
+              }
+            }
+          },
+          (err) => {
+            console.warn("Real-time profile listener notice:", err);
+          }
+        );
       } else {
         setUserProfile(null);
         try {
@@ -306,7 +335,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setInitialLoad(false);
     });
 
-    return unsubscribe;
+    return () => {
+      if (profileUnsub) profileUnsub();
+      unsubscribe();
+    };
   }, []);
 
   const reloadProfile = async () => {

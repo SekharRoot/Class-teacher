@@ -7,12 +7,11 @@ const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cw
 async function startServer() {
   const app = express();
 
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  const PORT = 3000;
 
   const isProduction =
     process.env.NODE_ENV === "production" ||
     !!process.env.K_SERVICE ||
-    (!!process.env.PORT && process.env.PORT !== "3000") ||
     fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
 
   console.log(
