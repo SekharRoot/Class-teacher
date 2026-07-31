@@ -21,6 +21,9 @@ import autoTable from "jspdf-autotable";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { attendanceApi } from "../api/attendance";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
+import { studentsApi } from "../api/students";
+import { studentCache } from "../utils/studentCache";
+import { Student } from "../types";
 
 export default function Export() {
   const [loading, setLoading] = useState(false);
@@ -37,7 +40,7 @@ export default function Export() {
     setToastSeverity(severity);
   };
 
-  const { classes, students } = useProfilesData(showToast);
+  const { classes, offlineMode } = useProfilesData(showToast);
   const { authorizedClassIds } = useHierarchyScope();
 
   const [selectedClassId, setSelectedClassId] = useState<string>("all");
@@ -55,6 +58,30 @@ export default function Export() {
   const [selectedBoarderType, setSelectedBoarderType] = useState<string>("all");
   const [selectedGender, setSelectedGender] = useState<string>("all");
 
+  const getFullStudentsForExport = async (): Promise<Student[]> => {
+    if (offlineMode) {
+      const allCached = await studentCache.getAll();
+      return allCached;
+    }
+
+    try {
+      if (selectedClassId !== "all") {
+        const classStudents = await studentsApi.getByClass(selectedClassId);
+        await studentCache.setBatch(classStudents);
+        return classStudents;
+      } else {
+        const permittedClasses = classes.filter((c) => authorizedClassIds.includes(c.id));
+        const allStudents = await studentsApi.getAllInParallelChunks(permittedClasses);
+        await studentCache.setBatch(allStudents);
+        return allStudents;
+      }
+    } catch (err) {
+      console.warn("Failed to fetch fresh students from server for export, falling back to local cache:", err);
+      const allCached = await studentCache.getAll();
+      return allCached;
+    }
+  };
+
   const handleExport = async () => {
     setLoading(true);
     try {
@@ -67,13 +94,14 @@ export default function Export() {
           classFilterName = `${classInfo.board} - ${classInfo.classStandard} ${classInfo.section}`;
       }
 
-      let filteredStudents = students;
+      const fullStudentsList = await getFullStudentsForExport();
+      let filteredStudents = fullStudentsList;
       if (selectedClassId !== "all") {
-        filteredStudents = students.filter(
+        filteredStudents = fullStudentsList.filter(
           (s) => s.classId === selectedClassId,
         );
       } else {
-        filteredStudents = students.filter(
+        filteredStudents = fullStudentsList.filter(
           (s) => s.classId && authorizedClassIds.includes(s.classId),
         );
       }
@@ -238,13 +266,14 @@ export default function Export() {
   const handleExportCSV = async () => {
     setLoading(true);
     try {
-      let filteredStudents = students;
+      const fullStudentsList = await getFullStudentsForExport();
+      let filteredStudents = fullStudentsList;
       if (selectedClassId !== "all") {
-        filteredStudents = students.filter(
+        filteredStudents = fullStudentsList.filter(
           (s) => s.classId === selectedClassId,
         );
       } else {
-        filteredStudents = students.filter(
+        filteredStudents = fullStudentsList.filter(
           (s) => s.classId && authorizedClassIds.includes(s.classId),
         );
       }
