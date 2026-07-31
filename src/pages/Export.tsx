@@ -189,7 +189,11 @@ export default function Export() {
           );
 
           // Find all history dates
-          const history = await attendanceApi.getHistory();
+          const history = await attendanceApi.getHistory(
+            undefined,
+            selectedClassId !== "all" ? selectedClassId : undefined,
+            365
+          );
           const monthStart = startOfMonth(parseISO(selectedMonth + "-01"));
           const monthEnd = endOfMonth(parseISO(selectedMonth + "-01"));
 
@@ -312,7 +316,11 @@ export default function Export() {
           });
           fileName = `Attendance_Report_${selectedDate}.csv`;
         } else if (exportType === "month") {
-          const history = await attendanceApi.getHistory();
+          const history = await attendanceApi.getHistory(
+            undefined,
+            selectedClassId !== "all" ? selectedClassId : undefined,
+            365
+          );
           const monthStart = startOfMonth(parseISO(selectedMonth + "-01"));
           const monthEnd = endOfMonth(parseISO(selectedMonth + "-01"));
 
