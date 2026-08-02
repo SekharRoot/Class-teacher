@@ -1,8 +1,4 @@
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { Box, Button, Typography, Paper, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 
 interface Props {
   children: ReactNode;
@@ -12,6 +8,7 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  showDetails: boolean;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -19,17 +16,18 @@ export class ErrorBoundary extends Component<Props, State> {
     hasError: false,
     error: null,
     errorInfo: null,
+    showDetails: false,
   };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null };
+    return { hasError: true, error, errorInfo: null, showDetails: false };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // If the error occurred during a logout transition, bypass error UI and redirect to login
     if (typeof window !== "undefined" && sessionStorage.getItem("is_logging_out") === "true") {
       console.log("ErrorBoundary caught transient error during logout transition. Redirecting to login...");
-      this.setState({ hasError: false, error: null, errorInfo: null });
+      this.setState({ hasError: false, error: null, errorInfo: null, showDetails: false });
       window.location.replace("/login");
       return;
     }
@@ -37,20 +35,15 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("Uncaught error caught by ErrorBoundary:", error, errorInfo);
     this.setState({ errorInfo });
 
-    // We extend the automated recovery to handle ANY unexpected crash (including React Minified Errors).
-    // This provides a powerful workaround for data-handling bugs by purging corrupted local caches automatically.
-    console.warn("Crash detected in ErrorBoundary. Attempting automated page recovery...");
+    // Automated recovery attempt if we haven't recovered recently
     const lastReloadStr = localStorage.getItem("last_crash_recovery_time");
     const now = Date.now();
     
-    // Only auto-reload if we haven't crashed in the last 30 seconds to prevent infinite reload loops.
-    // This allows the app to self-heal from corrupted local caches or transient React Hook errors.
     if (!lastReloadStr || now - parseInt(lastReloadStr, 10) > 30000) {
       localStorage.setItem("last_crash_recovery_time", now.toString());
       
       (async () => {
         try {
-          // Comprehensive data purge
           localStorage.removeItem("cached_user_profile");
           localStorage.removeItem("cached_auth_uid");
           localStorage.removeItem("last_global_sync");
@@ -70,7 +63,6 @@ export class ErrorBoundary extends Component<Props, State> {
             }
           }
           
-          // Force a hard reload with a cache-busting timestamp
           const url = new URL(window.location.href);
           url.searchParams.set("t", Date.now().toString());
           window.location.replace(url.toString());
@@ -84,11 +76,11 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private handleReset = async () => {
     try {
-      // Clear session keys while keeping offline IndexedDB data intact
       sessionStorage.clear();
       localStorage.removeItem("last_global_sync");
+      localStorage.removeItem("cached_user_profile");
+      localStorage.removeItem("cached_auth_uid");
       
-      // Clear HTTP service worker caches
       if (typeof window !== "undefined" && "caches" in window) {
         const keys = await window.caches.keys();
         for (const key of keys) {
@@ -96,7 +88,6 @@ export class ErrorBoundary extends Component<Props, State> {
         }
       }
       
-      // Reload page
       window.location.reload();
     } catch (e) {
       console.error("Failed during light cache clear:", e);
@@ -111,89 +102,133 @@ export class ErrorBoundary extends Component<Props, State> {
   public render() {
     if (this.state.hasError) {
       return (
-        <Box
-          sx={{
+        <div
+          style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
             minHeight: "100vh",
-            p: 3,
-            bgcolor: "#f4f6f8",
-            fontFamily: "system-ui, -apple-system, sans-serif",
+            padding: "24px",
+            backgroundColor: "#f4f6f8",
+            fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+            color: "#1f2937",
+            boxSizing: "border-box",
           }}
         >
-          <Paper
-            elevation={4}
-            sx={{
-              p: 4,
-              maxWidth: 600,
+          <div
+            style={{
+              padding: "32px",
+              maxWidth: "600px",
               width: "100%",
-              borderRadius: 4,
+              borderRadius: "16px",
               textAlign: "center",
-              border: "1px solid rgba(0,0,0,0.06)",
+              backgroundColor: "#ffffff",
+              boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+              border: "1px solid #e5e7eb",
+              boxSizing: "border-box",
             }}
           >
-            <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: "error.main" }}>
+            <h2 style={{ fontSize: "1.5rem", fontWeight: 800, margin: "0 0 12px 0", color: "#dc2626" }}>
               Something went wrong
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              An unexpected runtime error has occurred, causing the application to crash. You can attempt to reload the page or clear local cache.
-            </Typography>
+            </h2>
+            <p style={{ fontSize: "0.875rem", color: "#4b5563", margin: "0 0 24px 0", lineHeight: 1.5 }}>
+              An unexpected runtime error occurred causing the application to halt. You can reload the page or reset cached session data to recover.
+            </p>
 
-            <Box sx={{ display: "flex", gap: 2, justifyContent: "center", mb: 4, flexWrap: "wrap" }}>
-              <Button
-                variant="contained"
-                startIcon={<RefreshIcon />}
+            <div style={{ display: "flex", gap: "12px", justifyContent: "center", marginBottom: "24px", flexWrap: "wrap" }}>
+              <button
                 onClick={this.handleReload}
-                sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  border: "none",
+                  backgroundColor: "#2563eb",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                }}
               >
                 Reload Page
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<DeleteForeverIcon />}
+              </button>
+              <button
                 onClick={this.handleReset}
-                sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
+                style={{
+                  padding: "10px 20px",
+                  borderRadius: "10px",
+                  border: "1px solid #f87171",
+                  backgroundColor: "#fef2f2",
+                  color: "#dc2626",
+                  fontWeight: 700,
+                  fontSize: "0.875rem",
+                  cursor: "pointer",
+                }}
               >
                 Reset Cache & Reload
-              </Button>
-            </Box>
+              </button>
+            </div>
 
             {this.state.error && (
-              <Accordion sx={{ boxShadow: "none", border: "1px solid", borderColor: "divider", borderRadius: 2, overflow: "hidden", textAlign: "left" }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography variant="caption" sx={{ fontWeight: "bold", fontFamily: "monospace" }}>
-                    Error Details: {this.state.error.message}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ bgcolor: "grey.50", p: 2 }}>
-                  <Typography
-                    variant="caption"
-                    component="pre"
-                    sx={{
-                      display: "block",
-                      whiteSpace: "pre-wrap",
-                      fontFamily: "monospace",
-                      fontSize: "0.75rem",
-                      maxHeight: "200px",
-                      overflowY: "auto",
-                      color: "text.secondary",
-                    }}
-                  >
-                    {this.state.error.stack || "No stack trace available"}
-                    {"\n\n"}
-                    {this.state.errorInfo?.componentStack || "No component stack trace available"}
-                  </Typography>
-                </AccordionDetails>
-              </Accordion>
+              <div
+                style={{
+                  textAlign: "left",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                  overflow: "hidden",
+                  backgroundColor: "#f9fafb",
+                }}
+              >
+                <button
+                  onClick={() => this.setState((prev) => ({ showDetails: !prev.showDetails }))}
+                  style={{
+                    width: "100%",
+                    padding: "12px",
+                    background: "none",
+                    border: "none",
+                    textAlign: "left",
+                    fontWeight: 600,
+                    fontSize: "0.8rem",
+                    fontFamily: "monospace",
+                    cursor: "pointer",
+                    color: "#374151",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>Error Details: {this.state.error.message}</span>
+                  <span>{this.state.showDetails ? "▲" : "▼"}</span>
+                </button>
+                {this.state.showDetails && (
+                  <div style={{ padding: "12px", borderTop: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                        fontFamily: "monospace",
+                        fontSize: "0.75rem",
+                        maxHeight: "200px",
+                        overflowY: "auto",
+                        color: "#6b7280",
+                        margin: 0,
+                      }}
+                    >
+                      {this.state.error.stack || "No stack trace available"}
+                      {"\n\n"}
+                      {this.state.errorInfo?.componentStack || "No component stack trace available"}
+                    </pre>
+                  </div>
+                )}
+              </div>
             )}
-          </Paper>
-        </Box>
+          </div>
+        </div>
       );
     }
 
     return this.props.children;
   }
 }
+

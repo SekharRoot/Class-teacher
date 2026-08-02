@@ -4,15 +4,21 @@ import fs from "fs";
 
 const currentDirname = typeof __dirname !== 'undefined' ? __dirname : process.cwd();
 
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("Uncaught Exception thrown:", err);
+});
+
 async function startServer() {
   const app = express();
 
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   const isProduction =
-    process.env.NODE_ENV === "production" ||
-    !!process.env.K_SERVICE ||
-    fs.existsSync(path.join(process.cwd(), "dist", "index.html"));
+    process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
   console.log(
     `Starting server in ${

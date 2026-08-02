@@ -588,4 +588,44 @@ export const attendanceApi = {
       handleFirestoreError(error, OperationType.LIST, "attendance");
     }
   },
+
+  /**
+   * Fetches all daily attendance records for a given month and classIds in a single/parallel query.
+   */
+  async getMonthlyRecords(
+    month: string,
+    classIds: string[]
+  ): Promise<Record<string, Record<string, string>>> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const recordsMap: Record<string, Record<string, string>> = {};
+
+      const promises = classIds.map(async (classId) => {
+        const colRef = collection(db, "schools", activeSchoolId, "classes", classId, "attendance");
+        const q = query(
+          colRef,
+          where(documentId(), ">=", `${month}-01`),
+          where(documentId(), "<=", `${month}-31`)
+        );
+        const snap = await getDocs(q);
+        snap.forEach((docSnap) => {
+          const date = docSnap.id;
+          const data = docSnap.data();
+          if (!recordsMap[date]) {
+            recordsMap[date] = {};
+          }
+          // Extract the unwrapped status string for each student
+          Object.entries(data).forEach(([studentId, val]) => {
+            recordsMap[date][studentId] = unwrapStatus(val);
+          });
+        });
+      });
+
+      await Promise.all(promises);
+      return recordsMap;
+    } catch (error) {
+      console.error("Error fetching monthly records in bulk:", error);
+      return {};
+    }
+  },
 };

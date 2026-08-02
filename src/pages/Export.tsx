@@ -24,6 +24,16 @@ import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { studentsApi } from "../api/students";
 import { studentCache } from "../utils/studentCache";
 import { Student } from "../types";
+import { unwrapStatus } from "../utils/statusHelper";
+
+const getDisplayStatus = (status: string): string => {
+  if (!status) return "-";
+  const s = status.toLowerCase();
+  if (s === "present") return "Present";
+  if (s === "absent") return "Absent";
+  if (s === "leave") return "Leave";
+  return status;
+};
 
 export default function Export() {
   const [loading, setLoading] = useState(false);
@@ -163,14 +173,18 @@ export default function Export() {
             14,
             38,
           );
-          const records = await attendanceApi.getByDate(selectedDate);
+          const records = await attendanceApi.getByDate(
+            selectedDate,
+            selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds
+          );
 
           filteredStudents.forEach((student) => {
-            const status = records[student.id] || "N/A";
+            const statusVal = records[student.id];
+            const statusStr = statusVal ? getDisplayStatus(unwrapStatus(statusVal)) : "N/A";
             body.push([
               student.rollNumber,
               `${student.firstName} ${student.lastName}`,
-              status,
+              statusStr,
             ]);
           });
 
@@ -188,22 +202,11 @@ export default function Export() {
             38,
           );
 
-          // Find all history dates
-          const history = await attendanceApi.getHistory(
-            undefined,
-            selectedClassId !== "all" ? selectedClassId : undefined,
-            365
-          );
-          const monthStart = startOfMonth(parseISO(selectedMonth + "-01"));
-          const monthEnd = endOfMonth(parseISO(selectedMonth + "-01"));
+          // Fast range query for the entire month's classwise attendance records
+          const classesToFetch = selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds;
+          const recordsMap = await attendanceApi.getMonthlyRecords(selectedMonth, classesToFetch);
 
-          const datesInMonth = history
-            .filter((h) => {
-              const d = parseISO(h.date);
-              return d >= monthStart && d <= monthEnd;
-            })
-            .map((h) => h.date)
-            .sort();
+          const datesInMonth = Object.keys(recordsMap).sort();
 
           if (datesInMonth.length === 0) {
             throw new Error(
@@ -211,17 +214,13 @@ export default function Export() {
             );
           }
 
-          // Fetch records for all dates in month
-          const recordsMap: Record<string, Record<string, string>> = {};
-          for (const date of datesInMonth) {
-            recordsMap[date] = await attendanceApi.getByDate(date);
-          }
-
           const monthHead = [
             [
               "Roll No",
               "Name",
               ...datesInMonth.map((d) => format(parseISO(d), "dd/MM")),
+              "Present",
+              "Absent",
             ],
           ];
           const monthBody: any[] = [];
@@ -231,16 +230,25 @@ export default function Export() {
               student.rollNumber,
               `${student.firstName} ${student.lastName}`,
             ];
+            let presentCount = 0;
+            let absentCount = 0;
             datesInMonth.forEach((date) => {
-              const status = recordsMap[date][student.id];
+              const status = recordsMap[date]?.[student.id];
+              const s = status ? status.toLowerCase() : "";
+              if (s === "present") presentCount++;
+              if (s === "absent") absentCount++;
               row.push(
-                status === "Present"
+                s === "present"
                   ? "P"
-                  : status === "Absent"
+                  : s === "absent"
                     ? "A"
-                    : "-",
+                    : s === "leave"
+                      ? "L"
+                      : "-",
               );
             });
+            row.push(presentCount.toString());
+            row.push(absentCount.toString());
             monthBody.push(row);
           });
 
@@ -305,32 +313,26 @@ export default function Export() {
         fileName = `Student_Profiles_${selectedClassId === "all" ? "All" : selectedClassId}.csv`;
       } else {
         if (exportType === "date") {
-          const records = await attendanceApi.getByDate(selectedDate);
+          const records = await attendanceApi.getByDate(
+            selectedDate,
+            selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds
+          );
 
           csvContent += "Roll No,Name,Status\n";
 
           filteredStudents.forEach((student) => {
-            const status = records[student.id] || "N/A";
+            const statusVal = records[student.id];
+            const statusStr = statusVal ? getDisplayStatus(unwrapStatus(statusVal)) : "N/A";
             const name = `"${student.firstName} ${student.lastName}"`;
-            csvContent += `${student.rollNumber},${name},${status}\n`;
+            csvContent += `${student.rollNumber},${name},${statusStr}\n`;
           });
           fileName = `Attendance_Report_${selectedDate}.csv`;
         } else if (exportType === "month") {
-          const history = await attendanceApi.getHistory(
-            undefined,
-            selectedClassId !== "all" ? selectedClassId : undefined,
-            365
-          );
-          const monthStart = startOfMonth(parseISO(selectedMonth + "-01"));
-          const monthEnd = endOfMonth(parseISO(selectedMonth + "-01"));
+          // Fast range query for the entire month's classwise attendance records
+          const classesToFetch = selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds;
+          const recordsMap = await attendanceApi.getMonthlyRecords(selectedMonth, classesToFetch);
 
-          const datesInMonth = history
-            .filter((h) => {
-              const d = parseISO(h.date);
-              return d >= monthStart && d <= monthEnd;
-            })
-            .map((h) => h.date)
-            .sort();
+          const datesInMonth = Object.keys(recordsMap).sort();
 
           if (datesInMonth.length === 0) {
             throw new Error(
@@ -338,25 +340,26 @@ export default function Export() {
             );
           }
 
-          const recordsMap: Record<string, Record<string, string>> = {};
-          for (const date of datesInMonth) {
-            recordsMap[date] = await attendanceApi.getByDate(date);
-          }
-
           const dateHeaders = datesInMonth
             .map((d) => format(parseISO(d), "dd/MM"))
             .join(",");
-          csvContent += `Roll No,Name,${dateHeaders}\n`;
+          csvContent += `Roll No,Name,${dateHeaders},Total Present,Total Absent\n`;
 
           filteredStudents.forEach((student) => {
             const name = `"${student.firstName} ${student.lastName}"`;
             let row = `${student.rollNumber},${name}`;
+            let presentCount = 0;
+            let absentCount = 0;
 
             datesInMonth.forEach((date) => {
-              const status = recordsMap[date][student.id];
-              row += `,${status === "Present" ? "P" : status === "Absent" ? "A" : "-"}`;
+              const status = recordsMap[date]?.[student.id];
+              const s = status ? status.toLowerCase() : "";
+              if (s === "present") presentCount++;
+              if (s === "absent") absentCount++;
+              row += `,${s === "present" ? "P" : s === "absent" ? "A" : s === "leave" ? "L" : "-"}`;
             });
 
+            row += `,${presentCount},${absentCount}`;
             csvContent += row + "\n";
           });
           fileName = `Attendance_Report_${selectedMonth}.csv`;
