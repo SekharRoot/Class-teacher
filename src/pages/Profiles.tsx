@@ -371,10 +371,6 @@ export default function Profiles() {
               />
             )}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage comprehensive student profile sheets, roll cards, and picture
-            directories.
-          </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
           <Tooltip title={lastSyncTime ? "Refresh Profiles" : "Download All Profiles"}>

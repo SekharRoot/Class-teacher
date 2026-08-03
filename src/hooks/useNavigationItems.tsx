@@ -40,7 +40,6 @@ export function useNavigationItems(userProfile: UserProfile | null) {
     return [
       { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
       { text: "Attendance", icon: <CheckCircleIcon />, path: "/attendance" },
-      { text: "Class", icon: <SchoolIcon />, path: "/class" },
       { text: "Profiles", icon: <AccountBoxIcon />, path: "/profiles" },
       { text: "Reports", icon: <AssessmentIcon />, path: "/reports" },
     ];

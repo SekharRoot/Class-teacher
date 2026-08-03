@@ -317,9 +317,6 @@ export default function Leaves() {
           <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
             Leave Requests
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Process student leave claims and track active records
-          </Typography>
         </Box>
         {!isReadOnly && (
           <Button

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,9 +11,11 @@ import {
   Avatar,
   Divider,
   Checkbox,
+  Tooltip,
 } from "@mui/material";
-import { School, Phone, Person, Edit, Delete } from "@mui/icons-material";
+import { School, Phone, Person, Edit, Delete, ZoomIn } from "@mui/icons-material";
 import { Student } from "../../types";
+import { ImagePreviewDialog } from "../common/ImagePreviewDialog";
 
 interface StudentCardGridLayoutProps {
   item: Student;
@@ -42,8 +44,11 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+
   return (
-    <Card
+    <>
+      <Card
       id={`profile-card-${item.id}`}
       elevation={selected ? 6 : 2}
       sx={{
@@ -87,19 +92,61 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
         }}
       >
         {displayImage ? (
-          <Avatar
-            variant="rounded"
-            src={displayImage}
-            sx={{
-              width: isCompact ? 80 : 132,
-              height: isCompact ? 80 : 132,
-              mb: isCompact ? 1 : 2,
-              borderRadius: "2px",
-              border: "2.5px solid",
-              borderColor: "primary.main",
-              boxShadow: "0 4px 10px rgba(25, 118, 210, 0.2)",
-            }}
-          />
+          <Tooltip title="Click to enlarge photo" arrow>
+            <Box
+              onClick={(e) => {
+                e.stopPropagation();
+                setImagePreviewOpen(true);
+              }}
+              sx={{
+                position: "relative",
+                cursor: "pointer",
+                display: "inline-block",
+                "&:hover .zoom-overlay": {
+                  opacity: 1,
+                },
+                "&:hover .avatar-img": {
+                  transform: "scale(1.03)",
+                },
+              }}
+            >
+              <Avatar
+                className="avatar-img"
+                variant="rounded"
+                src={displayImage}
+                sx={{
+                  width: isCompact ? 80 : 132,
+                  height: isCompact ? 80 : 132,
+                  mb: isCompact ? 1 : 2,
+                  borderRadius: "2px",
+                  border: "2.5px solid",
+                  borderColor: "primary.main",
+                  boxShadow: "0 4px 10px rgba(25, 118, 210, 0.2)",
+                  transition: "transform 0.2s ease-in-out",
+                }}
+              />
+              <Box
+                className="zoom-overlay"
+                sx={{
+                  position: "absolute",
+                  bottom: isCompact ? 12 : 20,
+                  right: 4,
+                  bgcolor: "rgba(0,0,0,0.65)",
+                  color: "white",
+                  borderRadius: "50%",
+                  p: 0.5,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: 0,
+                  transition: "opacity 0.2s ease-in-out",
+                  pointerEvents: "none",
+                }}
+              >
+                <ZoomIn sx={{ fontSize: isCompact ? 14 : 18 }} />
+              </Box>
+            </Box>
+          </Tooltip>
         ) : (
           <Avatar
             variant="rounded"
@@ -253,5 +300,14 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
         )}
       </CardActions>
     </Card>
+
+    <ImagePreviewDialog
+      open={imagePreviewOpen}
+      imageUrl={displayImage}
+      title={fullName}
+      subtitle={`Roll No: ${item.rollNumber} | Class: ${className}`}
+      onClose={() => setImagePreviewOpen(false)}
+    />
+  </>
   );
 };

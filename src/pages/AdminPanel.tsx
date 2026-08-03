@@ -200,9 +200,6 @@ export default function AdminPanel() {
           >
             User Administration
           </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Manage teacher roles, principal viewing privileges, and link structural hierarchies.
-          </Typography>
         </Box>
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
           <Button

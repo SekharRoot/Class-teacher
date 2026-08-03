@@ -29,6 +29,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { UserProfile } from "../../types";
 import { DailyStatusReport } from "./DailyStatusReport";
+import { getDashboardCardStyle } from "../../utils/navigationColors";
 
 interface ClassStat {
   classId: string;
@@ -77,21 +78,28 @@ export const OversightDashboard = React.memo(({
     setActiveTab(newValue);
   };
 
+  const isDark = theme.palette.mode === "dark";
+  const attendanceCardStyle = getDashboardCardStyle("attendance", isDark);
+  const studentsCardStyle = getDashboardCardStyle("students", isDark);
+  const unmarkedCardStyle = getDashboardCardStyle(
+    unmarkedClasses.length > 0 ? "warning" : "success",
+    isDark
+  );
+  const leavesCardStyle = getDashboardCardStyle("leaves", isDark);
+  const reportsCardStyle = getDashboardCardStyle("reports", isDark);
+
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
-        Oversight Dashboard
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: syncing ? 2 : 4 }}>
+    <Box sx={{ mb: syncing ? 2 : 4 }}>
+      <Typography variant="h4" sx={{ fontWeight: 800 }}>
         Welcome,{" "}
-        {userProfile?.role === "owner"
-          ? "Owner"
-          : userProfile?.role === "principal"
-            ? "Principal"
-            : userProfile?.role === "academic_coordinator"
-              ? "Academic Coordinator"
-              : "Administrator"}
-        . School oversight metrics and structural reports for today.
+        {userProfile?.displayName ||
+          (userProfile?.role === "owner"
+            ? "Owner"
+            : userProfile?.role === "principal"
+              ? "Principal"
+              : userProfile?.role === "academic_coordinator"
+                ? "Academic Coordinator"
+                : "Administrator")}
       </Typography>
 
       {syncing && (
@@ -176,7 +184,10 @@ export const OversightDashboard = React.memo(({
                   </Typography>
                 </Box>
                 <Avatar
-                  sx={{ bgcolor: "primary.light", color: "primary.main" }}
+                  sx={{
+                    bgcolor: attendanceCardStyle.avatarBg,
+                    color: attendanceCardStyle.iconColor,
+                  }}
                 >
                   <CheckCircleIcon />
                 </Avatar>
@@ -235,7 +246,10 @@ export const OversightDashboard = React.memo(({
                   </Typography>
                 </Box>
                 <Avatar
-                  sx={{ bgcolor: "secondary.light", color: "secondary.main" }}
+                  sx={{
+                    bgcolor: studentsCardStyle.avatarBg,
+                    color: studentsCardStyle.iconColor,
+                  }}
                 >
                   <PeopleIcon />
                 </Avatar>
@@ -281,10 +295,7 @@ export const OversightDashboard = React.memo(({
                     sx={{
                       fontWeight: 800,
                       mt: 0.5,
-                      color:
-                        unmarkedClasses.length > 0
-                          ? "warning.main"
-                          : "success.main",
+                      color: unmarkedCardStyle.iconColor,
                     }}
                   >
                     {unmarkedClasses.length}
@@ -292,14 +303,8 @@ export const OversightDashboard = React.memo(({
                 </Box>
                 <Avatar
                   sx={{
-                    bgcolor:
-                      unmarkedClasses.length > 0
-                        ? "warning.light"
-                        : "success.light",
-                    color:
-                      unmarkedClasses.length > 0
-                        ? "warning.main"
-                        : "success.main",
+                    bgcolor: unmarkedCardStyle.avatarBg,
+                    color: unmarkedCardStyle.iconColor,
                   }}
                 >
                   <WarningIcon />
@@ -350,8 +355,8 @@ export const OversightDashboard = React.memo(({
                       mt: 0.5,
                       color:
                         oversightPendingLeavesCount > 0
-                           ? "error.main"
-                           : "text.primary",
+                          ? leavesCardStyle.iconColor
+                          : "text.primary",
                     }}
                   >
                     {oversightPendingLeavesCount}
@@ -359,14 +364,8 @@ export const OversightDashboard = React.memo(({
                 </Box>
                 <Avatar
                   sx={{
-                    bgcolor:
-                      oversightPendingLeavesCount > 0
-                        ? "error.light"
-                        : "action.selected",
-                    color:
-                      oversightPendingLeavesCount > 0
-                        ? "error.main"
-                        : "text.secondary",
+                    bgcolor: leavesCardStyle.avatarBg,
+                    color: leavesCardStyle.iconColor,
                   }}
                 >
                   <PendingActionsIcon />
@@ -405,7 +404,24 @@ export const OversightDashboard = React.memo(({
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<AssessmentIcon />}
+                    startIcon={<AssessmentIcon sx={{ color: reportsCardStyle.iconColor }} />}
+                    endIcon={<ArrowForwardIcon />}
+                    onClick={() => navigate("/reports")}
+                    sx={{
+                      justifyContent: "space-between",
+                      py: 1.5,
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      color: "text.primary",
+                      borderColor: "divider",
+                    }}
+                  >
+                    View School Monthly Reports
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<PendingActionsIcon sx={{ color: leavesCardStyle.iconColor }} />}
                     endIcon={<ArrowForwardIcon />}
                     onClick={() => navigate("/reports")}
                     sx={{

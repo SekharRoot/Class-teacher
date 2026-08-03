@@ -321,10 +321,6 @@ export default function Classes() {
               />
             )}
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Configure and manage Class Standards, Education Boards, and
-            Sections.
-          </Typography>
         </Box>
         {!isReadOnly && (
           <Box sx={{ display: "flex", gap: 1.5 }}>

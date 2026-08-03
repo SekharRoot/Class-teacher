@@ -23,6 +23,8 @@ interface ThemeContextType {
   toggleTranslucency: () => void;
   zoomLevel: number;
   setZoomLevel: (zoom: number) => void;
+  coloredNavIconsEnabled: boolean;
+  toggleColoredNavIcons: () => void;
 }
 
 export const ThemeContext = createContext<ThemeContextType>({
@@ -32,6 +34,8 @@ export const ThemeContext = createContext<ThemeContextType>({
   toggleTranslucency: () => {},
   zoomLevel: 100,
   setZoomLevel: () => {},
+  coloredNavIconsEnabled: true,
+  toggleColoredNavIcons: () => {},
 });
 
 export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
@@ -47,6 +51,11 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
   const [translucencyEnabled, setTranslucencyEnabled] = useState<boolean>(() => {
     const saved = localStorage.getItem("translucencyEnabled");
     return saved === "true";
+  });
+
+  const [coloredNavIconsEnabled, setColoredNavIconsEnabled] = useState<boolean>(() => {
+    const saved = localStorage.getItem("colored_nav_icons_enabled");
+    return saved === null ? false : saved === "true";
   });
 
   const [zoomLevel, setZoomLevelState] = useState<number>(() => {
@@ -81,12 +90,20 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("translucencyEnabled", translucencyEnabled ? "true" : "false");
   }, [translucencyEnabled]);
 
+  useEffect(() => {
+    localStorage.setItem("colored_nav_icons_enabled", coloredNavIconsEnabled ? "true" : "false");
+  }, [coloredNavIconsEnabled]);
+
   const toggleTheme = () => {
     setMode((prevMode) => (prevMode === "light" ? "dark" : "light"));
   };
 
   const toggleTranslucency = () => {
     setTranslucencyEnabled((prev) => !prev);
+  };
+
+  const toggleColoredNavIcons = () => {
+    setColoredNavIconsEnabled((prev) => !prev);
   };
 
   const theme = useMemo(
@@ -99,8 +116,8 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
               main: mode === "light" ? "#1976d2" : "#90caf9",
             },
             background: {
-              default: mode === "light" ? "#f4f6f8" : "#121212",
-              paper: mode === "light" ? "#ffffff" : "#1e1e1e",
+              default: mode === "light" ? "#f4f6f8" : "#0a0a0e",
+              paper: mode === "light" ? "#ffffff" : "#141418",
             },
           },
           typography: {
@@ -110,14 +127,22 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiPaper: {
               styleOverrides: {
                 root: {
-                  transition: "background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+                  transition: "background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(16px) saturate(140%)",
-                    WebkitBackdropFilter: "blur(16px) saturate(140%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.45)" : "rgba(30, 30, 30, 0.45)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.72)" : "rgba(20, 20, 24, 0.75)",
                     backgroundImage: "none",
-                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
-                    boxShadow: mode === "light" ? "0 8px 32px 0 rgba(31, 38, 135, 0.06)" : "0 8px 32px 0 rgba(0, 0, 0, 0.3)",
+                    border: mode === "light" ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  }),
+                },
+              },
+            },
+            MuiCard: {
+              styleOverrides: {
+                root: {
+                  ...(translucencyEnabled && {
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.88)" : "rgba(20, 20, 24, 0.90)",
+                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.7)" : "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: mode === "light" ? "0 4px 16px 0 rgba(31, 38, 135, 0.05)" : "0 4px 16px 0 rgba(0, 0, 0, 0.45)",
                   }),
                 },
               },
@@ -125,14 +150,14 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiAppBar: {
               styleOverrides: {
                 root: {
-                  transition: "background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease",
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(16px) saturate(140%)",
-                    WebkitBackdropFilter: "blur(16px) saturate(140%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.45)" : "rgba(18, 18, 18, 0.45)",
+                    backdropFilter: "blur(8px) saturate(120%)",
+                    WebkitBackdropFilter: "blur(8px) saturate(120%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.82)" : "rgba(10, 10, 14, 0.85)",
                     color: mode === "light" ? "#121212" : "#ffffff",
                     backgroundImage: "none",
-                    borderBottom: mode === "light" ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    borderBottom: mode === "light" ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)",
                     boxShadow: "none",
                   }),
                 },
@@ -141,13 +166,43 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiDrawer: {
               styleOverrides: {
                 paper: {
-                  transition: "background-color 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease",
+                  transition: "background-color 0.2s ease, border-color 0.2s ease",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(16px) saturate(140%)",
-                    WebkitBackdropFilter: "blur(16px) saturate(140%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.45)" : "rgba(18, 18, 18, 0.45)",
+                    backdropFilter: "blur(8px) saturate(120%)",
+                    WebkitBackdropFilter: "blur(8px) saturate(120%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.80)" : "rgba(10, 10, 14, 0.82)",
                     backgroundImage: "none",
-                    borderRight: mode === "light" ? "1px solid rgba(255, 255, 255, 0.4)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRight: mode === "light" ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  }),
+                },
+              },
+            },
+            MuiDialog: {
+              styleOverrides: {
+                paper: {
+                  borderRadius: "20px",
+                  ...(translucencyEnabled && {
+                    backdropFilter: "blur(10px) saturate(120%)",
+                    WebkitBackdropFilter: "blur(10px) saturate(120%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.88)" : "rgba(20, 20, 25, 0.90)",
+                    backgroundImage: "none",
+                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.8)" : "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: mode === "light" ? "0 16px 36px rgba(0, 0, 0, 0.12)" : "0 16px 36px rgba(0, 0, 0, 0.65)",
+                  }),
+                },
+              },
+            },
+            MuiMenu: {
+              styleOverrides: {
+                paper: {
+                  borderRadius: "14px",
+                  ...(translucencyEnabled && {
+                    backdropFilter: "blur(8px) saturate(120%)",
+                    WebkitBackdropFilter: "blur(8px) saturate(120%)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.88)" : "rgba(20, 20, 25, 0.90)",
+                    backgroundImage: "none",
+                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.8)" : "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: mode === "light" ? "0 12px 32px rgba(0, 0, 0, 0.1)" : "0 12px 32px rgba(0, 0, 0, 0.45)",
                   }),
                 },
               },
@@ -159,7 +214,7 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <ThemeContext.Provider value={{ mode, toggleTheme, translucencyEnabled, toggleTranslucency, zoomLevel, setZoomLevel }}>
+    <ThemeContext.Provider value={{ mode, toggleTheme, translucencyEnabled, toggleTranslucency, zoomLevel, setZoomLevel, coloredNavIconsEnabled, toggleColoredNavIcons }}>
       <MuiThemeProvider theme={theme}>
         <CssBaseline />
         {translucencyEnabled && (

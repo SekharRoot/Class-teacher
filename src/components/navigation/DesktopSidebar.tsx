@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   Box,
   Typography,
@@ -13,10 +13,11 @@ import {
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import LogoutIcon from "@mui/icons-material/Logout";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { ThemeContext } from "../../contexts/ThemeContext";
 import { useNavigationItems } from "../../hooks/useNavigationItems";
+import { getTabEssenceStyle } from "../../utils/navigationColors";
 import { motion } from "motion/react";
 
 interface DesktopSidebarProps {
@@ -38,6 +39,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { userProfile } = useAuth();
+  const { coloredNavIconsEnabled, translucencyEnabled } = useContext(ThemeContext);
   const { primaryMenuItems, secondaryMenuItems } = useNavigationItems(userProfile);
 
   const sortedMenuItems = React.useMemo(() => {
@@ -72,12 +74,22 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
         width: sidebarOpen ? 240 : 72,
         flexShrink: 0,
         borderRight: "1px solid",
-        borderColor:
-          theme.palette.mode === "dark"
-            ? "rgba(25, 25, 25, 0.08)"
-            : "rgba(0, 0, 0, 0.08)",
-        bgcolor:
-          theme.palette.mode === "dark" ? "background.paper" : "#ffffff",
+        borderColor: translucencyEnabled
+          ? theme.palette.mode === "dark"
+            ? "rgba(255, 255, 255, 0.08)"
+            : "rgba(0, 0, 0, 0.06)"
+          : theme.palette.mode === "dark"
+          ? "rgba(255, 255, 255, 0.08)"
+          : "rgba(0, 0, 0, 0.08)",
+        bgcolor: translucencyEnabled
+          ? theme.palette.mode === "dark"
+            ? "rgba(10, 10, 14, 0.82)"
+            : "rgba(255, 255, 255, 0.82)"
+          : theme.palette.mode === "dark"
+          ? "background.paper"
+          : "#ffffff",
+        backdropFilter: translucencyEnabled ? "blur(8px) saturate(120%)" : "none",
+        WebkitBackdropFilter: translucencyEnabled ? "blur(8px) saturate(120%)" : "none",
         display: { xs: "none", md: "flex" },
         flexDirection: "column",
         transition: theme.transitions.create("width", {
@@ -135,6 +147,17 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
               ? location.pathname === "/"
               : location.pathname.startsWith(item.path);
 
+          const isDark = theme.palette.mode === "dark";
+          const { iconColor, inactiveColor, activePillBg } = getTabEssenceStyle(
+            item.text,
+            isDark,
+            coloredNavIconsEnabled,
+            theme.palette.primary.main
+          );
+
+          const itemActiveColor = iconColor;
+          const itemInactiveColor = inactiveColor || "text.secondary";
+
           return (
             <ListItem key={item.text} disablePadding sx={{ display: "block" }}>
               <Tooltip
@@ -152,12 +175,12 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                     borderRadius: "8px",
                     position: "relative",
                     bgcolor: "transparent",
-                    color: active ? "primary.main" : "text.secondary",
+                    color: active ? itemActiveColor : itemInactiveColor,
                     "&.Mui-selected": {
                       bgcolor: "transparent",
-                      color: "primary.main",
+                      color: itemActiveColor,
                       "& .MuiListItemIcon-root": {
-                        color: "primary.main",
+                        color: itemActiveColor,
                       },
                       "&:hover": {
                         bgcolor: "transparent",
@@ -180,10 +203,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                         top: 4,
                         bottom: 4,
                         borderRadius: "8px",
-                        backgroundColor:
-                          theme.palette.mode === "dark"
-                            ? "rgba(25, 118, 210, 0.15)"
-                            : "rgba(25, 118, 210, 0.08)",
+                        backgroundColor: activePillBg,
                         zIndex: 0,
                       }}
                       transition={{
@@ -207,7 +227,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                         minWidth: 0,
                         mr: sidebarOpen ? 2 : 0,
                         justifyContent: "center",
-                        color: active ? "primary.main" : "text.secondary",
+                        color: active ? itemActiveColor : itemInactiveColor,
                       }}
                     >
                       {item.icon}
@@ -219,6 +239,7 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
                             sx={{
                               fontSize: "0.9rem",
                               fontWeight: active ? 600 : 500,
+                              color: active ? itemActiveColor : "text.primary",
                             }}
                           >
                             {item.text}

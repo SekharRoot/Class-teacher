@@ -32,6 +32,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import { format } from "date-fns";
 import { LeaveRequest, ClassItem, UserProfile } from "../../types";
+import { getDashboardCardStyle } from "../../utils/navigationColors";
 
 interface TeacherDashboardProps {
   userProfile: UserProfile | null;
@@ -61,14 +62,16 @@ export const TeacherDashboard = React.memo(({
   const theme = useTheme();
   const navigate = useNavigate();
 
+  const isDark = theme.palette.mode === "dark";
+  const attendanceStyle = getDashboardCardStyle("attendance", isDark);
+  const studentsStyle = getDashboardCardStyle("students", isDark);
+  const leavesStyle = getDashboardCardStyle("leaves", isDark);
+  const reportsStyle = getDashboardCardStyle("reports", isDark);
+
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom sx={{ fontWeight: 800 }}>
-        Teacher Portal
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: syncing ? 2 : 2 }}>
-        Welcome back, {userProfile?.displayName}. Here is today's overview for
-        your assigned class.
+    <Box sx={{ mb: syncing ? 2 : 2 }}>
+      <Typography variant="h4" sx={{ fontWeight: 800 }}>
+        Welcome, {userProfile?.displayName || "Teacher"}
       </Typography>
 
       {syncing && (
@@ -477,7 +480,7 @@ export const TeacherDashboard = React.memo(({
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<CheckCircleIcon />}
+                    startIcon={<CheckCircleIcon sx={{ color: attendanceStyle.iconColor }} />}
                     onClick={() => navigate("/attendance")}
                     sx={{
                       justifyContent: "flex-start",
@@ -491,7 +494,7 @@ export const TeacherDashboard = React.memo(({
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<PeopleIcon />}
+                    startIcon={<PeopleIcon sx={{ color: studentsStyle.iconColor }} />}
                     onClick={() => navigate("/profiles")}
                     sx={{
                       justifyContent: "flex-start",
@@ -505,7 +508,7 @@ export const TeacherDashboard = React.memo(({
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<DateRangeIcon />}
+                    startIcon={<DateRangeIcon sx={{ color: leavesStyle.iconColor }} />}
                     onClick={() => navigate("/leaves")}
                     sx={{
                       justifyContent: "flex-start",
@@ -519,7 +522,7 @@ export const TeacherDashboard = React.memo(({
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<AssessmentIcon />}
+                    startIcon={<AssessmentIcon sx={{ color: reportsStyle.iconColor }} />}
                     onClick={() => navigate("/reports")}
                     sx={{
                       justifyContent: "flex-start",

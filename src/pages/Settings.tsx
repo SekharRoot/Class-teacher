@@ -57,7 +57,7 @@ export default function Settings() {
   const { fetchInitialData, students, setStudents, classes, offlineMode } = useData();
   const { isReadOnly } = useHierarchyScope();
   const [notifications, setNotifications] = useState(true);
-  const { mode, toggleTheme, zoomLevel, setZoomLevel } = useContext(ThemeContext);
+  const { mode, toggleTheme, translucencyEnabled, toggleTranslucency, zoomLevel, setZoomLevel, coloredNavIconsEnabled, toggleColoredNavIcons } = useContext(ThemeContext);
   
   const [allowEditOldAttendance, setAllowEditOldAttendance] = useState(() => {
     return localStorage.getItem("allow_edit_old_attendance") === "true";
@@ -338,6 +338,24 @@ export default function Settings() {
               <FormControlLabel
                 control={<Switch checked={darkMode} onChange={toggleTheme} />}
                 label="Dark Theme"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={translucencyEnabled}
+                    onChange={toggleTranslucency}
+                  />
+                }
+                label="Glassmorphism (Default: Off)"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={coloredNavIconsEnabled}
+                    onChange={toggleColoredNavIcons}
+                  />
+                }
+                label="Colored Floating Bar Icons (Tab Essence)"
               />
               <FormControlLabel
                 control={

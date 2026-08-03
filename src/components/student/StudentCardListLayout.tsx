@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   Box,
@@ -8,9 +8,11 @@ import {
   Divider,
   Checkbox,
   Chip,
+  Tooltip,
 } from "@mui/material";
 import { Phone, Person, Edit, Delete } from "@mui/icons-material";
 import { Student } from "../../types";
+import { ImagePreviewDialog } from "../common/ImagePreviewDialog";
 
 interface StudentCardListLayoutProps {
   item: Student;
@@ -39,8 +41,11 @@ export const StudentCardListLayout: React.FC<StudentCardListLayoutProps> = ({
   onEdit,
   onDelete,
 }) => {
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+
   return (
-    <Card
+    <>
+      <Card
       id={`profile-card-${item.id}`}
       elevation={selected ? 4 : 1}
       sx={{
@@ -64,21 +69,32 @@ export const StudentCardListLayout: React.FC<StudentCardListLayoutProps> = ({
       )}
 
       {layout === "list_image" && (
-        <Avatar
-          variant="rounded"
-          src={displayImage}
-          sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 1,
-            bgcolor: "primary.light",
-            fontSize: "1rem",
-            fontWeight: "bold",
-          }}
-        >
-          {item.firstName ? item.firstName[0] : ""}
-          {item.lastName ? item.lastName[0] : ""}
-        </Avatar>
+        <Tooltip title={displayImage ? "Click to enlarge photo" : ""} arrow disableHoverListener={!displayImage}>
+          <Avatar
+            variant="rounded"
+            src={displayImage}
+            onClick={(e) => {
+              if (displayImage) {
+                e.stopPropagation();
+                setImagePreviewOpen(true);
+              }
+            }}
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: 1,
+              bgcolor: "primary.light",
+              fontSize: "1rem",
+              fontWeight: "bold",
+              cursor: displayImage ? "pointer" : "default",
+              transition: "transform 0.2s ease-in-out",
+              "&:hover": displayImage ? { transform: "scale(1.08)" } : {},
+            }}
+          >
+            {item.firstName ? item.firstName[0] : ""}
+            {item.lastName ? item.lastName[0] : ""}
+          </Avatar>
+        </Tooltip>
       )}
 
       <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -126,5 +142,14 @@ export const StudentCardListLayout: React.FC<StudentCardListLayoutProps> = ({
         )}
       </Box>
     </Card>
+
+    <ImagePreviewDialog
+      open={imagePreviewOpen}
+      imageUrl={displayImage}
+      title={fullName}
+      subtitle={`ID: ${item.profileId || item.rollNumber} | Class: ${className}`}
+      onClose={() => setImagePreviewOpen(false)}
+    />
+  </>
   );
 };
