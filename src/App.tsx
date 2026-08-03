@@ -4,7 +4,7 @@
  */
 
 import React, { Suspense } from "react";
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CustomThemeProvider } from "./contexts/ThemeContext";
 import { DataProvider } from "./contexts/DataContext";
@@ -120,6 +120,7 @@ export default function App() {
                   <Route path="testing" element={<Testing />} />
                   <Route path="app-info" element={<AppInfo />} />
                 </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
           </HashRouter>

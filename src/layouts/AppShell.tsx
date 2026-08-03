@@ -53,7 +53,7 @@ export default function AppShell() {
     return <Navigate to="/login" replace />;
   }
 
-  if (loading || (globalLoading && students.length === 0)) {
+  if (loading) {
     return <LoadingOverlay />;
   }
 

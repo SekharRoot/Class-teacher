@@ -278,11 +278,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     } else {
-      console.log("Skipping automatic student profiles re-download as they are already cached offline.");
+      console.log("Mounted with cached student profiles. Triggering on-demand background scan for server data updates...");
       if (cachedStudents) {
         setStudents(cachedStudents);
       }
       setLoading(false);
+
+      // Perform on-demand scan in background if there is updated server data
+      studentSyncManager.performSync(false).then(async (syncResult) => {
+        if (syncResult.syncedCount > 0 || syncResult.deletedCount > 0) {
+          console.log(`[DataContext] On-demand scan synced ${syncResult.syncedCount} new/updated profiles.`);
+          const updatedCached = await cache.get("offline_students");
+          if (updatedCached) {
+            setStudents(updatedCached);
+          }
+        }
+      }).catch((err) => {
+        console.warn("[DataContext] On-demand background scan error:", err);
+      });
     }
   }, [userProfile]);
 

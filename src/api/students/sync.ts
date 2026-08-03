@@ -82,14 +82,14 @@ export async function syncProfiles(lastSyncTime?: string | null, fullSync = fals
         timestamp: currentTimestamp,
       };
     } catch (error: any) {
-      console.warn("Incremental sync via collectionGroup failed (likely missing index). Falling back to full sync.", error.message);
+      console.warn("Incremental sync via collectionGroup failed (likely missing index). Falling back to full server scan.", error.message);
       const classesList = await classesApi.getAll();
       const allServerStudents = await getAllInParallelChunks(classesList, true);
       const activeServerStudents = allServerStudents.filter(s => s.schoolId === activeSchoolId);
       
-      const syncedStudents = activeServerStudents.filter(s => (s as any).updatedAt && (s as any).updatedAt > lastSyncTime);
+      // Return all active server students so newly created profiles are never missed
       return {
-        syncedStudents,
+        syncedStudents: activeServerStudents,
         deletedIds: [],
         timestamp: currentTimestamp,
       };

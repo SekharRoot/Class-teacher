@@ -23,6 +23,7 @@ import {
   CheckCircleOutlined,
   PersonOff,
   Search,
+  InfoOutlined,
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { ClassItem, Student } from "../types";
@@ -62,10 +63,13 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
     return mapping;
   }, [students]);
 
-  // Compute absentees class-wise
+  // Compute absentees class-wise and check if attendance was taken for each class
   const classWiseAbsentees = useMemo(() => {
     return classes.map((cls) => {
       const classStudents = classToStudents[cls.id] || [];
+      const markedCount = classStudents.filter((s) => attendance[s.id] !== undefined).length;
+      const isAttendanceMarked = markedCount > 0;
+
       const absenteesList = classStudents.filter((student) => {
         const att = attendance[student.id];
         const status = typeof att === "object" && att !== null ? att.status : att;
@@ -81,12 +85,18 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
         classId: cls.id,
         className: `${cls.classStandard} ${cls.section} (${cls.board})`,
         absentees: absenteesList,
+        isAttendanceMarked,
+        totalStudents: classStudents.length,
       };
     }).sort((a, b) => a.className.localeCompare(b.className));
   }, [classes, classToStudents, attendance]);
 
   const totalAbsenteesCount = useMemo(() => {
     return classWiseAbsentees.reduce((sum, item) => sum + item.absentees.length, 0);
+  }, [classWiseAbsentees]);
+
+  const totalMarkedClassesCount = useMemo(() => {
+    return classWiseAbsentees.filter((item) => item.isAttendanceMarked).length;
   }, [classWiseAbsentees]);
 
   const filteredClassWiseAbsentees = useMemo(() => {
@@ -107,18 +117,24 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
     let hasAnyAbsentees = false;
 
     classWiseAbsentees.forEach((item) => {
-      if (item.absentees.length > 0) {
+      if (!item.isAttendanceMarked) {
+        text += `• ${item.className}: Attendance Not Marked\n\n`;
+      } else if (item.absentees.length > 0) {
         hasAnyAbsentees = true;
         text += `• ${item.className} (Total: ${item.absentees.length} Absent):\n`;
         item.absentees.forEach((student, index) => {
           text += `  ${index + 1}. ${student.firstName} ${student.lastName}\n`;
         });
         text += `\n`;
+      } else {
+        text += `• ${item.className}: All Present (100% Attendance)\n\n`;
       }
     });
 
-    if (!hasAnyAbsentees) {
-      text += `All Present! No absentees recorded for this date.\n`;
+    if (!hasAnyAbsentees && totalMarkedClassesCount > 0) {
+      text += `No absentees recorded across marked classes for this date.\n`;
+    } else if (totalMarkedClassesCount === 0) {
+      text += `Attendance has not been taken for any class on this date.\n`;
     }
 
     return text;
@@ -301,12 +317,21 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
           </Box>
         </Typography>
 
-        {totalAbsenteesCount === 0 && !loading && (
+        {totalAbsenteesCount === 0 && totalMarkedClassesCount > 0 && !loading && (
           <Chip
             icon={<CheckCircleOutlined />}
             label="Perfect Attendance Recorded!"
             color="success"
             variant="filled"
+            sx={{ fontWeight: "bold" }}
+          />
+        )}
+        {totalMarkedClassesCount === 0 && !loading && (
+          <Chip
+            icon={<InfoOutlined />}
+            label="Attendance Not Marked Yet"
+            color="warning"
+            variant="outlined"
             sx={{ fontWeight: "bold" }}
           />
         )}
@@ -321,6 +346,8 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
         ) : (
           filteredClassWiseAbsentees.map((item) => {
             const hasAbsentees = item.absentees.length > 0;
+            const isMarked = item.isAttendanceMarked;
+
             return (
               <Accordion
                 key={item.classId}
@@ -345,7 +372,11 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                   sx={{
                     px: 2,
                     minHeight: 52,
-                    bgcolor: hasAbsentees ? "rgba(211, 47, 47, 0.02)" : "rgba(46, 125, 50, 0.01)",
+                    bgcolor: !isMarked
+                      ? "action.hover"
+                      : hasAbsentees
+                      ? "rgba(211, 47, 47, 0.02)"
+                      : "rgba(46, 125, 50, 0.01)",
                     "& .MuiAccordionSummary-content": {
                       alignItems: "center",
                       justifyContent: "space-between",
@@ -360,9 +391,15 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                     </Typography>
                     <Chip
                       size="small"
-                      label={hasAbsentees ? `${item.absentees.length} Absent` : "All Present"}
-                      color={hasAbsentees ? "error" : "success"}
-                      variant={hasAbsentees ? "filled" : "outlined"}
+                      label={
+                        !isMarked
+                          ? "Attendance Not Marked"
+                          : hasAbsentees
+                          ? `${item.absentees.length} Absent`
+                          : "All Present"
+                      }
+                      color={!isMarked ? "default" : hasAbsentees ? "error" : "success"}
+                      variant={!isMarked ? "outlined" : hasAbsentees ? "filled" : "outlined"}
                       sx={{ fontWeight: "bold" }}
                     />
                   </Box>
@@ -392,7 +429,14 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                   </Box>
                 </AccordionSummary>
                 <AccordionDetails sx={{ px: 2.5, py: 2, bgcolor: "background.paper" }}>
-                  {!hasAbsentees ? (
+                  {!isMarked ? (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
+                      <InfoOutlined color="action" sx={{ fontSize: 20 }} />
+                      <Typography variant="body2" color="text.secondary">
+                        Attendance has not been recorded for this class on this date.
+                      </Typography>
+                    </Box>
+                  ) : !hasAbsentees ? (
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, py: 1 }}>
                       <CheckCircleOutlined color="success" sx={{ fontSize: 20 }} />
                       <Typography variant="body2" color="text.secondary">

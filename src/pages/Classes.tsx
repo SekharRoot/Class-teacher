@@ -125,7 +125,17 @@ export default function Classes() {
     fetchClasses,
   } = useClassesData(showToast);
 
-  const classStudents = studentsList.filter((s) => s.classId === selectedClass?.id);
+  const classStudents = studentsList.filter((s) => {
+    if (!selectedClass) return false;
+    if (s.classId === selectedClass.id) return true;
+    if (s.classId) {
+      const normStudentClass = s.classId.trim().toLowerCase();
+      const normStandardSection = `${selectedClass.classStandard} ${selectedClass.section}`.trim().toLowerCase();
+      const normBoardStandardSection = `${selectedClass.board} ${selectedClass.classStandard} ${selectedClass.section}`.trim().toLowerCase();
+      return normStudentClass === normStandardSection || normStudentClass === normBoardStandardSection;
+    }
+    return false;
+  });
 
   const handleSaveClassAsync = async (
     oldId: string | null,

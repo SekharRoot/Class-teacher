@@ -282,7 +282,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let profileUnsub: (() => void) | null = null;
 
+    const safetyTimer = setTimeout(() => {
+      console.warn("Auth resolution safety timeout reached. Unblocking initial load.");
+      setAuthResolved(true);
+      setInitialLoad(false);
+      setLoading(false);
+    }, 3000);
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      clearTimeout(safetyTimer);
       setAuthResolved(true);
 
       if (profileUnsub) {

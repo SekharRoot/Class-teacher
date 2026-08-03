@@ -30,55 +30,13 @@ export async function getAllInParallelChunks(classesList: { id: string }[], forc
   try {
     const activeSchoolId = getActiveSchoolId();
 
-    if (classesList.length > 5) {
-      const q = query(
-        collectionGroup(db, "students"),
-        where("schoolId", "==", activeSchoolId)
-      );
-      const snapshot = await getDocs(q);
-      const list: Student[] = [];
-      snapshot.forEach((doc) => {
-        list.push({ id: doc.id, ...doc.data() } as Student);
-      });
+    // Collect all class IDs including 'unassigned' and remove duplicates
+    const rawClassIds = classesList ? classesList.map((c) => c.id).filter(Boolean) : [];
+    const classIds = Array.from(new Set(["unassigned", ...rawClassIds]));
 
-      list.sort((a, b) => {
-        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
-
-      setStudentsCache(list, Date.now());
-      return list;
-    }
-
-    const classIds = classesList.length === 0 ? ["unassigned"] : ["unassigned", ...classesList.map(c => c.id)];
+    // Execute parallel subcollection queries for all classes of the specific school
     const promises = classIds.map(async (cId) => {
-      const q = query(collection(db, "schools", activeSchoolId, "classes", cId, "students"));
-      const snapshot = await getDocs(q);
-      const subList: Student[] = [];
-      snapshot.forEach((doc) => {
-        subList.push({ id: doc.id, ...doc.data() } as Student);
-      });
-      return subList;
-    });
-
-    const results = await Promise.all(promises);
-    const list: Student[] = results.flat();
-
-    list.sort((a, b) => {
-      const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-      const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-
-    setStudentsCache(list, Date.now());
-    return list;
-  } catch (error) {
-    console.warn("CollectionGroup student fetch failed. Attempting fallback.", error);
-    try {
-      const activeSchoolId = getActiveSchoolId();
-      const classIds = ["unassigned", ...classesList.map(c => c.id)];
-      const promises = classIds.map(async (cId) => {
+      try {
         const q = query(collection(db, "schools", activeSchoolId, "classes", cId, "students"));
         const snapshot = await getDocs(q);
         const subList: Student[] = [];
@@ -86,23 +44,34 @@ export async function getAllInParallelChunks(classesList: { id: string }[], forc
           subList.push({ id: doc.id, ...doc.data() } as Student);
         });
         return subList;
-      });
+      } catch (err) {
+        console.warn(`Parallel fetch for class ${cId} in school ${activeSchoolId} notice:`, err);
+        return [];
+      }
+    });
 
-      const results = await Promise.all(promises);
-      const list: Student[] = results.flat();
+    const results = await Promise.all(promises);
+    const list: Student[] = results.flat();
 
-      list.sort((a, b) => {
-        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-        return nameA.localeCompare(nameB);
-      });
+    // Remove duplicates if any student document was returned multiple times
+    const uniqueMap = new Map<string, Student>();
+    list.forEach((s) => {
+      if (s && s.id) uniqueMap.set(s.id, s);
+    });
+    const uniqueList = Array.from(uniqueMap.values());
 
-      setStudentsCache(list, Date.now());
-      return list;
-    } catch (fallbackError) {
-      handleFirestoreError(fallbackError, OperationType.LIST, "students");
-      return [];
-    }
+    uniqueList.sort((a, b) => {
+      const nameA = `${a.firstName || ""} ${a.lastName || ""}`.toLowerCase();
+      const nameB = `${b.firstName || ""} ${b.lastName || ""}`.toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    setStudentsCache(uniqueList, Date.now());
+    return uniqueList;
+  } catch (error) {
+    console.error("Parallel collection queries fetch failed:", error);
+    handleFirestoreError(error, OperationType.LIST, "students");
+    return [];
   }
 }
 
