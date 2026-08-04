@@ -116,7 +116,7 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
           palette: {
             mode,
             primary: {
-              main: mode === "light" ? "#1976d2" : "#90caf9",
+              main: mode === "light" ? "#1976d2" : "#64b5f6",
             },
             background: {
               default: mode === "light" ? "#f4f6f8" : "#0a0a0e",

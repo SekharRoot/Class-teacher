@@ -183,7 +183,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                       color: active ? activeColor : itemInactiveColor,
                       opacity: active ? 1 : coloredNavIconsEnabled ? 0.75 : 1,
                       bgcolor: "transparent",
-                      borderRadius: "18px",
+                      borderRadius: "10px",
                       px: { xs: 1.25, sm: 2 },
                       py: { xs: 1, sm: 1.25 },
                       display: "flex",
@@ -209,7 +209,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                           right: 0,
                           top: 0,
                           bottom: 0,
-                          borderRadius: "18px",
+                          borderRadius: "10px",
                           backgroundColor: activePillBg,
                           zIndex: 0,
                         }}
@@ -250,10 +250,10 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 color: mobileExpanded ? "primary.main" : "text.secondary",
                 bgcolor: mobileExpanded
                   ? theme.palette.mode === "dark"
-                    ? "rgba(25, 118, 210, 0.15)"
+                    ? "rgba(41, 121, 255, 0.20)"
                     : "rgba(25, 118, 210, 0.08)"
                   : "transparent",
-                borderRadius: "18px",
+                borderRadius: "10px",
                 px: 1.25,
                 py: 1,
                 display: "flex",

@@ -336,6 +336,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           localStorage.removeItem("cached_user_profile");
           localStorage.removeItem("cached_auth_uid");
+          localStorage.removeItem("activeSchoolId");
+          localStorage.removeItem("activeSchoolName");
+          localStorage.removeItem("adminSelectedSchoolId");
+          localStorage.removeItem("adminSelectedSchoolName");
           sessionStorage.removeItem("is_logging_out");
         } catch {}
       }
@@ -360,6 +364,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem("is_logging_out", "true");
       localStorage.removeItem("cached_user_profile");
       localStorage.removeItem("cached_auth_uid");
+      localStorage.removeItem("activeSchoolId");
+      localStorage.removeItem("activeSchoolName");
+      localStorage.removeItem("adminSelectedSchoolId");
+      localStorage.removeItem("adminSelectedSchoolName");
     } catch {}
     return firebaseSignOut(auth);
   };

@@ -84,13 +84,13 @@ export const SecondaryNavigationMenu: React.FC<
               "&.Mui-selected": {
                 bgcolor:
                   theme.palette.mode === "dark"
-                    ? "rgba(25, 118, 210, 0.2)"
+                    ? "rgba(41, 121, 255, 0.20)"
                     : "rgba(25, 118, 210, 0.08)",
                 fontWeight: 600,
                 "&:hover": {
                   bgcolor:
                     theme.palette.mode === "dark"
-                      ? "rgba(25, 118, 210, 0.25)"
+                      ? "rgba(41, 121, 255, 0.30)"
                       : "rgba(25, 118, 210, 0.12)",
                 },
               },

@@ -213,8 +213,15 @@ export function useAttendanceData() {
             ...prev,  // Keep existing state for other classes
             ...data   // Overwrite with fresh server data for the current class/students
           }));
+          let existingCached: Record<string, any> = {};
+          try {
+            const raw = localStorage.getItem(`attendance_${dateString}`);
+            if (raw) existingCached = JSON.parse(raw);
+          } catch {
+            existingCached = {};
+          }
           localStorage.setItem(`attendance_${dateString}`, JSON.stringify({
-            ...JSON.parse(localStorage.getItem(`attendance_${dateString}`) || '{}'),
+            ...existingCached,
             ...data
           }));
         }
@@ -242,11 +249,6 @@ export function useAttendanceData() {
       fetchHistory();
     }
   }, [selectedClassId, students, dateString, historyLimit, activeTab, authResolved]);
-
-  // Also fetch history on dateString change to keep track of date-wise history switch
-  useEffect(() => {
-    fetchHistory();
-  }, [dateString, authResolved]);
 
   // Reset history limit when switching class
   useEffect(() => {

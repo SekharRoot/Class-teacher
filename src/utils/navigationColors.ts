@@ -101,9 +101,9 @@ export function getTabEssenceStyle(
 ) {
   const essence = TAB_ESSENCE_MAP[tabText] || {
     main: fallbackPrimary,
-    darkMain: fallbackPrimary,
+    darkMain: "#64b5f6",
     bgLight: "rgba(25, 118, 210, 0.08)",
-    bgDark: "rgba(25, 118, 210, 0.15)",
+    bgDark: "rgba(41, 121, 255, 0.20)",
   };
 
   const color = isDark ? essence.darkMain : essence.main;
@@ -115,7 +115,7 @@ export function getTabEssenceStyle(
     activePillBg: coloredNavIconsEnabled
       ? bgPill
       : isDark
-      ? "rgba(25, 118, 210, 0.15)"
+      ? "rgba(41, 121, 255, 0.20)"
       : "rgba(25, 118, 210, 0.08)",
   };
 }

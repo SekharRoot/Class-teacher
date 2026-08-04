@@ -49,6 +49,12 @@ export function useProfilesData(
   // Keep track of search timeout for debouncing server-side search
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Keep a stable ref for showToast to avoid re-triggering fetchInitialData on unstable parent functions
+  const showToastRef = useRef(showToast);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
+
   // Load the initial dataset (IndexedDB cache first, then first page from Firestore)
   const fetchInitialData = useCallback(async () => {
     try {
@@ -97,11 +103,11 @@ export function useProfilesData(
       }
     } catch (err) {
       console.error("Failed to load initial profiles", err);
-      showToast("Could not synchronize profiles. Displaying cached data.", "warning");
+      showToastRef.current("Could not synchronize profiles. Displaying cached data.", "warning");
     } finally {
       setLoading(false);
     }
-  }, [offlineMode, showToast, authResolved]);
+  }, [offlineMode, authResolved]);
 
   // Load next page on scroll
   const loadMore = useCallback(async () => {
