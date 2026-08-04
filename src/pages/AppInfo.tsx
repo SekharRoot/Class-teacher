@@ -58,7 +58,7 @@ export default function AppInfo() {
             elevation={4}
             sx={{
               p: { xs: 2, sm: 4 },
-              borderRadius: "24px",
+              borderRadius: "10px",
               height: "100%",
               display: "flex",
               flexDirection: "column",
@@ -118,7 +118,7 @@ export default function AppInfo() {
               elevation={3}
               sx={{
                 p: 3,
-                borderRadius: "20px",
+                borderRadius: "10px",
                 border: "1px solid",
                 borderColor:
                   theme.palette.mode === "dark"
@@ -143,7 +143,7 @@ export default function AppInfo() {
                 <Card
                   variant="outlined"
                   sx={{
-                    borderRadius: "16px",
+                    borderRadius: "10px",
                     borderColor:
                       theme.palette.mode === "dark"
                         ? "rgba(255,255,255,0.08)"
@@ -166,7 +166,7 @@ export default function AppInfo() {
                 <Card
                   variant="outlined"
                   sx={{
-                    borderRadius: "16px",
+                    borderRadius: "10px",
                     borderColor:
                       theme.palette.mode === "dark"
                         ? "rgba(255,255,255,0.08)"
@@ -191,7 +191,7 @@ export default function AppInfo() {
               elevation={2}
               sx={{
                 p: 2.5,
-                borderRadius: "20px",
+                borderRadius: "10px",
                 display: "flex",
                 flexDirection: "column",
                 gap: 1.5,

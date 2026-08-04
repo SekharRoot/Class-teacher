@@ -41,7 +41,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
               bgcolor: "primary.light",
               color: "primary.contrastText",
               p: 1.2,
-              borderRadius: 2,
+              borderRadius: "10px",
               display: "flex",
               alignItems: "center",
               boxShadow: "0 4px 10px rgba(25, 118, 210, 0.15)",
@@ -79,21 +79,21 @@ export const ClassCard: React.FC<ClassCardProps> = ({
             size="small"
             variant="filled"
             color="primary"
-            sx={{ borderRadius: 1.5, fontWeight: 600, fontSize: "0.75rem" }}
+            sx={{ borderRadius: "10px", fontWeight: 600, fontSize: "0.75rem" }}
           />
           <Chip
             label={`Standard: ${item.classStandard}`}
             size="small"
             variant="outlined"
             color="secondary"
-            sx={{ borderRadius: 1.5, fontWeight: 600, fontSize: "0.75rem" }}
+            sx={{ borderRadius: "10px", fontWeight: 600, fontSize: "0.75rem" }}
           />
           <Chip
             label={`Section: ${item.section}`}
             size="small"
             variant="outlined"
             color="info"
-            sx={{ borderRadius: 1.5, fontWeight: 600, fontSize: "0.75rem" }}
+            sx={{ borderRadius: "10px", fontWeight: 600, fontSize: "0.75rem" }}
           />
         </Box>
       </CardContent>
@@ -105,7 +105,7 @@ export const ClassCard: React.FC<ClassCardProps> = ({
       id={`class-card-${item.id}`}
       elevation={2}
       sx={{
-        borderRadius: 3,
+        borderRadius: "10px",
         height: "100%",
         display: "flex",
         flexDirection: "column",

@@ -401,7 +401,7 @@ export default function Export() {
         Export Reports
       </Typography>
 
-      <Paper sx={{ p: 4, borderRadius: 2 }}>
+      <Paper sx={{ p: 4, borderRadius: "10px" }}>
         <Typography variant="h6" gutterBottom>
           Export Data
         </Typography>

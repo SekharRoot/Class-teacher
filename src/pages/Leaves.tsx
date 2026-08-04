@@ -325,7 +325,7 @@ export default function Leaves() {
             startIcon={<Add />}
             onClick={() => setOpenApplyDialog(true)}
             sx={{
-              borderRadius: 2,
+              borderRadius: "10px",
               textTransform: "none",
               fontWeight: "bold",
               py: 1,
@@ -338,7 +338,7 @@ export default function Leaves() {
       </Box>
 
       {/* Filter and Query Controls */}
-      <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
+      <Paper sx={{ p: 2, mb: 3, borderRadius: "10px" }}>
         <Grid container spacing={2} sx={{ alignItems: "center" }}>
           <Grid size={{ xs: 12, sm: 4 }}>
             <TextField
@@ -405,7 +405,7 @@ export default function Leaves() {
           sx={{
             p: 6,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             border: "1px dashed",
             borderColor: "divider",
           }}

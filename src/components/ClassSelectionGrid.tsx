@@ -69,7 +69,7 @@ export const ClassSelectionGrid: React.FC<ClassSelectionGridProps> = ({
                 onClick={() => onSelectClass(cls.id)}
                 sx={{
                   p: 3,
-                  borderRadius: 3,
+                  borderRadius: "10px",
                   cursor: "pointer",
                   height: "100%",
                   transition: "box-shadow 0.25s ease, background-color 0.25s ease",

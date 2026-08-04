@@ -58,7 +58,7 @@ export const ReportFilters: React.FC<ReportFiltersProps> = ({
           startIcon={<Refresh />}
           onClick={onGenerateReport}
           disabled={loading || !selectedClassId}
-          sx={{ height: 56, borderRadius: 2, fontWeight: "bold" }}
+          sx={{ height: 56, borderRadius: "10px", fontWeight: "bold" }}
         >
           Generate Report
         </Button>

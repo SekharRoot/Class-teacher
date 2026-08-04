@@ -45,7 +45,7 @@ export const StudentDetailDialog: React.FC<StudentDetailDialogProps> = ({
       fullWidth
       slotProps={{
         paper: {
-          sx: { borderRadius: 3, overflow: "hidden" },
+          sx: { borderRadius: "10px", overflow: "hidden" },
         },
       }}
     >
@@ -149,7 +149,7 @@ export const StudentDetailDialog: React.FC<StudentDetailDialogProps> = ({
             fullWidth
             variant="contained"
             color="primary"
-            sx={{ textTransform: "none", borderRadius: 2 }}
+            sx={{ textTransform: "none", borderRadius: "10px" }}
           >
             Close Profile
           </Button>

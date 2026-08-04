@@ -228,7 +228,7 @@ export default function Attendance() {
         <Box sx={{ maxWidth: "sm", mx: "auto", mt: 4 }}>
           <Paper
             elevation={3}
-            sx={{ p: 4, textAlign: "center", borderRadius: 2 }}
+            sx={{ p: 4, textAlign: "center", borderRadius: "10px" }}
           >
             <CloudOff sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
             <Typography variant="h5" sx={{ fontWeight: "bold" }} gutterBottom>
@@ -287,7 +287,7 @@ export default function Attendance() {
           sx={{
             p: 5,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             border: "1px dashed",
             borderColor: "divider",
           }}
@@ -332,7 +332,7 @@ export default function Attendance() {
                 onClick={() => handleClassSelect(null)}
                 variant="text"
                 sx={{
-                  borderRadius: 2,
+                  borderRadius: "10px",
                   textTransform: "none",
                   fontWeight: "bold",
                 }}
@@ -393,7 +393,7 @@ export default function Attendance() {
                   alignItems: { xs: "stretch", md: "center" },
                   justifyContent: "space-between",
                   gap: 2,
-                  borderRadius: 3,
+                  borderRadius: "10px",
                   bgcolor: "background.paper",
                 }}
               >
@@ -406,7 +406,7 @@ export default function Attendance() {
                     gap: 1,
                     bgcolor: "action.hover",
                     p: 0.5,
-                    borderRadius: 2,
+                    borderRadius: "10px",
                   }}
                 >
                   <IconButton
@@ -448,7 +448,7 @@ export default function Attendance() {
                     disabled={format(new Date(), "yyyy-MM-dd") === dateString}
                     sx={{
                       ml: 1,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       textTransform: "none",
                       fontWeight: "bold",
                     }}
@@ -464,7 +464,7 @@ export default function Attendance() {
                       onClick={() => setIsTakeAttendanceMode(!isTakeAttendanceMode)}
                       sx={{
                         ml: 1,
-                        borderRadius: 2,
+                        borderRadius: "10px",
                         textTransform: "none",
                         fontWeight: "bold",
                       }}
@@ -480,7 +480,7 @@ export default function Attendance() {
                 />
               </Paper>
               {isLockedOldData && (
-                <Alert severity="warning" sx={{ mb: 3, borderRadius: 3, fontWeight: "medium" }}>
+                <Alert severity="warning" sx={{ mb: 3, borderRadius: "10px", fontWeight: "medium" }}>
                   Historical Attendance Lock: Editing attendance data for past dates is locked by default. 
                   To modify this, enable "Allow Editing Old Attendance Data" under Account Preferences in the Settings tab.
                 </Alert>
@@ -510,7 +510,7 @@ export default function Attendance() {
                     onClick={() => handleClassSelect(null)}
                     variant="outlined"
                     size="small"
-                    sx={{ borderRadius: 4, textTransform: "none" }}
+                    sx={{ borderRadius: "10px", textTransform: "none" }}
                   >
                     Back to Classes
                   </Button>

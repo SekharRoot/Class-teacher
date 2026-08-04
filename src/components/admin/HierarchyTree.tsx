@@ -51,7 +51,7 @@ export function HierarchyTree({
       </Typography>
 
       {principals.length === 0 ? (
-        <Alert severity="info" sx={{ borderRadius: 2 }}>
+        <Alert severity="info" sx={{ borderRadius: "10px" }}>
           Please configure at least one user with the 'Principal' role and
           assign supervisor links to view the visual hierarchy tree.
         </Alert>
@@ -68,7 +68,7 @@ export function HierarchyTree({
                 mb: 3,
                 border: "1px solid",
                 borderColor: "divider",
-                borderRadius: 3,
+                borderRadius: "10px",
                 overflow: "hidden",
               }}
             >
@@ -153,7 +153,7 @@ export function HierarchyTree({
                               justifyContent: "space-between",
                               bgcolor: "secondary.light",
                               p: 1.5,
-                              borderRadius: 2,
+                              borderRadius: "10px",
                               mb: 1,
                             }}
                           >

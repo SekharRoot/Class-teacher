@@ -107,6 +107,7 @@ export default function AppShell() {
         syncing={syncing}
         onLogoutClick={() => setLogoutDialogOpen(true)}
         userRole={userProfile?.role}
+        sidebarOpen={sidebarOpen}
       />
 
       <LogoutDialog
@@ -145,7 +146,7 @@ export default function AppShell() {
             width: "100%",
             maxWidth: "1200px",
             mx: "auto",
-            mt: 8,
+            mt: { xs: "84px", sm: "98px" },
             overflowX: "hidden",
           }}
         >

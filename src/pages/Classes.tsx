@@ -332,7 +332,7 @@ export default function Classes() {
                 setEditingClass(null);
                 setOpenDialog(true);
               }}
-              sx={{ textTransform: "none", px: 3, py: 1, borderRadius: 2 }}
+              sx={{ textTransform: "none", px: 3, py: 1, borderRadius: "10px" }}
             >
               Add Class
             </Button>
@@ -357,7 +357,7 @@ export default function Classes() {
                 ),
               },
             }}
-            sx={{ bgcolor: "background.paper", borderRadius: 2 }}
+            sx={{ bgcolor: "background.paper", borderRadius: "10px" }}
           />
         </Box>
       )}
@@ -370,7 +370,7 @@ export default function Classes() {
               onClick={() => setSelectedClass(null)}
               variant="outlined"
               size="small"
-              sx={{ borderRadius: 4, textTransform: "none", mr: 2 }}
+              sx={{ borderRadius: "10px", textTransform: "none", mr: 2 }}
             >
               Back to Classes
             </Button>
@@ -435,7 +435,7 @@ export default function Classes() {
           sx={{
             p: 6,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             border: "1px dashed",
             borderColor: "divider",
           }}
@@ -464,7 +464,7 @@ export default function Classes() {
                 setOpenDialog(true);
               }}
               startIcon={<Add />}
-              sx={{ textTransform: "none", borderRadius: 2 }}
+              sx={{ textTransform: "none", borderRadius: "10px" }}
             >
               Configure First Class
             </Button>
@@ -555,7 +555,7 @@ export default function Classes() {
         <Alert
           onClose={() => setToastMessage("")}
           severity={toastSeverity}
-          sx={{ width: "100%", borderRadius: 2 }}
+          sx={{ width: "100%", borderRadius: "10px" }}
         >
           {toastMessage}
         </Alert>

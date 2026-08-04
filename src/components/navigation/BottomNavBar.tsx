@@ -72,15 +72,13 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     return result;
   }, [primaryMenuItems, secondaryMenuItems]);
 
-  // Mobile views split: 5 core tabs (Dashboard, Attendance, Class/Classes, Profiles, Settings) vs extra tabs
+  // Mobile views split: 3 core unhidden tabs (Dashboard, Attendance, Profiles) vs extra hidden/collapsed tabs
   const { mobileMainItems, mobileExtraItems } = React.useMemo(() => {
-    const mainKeys = ["Dashboard", "Attendance", "Class", "Classes", "Profiles", "Settings"];
+    const mainKeys = ["Dashboard", "Attendance", "Profiles"];
     const main = sortedMenuItems
       .filter((item) => mainKeys.includes(item.text))
       .sort((a, b) => {
-        const indexA = mainKeys.indexOf(a.text) === 3 ? 2 : mainKeys.indexOf(a.text);
-        const indexB = mainKeys.indexOf(b.text) === 3 ? 2 : mainKeys.indexOf(b.text);
-        return indexA - indexB;
+        return mainKeys.indexOf(a.text) - mainKeys.indexOf(b.text);
       });
     const extra = sortedMenuItems.filter((item) => !mainKeys.includes(item.text));
     return { mobileMainItems: main, mobileExtraItems: extra };
@@ -118,16 +116,18 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
           alignItems: "center",
           gap: { xs: 0.5, sm: 1 },
           p: { xs: 0.5, sm: 1 },
-          borderRadius: "24px",
+          borderRadius: "10px",
           bgcolor: translucencyEnabled
             ? theme.palette.mode === "dark"
-              ? "rgba(16, 16, 20, 0.82)"
-              : "rgba(255, 255, 255, 0.82)"
+              ? "rgba(16, 16, 22, 0.72)"
+              : "rgba(255, 255, 255, 0.68)"
             : theme.palette.mode === "dark"
             ? "rgba(20, 20, 24, 0.95)"
             : "rgba(255, 255, 255, 0.95)",
-          backdropFilter: translucencyEnabled ? "blur(8px) saturate(120%)" : "none",
-          WebkitBackdropFilter: translucencyEnabled ? "blur(8px) saturate(120%)" : "none",
+          backdropFilter: translucencyEnabled ? "blur(20px) saturate(180%)" : "none",
+          WebkitBackdropFilter: translucencyEnabled ? "blur(20px) saturate(180%)" : "none",
+          transform: "translateZ(0)",
+          willChange: "transform, opacity",
           border: "1px solid",
           borderColor: translucencyEnabled
             ? theme.palette.mode === "dark"

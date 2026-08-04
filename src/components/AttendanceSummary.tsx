@@ -102,7 +102,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
               p: 2,
               textAlign: "center",
               bgcolor: "background.paper",
-              borderRadius: 2,
+              borderRadius: "10px",
               border: "1px solid",
               borderColor: "divider",
             }}
@@ -140,7 +140,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
           p: 2,
           textAlign: "center",
           bgcolor: "background.paper",
-          borderRadius: 2,
+          borderRadius: "10px",
           border: "1px solid",
           borderColor: "divider",
           gridColumn: showLeavesView
@@ -170,7 +170,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
           p: 2,
           textAlign: "center",
           bgcolor: "success.50",
-          borderRadius: 2,
+          borderRadius: "10px",
           border: "1px solid",
           borderColor: "success.200",
         }}
@@ -197,7 +197,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
           p: 2,
           textAlign: "center",
           bgcolor: "error.50",
-          borderRadius: 2,
+          borderRadius: "10px",
           border: "1px solid",
           borderColor: "error.200",
         }}
@@ -225,7 +225,7 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
             p: 2,
             textAlign: "center",
             bgcolor: "info.50",
-            borderRadius: 2,
+            borderRadius: "10px",
             border: "1px solid",
             borderColor: "info.200",
           }}

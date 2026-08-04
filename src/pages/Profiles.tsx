@@ -381,7 +381,7 @@ export default function Profiles() {
               sx={{
                 border: "1px solid",
                 borderColor: "primary.main",
-                borderRadius: 2,
+                borderRadius: "10px",
                 p: 1,
                 "&:hover": {
                   bgcolor: "rgba(25, 118, 210, 0.04)",
@@ -399,7 +399,7 @@ export default function Profiles() {
                 color="primary"
                 startIcon={<Edit />}
                 onClick={() => setBatchEditDialogOpen(true)}
-                sx={{ textTransform: "none", borderRadius: 2, fontWeight: 600 }}
+                sx={{ textTransform: "none", borderRadius: "10px", fontWeight: 600 }}
               >
                 Batch Edit
               </Button>
@@ -411,7 +411,7 @@ export default function Profiles() {
                   setEditMode(!editMode);
                   if (!editMode === false) setSelectedIds([]);
                 }}
-                sx={{ textTransform: "none", borderRadius: 2 }}
+                sx={{ textTransform: "none", borderRadius: "10px" }}
               >
                 {editMode ? "Exit Edit Mode" : "Edit Mode"}
               </Button>
@@ -460,7 +460,7 @@ export default function Profiles() {
               {syncStatus === "syncing" ? "Syncing..." : "Sync Now"}
             </Button>
           }
-          sx={{ mb: 3, borderRadius: 2 }}
+          sx={{ mb: 3, borderRadius: "10px" }}
         >
           {syncStatus === "syncing" ? (
             "Synchronizing pending local updates back to the server..."
@@ -479,7 +479,7 @@ export default function Profiles() {
           sx={{
             p: 3,
             mb: 3,
-            borderRadius: 2,
+            borderRadius: "10px",
             border: "1.5px solid",
             borderColor: "warning.main",
             backgroundColor: "warning.lighter",
@@ -496,14 +496,14 @@ export default function Profiles() {
               <Paper
                 key={conflict.id}
                 variant="outlined"
-                sx={{ p: 2, borderRadius: 1.5, borderColor: "divider" }}
+                sx={{ p: 2, borderRadius: "10px", borderColor: "divider" }}
               >
                 <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
                   Student: {conflict.studentName} ({conflict.changeType.toUpperCase()})
                 </Typography>
                 
                 <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 2, mb: 2 }}>
-                  <Box sx={{ p: 1.5, borderRadius: 1, backgroundColor: "action.hover", borderLeft: "4px solid #1976d2" }}>
+                  <Box sx={{ p: 1.5, borderRadius: "10px", backgroundColor: "action.hover", borderLeft: "4px solid #1976d2" }}>
                     <Typography variant="caption" color="primary" sx={{ fontWeight: "bold", display: "block" }}>
                       LOCAL OFFLINE VERSION
                     </Typography>
@@ -515,7 +515,7 @@ export default function Profiles() {
                     </Typography>
                   </Box>
 
-                  <Box sx={{ p: 1.5, borderRadius: 1, backgroundColor: "action.hover", borderLeft: "4px solid #2e7d32" }}>
+                  <Box sx={{ p: 1.5, borderRadius: "10px", backgroundColor: "action.hover", borderLeft: "4px solid #2e7d32" }}>
                     <Typography variant="caption" color="success.main" sx={{ fontWeight: "bold", display: "block" }}>
                       SERVER CLOUD VERSION
                     </Typography>
@@ -584,7 +584,7 @@ export default function Profiles() {
                 color="primary"
                 startIcon={<Edit />}
                 onClick={() => setBatchEditDialogOpen(true)}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+                sx={{ borderRadius: "10px", textTransform: "none", fontWeight: 600 }}
               >
                 Batch Edit ({selectedIds.length})
               </Button>
@@ -596,7 +596,7 @@ export default function Profiles() {
                   startIcon={<Business />}
                   onClick={() => setTransferSchoolDialogOpen(true)}
                   disabled={isSchoolTransferring}
-                  sx={{ borderRadius: 2, textTransform: "none" }}
+                  sx={{ borderRadius: "10px", textTransform: "none" }}
                 >
                   Transfer School
                 </Button>
@@ -607,7 +607,7 @@ export default function Profiles() {
                 startIcon={<SwapHoriz />}
                 onClick={() => setTransferDialogOpen(true)}
                 disabled={isTransferring}
-                sx={{ borderRadius: 2, textTransform: "none" }}
+                sx={{ borderRadius: "10px", textTransform: "none" }}
               >
                 Transfer Class
               </Button>
@@ -617,7 +617,7 @@ export default function Profiles() {
                 startIcon={<Delete />}
                 onClick={() => setMassDeleteDialogOpen(true)}
                 disabled={isMassDeleting}
-                sx={{ borderRadius: 2, textTransform: "none" }}
+                sx={{ borderRadius: "10px", textTransform: "none" }}
               >
                 Delete Selected
               </Button>
@@ -647,7 +647,7 @@ export default function Profiles() {
           sx={{
             p: 6,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             border: "1px dashed",
             borderColor: "divider",
           }}
@@ -669,7 +669,7 @@ export default function Profiles() {
                 setOpenDialog(true);
               }}
               startIcon={<Add />}
-              sx={{ textTransform: "none", borderRadius: 2 }}
+              sx={{ textTransform: "none", borderRadius: "10px" }}
             >
               Add First Student Profile
             </Button>
@@ -816,7 +816,7 @@ export default function Profiles() {
         <Alert
           onClose={() => setToastMessage("")}
           severity={toastSeverity}
-          sx={{ width: "100%", borderRadius: 2 }}
+          sx={{ width: "100%", borderRadius: "10px" }}
         >
           {toastMessage}
         </Alert>

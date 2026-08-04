@@ -109,7 +109,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
 
       <Grid container spacing={4}>
         <Grid size={{ xs: 12, md: 4 }}>
-          <Card variant="outlined" sx={{ borderRadius: 3, p: 1 }}>
+          <Card variant="outlined" sx={{ borderRadius: "10px", p: 1 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 3 }}>
                 Select Target School
@@ -229,7 +229,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
                   </Button>
                 </Box>
               ) : (
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <Alert severity="info" sx={{ borderRadius: "10px" }}>
                   Please choose a school from the registry dropdown to begin
                   management.
                 </Alert>
@@ -239,7 +239,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
         </Grid>
 
         <Grid size={{ xs: 12, md: 8 }}>
-          <Card variant="outlined" sx={{ borderRadius: 3, p: 1 }}>
+          <Card variant="outlined" sx={{ borderRadius: "10px", p: 1 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 3 }}>
                 Live Document Statistics: {dbSelectedSchoolName}
@@ -295,7 +295,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
                           variant="outlined"
                           sx={{
                             p: 2.5,
-                            borderRadius: 3,
+                            borderRadius: "10px",
                             display: "flex",
                             alignItems: "center",
                             gap: 2.5,
@@ -309,7 +309,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
                           <Box
                             sx={{
                               p: 1.5,
-                              borderRadius: 2,
+                              borderRadius: "10px",
                               bgcolor: "primary.50",
                               color: "primary.main",
                               display: "flex",
@@ -342,7 +342,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
                     py: 8,
                     textAlign: "center",
                     bgcolor: "action.hover",
-                    borderRadius: 3,
+                    borderRadius: "10px",
                     border: "1px dashed",
                     borderColor: "divider",
                   }}
@@ -364,7 +364,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
       </Grid>
 
       {/* CROSS-DATABASE TRANSFER CARD */}
-      <Card variant="outlined" sx={{ borderRadius: 3, p: 1, mt: 4 }}>
+      <Card variant="outlined" sx={{ borderRadius: "10px", p: 1, mt: 4 }}>
         <CardContent>
           <Typography
             variant="h6"
@@ -452,13 +452,13 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
           <Divider sx={{ mb: 3 }} />
 
           {transferError && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert severity="error" sx={{ mb: 3, borderRadius: "10px" }}>
               {transferError}
             </Alert>
           )}
 
           {transferSuccess && (
-            <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+            <Alert severity="success" sx={{ mb: 3, borderRadius: "10px" }}>
               {transferSuccess}
             </Alert>
           )}
@@ -491,7 +491,7 @@ export const DatabasesTab: React.FC<DatabasesTabProps> = ({
                   color: "#4af626",
                   fontFamily: '"JetBrains Mono", "Fira Code", monospace',
                   p: 2,
-                  borderRadius: 2,
+                  borderRadius: "10px",
                   maxHeight: 220,
                   overflowY: "auto",
                   fontSize: "0.75rem",

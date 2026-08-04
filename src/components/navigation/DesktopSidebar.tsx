@@ -83,13 +83,15 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           : "rgba(0, 0, 0, 0.08)",
         bgcolor: translucencyEnabled
           ? theme.palette.mode === "dark"
-            ? "rgba(10, 10, 14, 0.82)"
-            : "rgba(255, 255, 255, 0.82)"
+            ? "rgba(10, 10, 14, 0.72)"
+            : "rgba(255, 255, 255, 0.68)"
           : theme.palette.mode === "dark"
           ? "background.paper"
           : "#ffffff",
-        backdropFilter: translucencyEnabled ? "blur(8px) saturate(120%)" : "none",
-        WebkitBackdropFilter: translucencyEnabled ? "blur(8px) saturate(120%)" : "none",
+        backdropFilter: translucencyEnabled ? "blur(20px) saturate(180%)" : "none",
+        WebkitBackdropFilter: translucencyEnabled ? "blur(20px) saturate(180%)" : "none",
+        transform: "translateZ(0)",
+        willChange: "transform, opacity",
         display: { xs: "none", md: "flex" },
         flexDirection: "column",
         transition: theme.transitions.create("width", {
@@ -97,10 +99,10 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
           duration: theme.transitions.duration.enteringScreen,
         }),
         position: "fixed",
-        top: 64, // below AppBar
+        top: 0,
         bottom: 0,
         left: 0,
-        zIndex: 100,
+        zIndex: 1050,
         pt: "22px",
         pl: "1px",
       }}

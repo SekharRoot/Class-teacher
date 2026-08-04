@@ -82,7 +82,7 @@ export const TeacherDashboard = React.memo(({
             gap: 1,
             p: 2,
             mb: 4,
-            borderRadius: 3,
+            borderRadius: "10px",
             bgcolor: "action.hover",
             border: "1px dashed",
             borderColor: "primary.light",
@@ -96,7 +96,7 @@ export const TeacherDashboard = React.memo(({
               Updating your dashboard silently with the latest school registers
             </Typography>
           </Box>
-          <LinearProgress color="primary" sx={{ borderRadius: 1, height: 4 }} />
+          <LinearProgress color="primary" sx={{ borderRadius: "10px", height: 4 }} />
         </Box>
       )}
 
@@ -111,7 +111,7 @@ export const TeacherDashboard = React.memo(({
               value={selectedClassId || ""}
               onChange={(e) => onClassChange?.(e.target.value)}
               fullWidth
-              sx={{ bgcolor: "background.paper", borderRadius: 2 }}
+              sx={{ bgcolor: "background.paper", borderRadius: "10px" }}
             >
               {availableClasses.map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
@@ -127,7 +127,7 @@ export const TeacherDashboard = React.memo(({
         <Alert
           severity="warning"
           variant="outlined"
-          sx={{ borderRadius: 3, p: 2, borderStyle: "dashed" }}
+          sx={{ borderRadius: "10px", p: 2, borderStyle: "dashed" }}
         >
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 1 }}>
             No Class Assigned
@@ -146,7 +146,7 @@ export const TeacherDashboard = React.memo(({
           <Grid size={{ xs: 12 }}>
             <Card
               sx={{
-                borderRadius: 3,
+                borderRadius: "10px",
                 border: `1px solid ${theme.palette.divider}`,
                 boxShadow: "none",
                 overflow: "hidden",
@@ -451,7 +451,7 @@ export const TeacherDashboard = React.memo(({
                     variant="contained"
                     color="primary"
                     onClick={() => navigate("/attendance")}
-                    sx={{ fontWeight: 700, borderRadius: 2 }}
+                    sx={{ fontWeight: 700, borderRadius: "10px" }}
                   >
                     {teacherClassStat && teacherClassStat.markedCount > 0
                       ? "Edit Attendance"
@@ -466,7 +466,7 @@ export const TeacherDashboard = React.memo(({
           <Grid size={{ xs: 12, md: 5 }}>
             <Card
               sx={{
-                borderRadius: 3,
+                borderRadius: "10px",
                 border: `1px solid ${theme.palette.divider}`,
                 boxShadow: "none",
                 height: "100%",
@@ -485,7 +485,7 @@ export const TeacherDashboard = React.memo(({
                     sx={{
                       justifyContent: "flex-start",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                     }}
                   >
@@ -499,7 +499,7 @@ export const TeacherDashboard = React.memo(({
                     sx={{
                       justifyContent: "flex-start",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                     }}
                   >
@@ -513,7 +513,7 @@ export const TeacherDashboard = React.memo(({
                     sx={{
                       justifyContent: "flex-start",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                     }}
                   >
@@ -527,7 +527,7 @@ export const TeacherDashboard = React.memo(({
                     sx={{
                       justifyContent: "flex-start",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                     }}
                   >
@@ -542,7 +542,7 @@ export const TeacherDashboard = React.memo(({
           <Grid size={{ xs: 12, md: 7 }}>
             <Card
               sx={{
-                borderRadius: 3,
+                borderRadius: "10px",
                 border: `1px solid ${theme.palette.divider}`,
                 boxShadow: "none",
                 height: "100%",

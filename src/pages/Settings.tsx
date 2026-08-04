@@ -111,6 +111,64 @@ export default function Settings() {
   const darkMode = mode === "dark";
   const isAdmin = ["owner", "admin"].includes(userProfile?.role || "");
 
+  const getRoleChip = (role?: string | null) => {
+    switch (role) {
+      case "principal":
+        return (
+          <Chip
+            label="Principal (Read-Only)"
+            color="info"
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        );
+      case "owner":
+        return (
+          <Chip
+            label="Owner"
+            color="warning"
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        );
+      case "admin":
+        return (
+          <Chip
+            label="Admin Mode"
+            color="error"
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        );
+      case "academic_coordinator":
+        return (
+          <Chip
+            label="Academic Coordinator"
+            color="secondary"
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        );
+      case "class_teacher":
+        return (
+          <Chip
+            label="Class Teacher"
+            color="success"
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        );
+      default:
+        return role ? (
+          <Chip
+            label={role}
+            size="small"
+            sx={{ fontWeight: "bold" }}
+          />
+        ) : null;
+    }
+  };
+
   const handleFixProfileIds = async () => {
     setLoading(true);
     try {
@@ -317,13 +375,16 @@ export default function Settings() {
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: isAdmin ? 6 : 12 }}>
-          <Paper sx={{ p: 4, borderRadius: 2, height: "100%" }}>
+          <Paper sx={{ p: 4, borderRadius: "10px", height: "100%" }}>
             <Typography variant="h6" gutterBottom>
               Account Preferences
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Logged in as: {currentUser?.email}
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2, flexWrap: "wrap" }}>
+              <Typography variant="body2" color="text.secondary">
+                Logged in as: <strong>{currentUser?.email}</strong>
+              </Typography>
+              {getRoleChip(userProfile?.role)}
+            </Box>
             <Divider sx={{ my: 2 }} />
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
               <FormControlLabel
@@ -429,7 +490,7 @@ export default function Settings() {
                   size="small"
                   onClick={() => setZoomLevel(preset)}
                   sx={{ 
-                    borderRadius: 3, 
+                    borderRadius: "10px", 
                     textTransform: "none", 
                     py: 0.25, 
                     px: 1.25,
@@ -462,7 +523,7 @@ export default function Settings() {
 
         {isAdmin && (
           <Grid size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 4, borderRadius: 2, height: "100%" }}>
+            <Paper sx={{ p: 4, borderRadius: "10px", height: "100%" }}>
               <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
                 <Fingerprint sx={{ mr: 1 }} /> Data Integrity
               </Typography>
@@ -483,7 +544,7 @@ export default function Settings() {
                 onClick={handleFixProfileIds}
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
-                sx={{ borderRadius: 2, textTransform: "none" }}
+                sx={{ borderRadius: "10px", textTransform: "none" }}
               >
                 Assign Missing Profile IDs
               </Button>
@@ -493,7 +554,7 @@ export default function Settings() {
 
         {!isReadOnly && (
           <Grid size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 4, borderRadius: 2, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+            <Paper sx={{ p: 4, borderRadius: "10px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
               <Box>
                 <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
                   <FileUpload sx={{ mr: 1 }} /> Student Roster Import (CSV)
@@ -509,7 +570,7 @@ export default function Settings() {
                   color="secondary"
                   onClick={handleDownloadTemplate}
                   startIcon={<FileDownload />}
-                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: "bold" }}
+                  sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
                 >
                   Template
                 </Button>
@@ -520,7 +581,7 @@ export default function Settings() {
                   component="label"
                   disabled={offlineMode}
                   startIcon={<FileUpload />}
-                  sx={{ borderRadius: 2, textTransform: "none", fontWeight: "bold" }}
+                  sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
                 >
                   Import CSV
                   <input
@@ -538,7 +599,7 @@ export default function Settings() {
 
         {isAdmin && (
           <Grid size={{ xs: 12, md: 6 }}>
-            <Paper sx={{ p: 4, borderRadius: 2, height: "100%" }}>
+            <Paper sx={{ p: 4, borderRadius: "10px", height: "100%" }}>
               <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
                 <Autorenew sx={{ mr: 1 }} /> Historical Migration
               </Typography>
@@ -552,7 +613,7 @@ export default function Settings() {
                 to="/admin"
                 state={{ activeTab: 6 }}
                 startIcon={<Autorenew />}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: "bold" }}
+                sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
               >
                 Go to Migration Tool
               </Button>
@@ -581,7 +642,7 @@ export default function Settings() {
           severity={toast.severity}
           variant="filled"
           onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-          sx={{ borderRadius: 2 }}
+          sx={{ borderRadius: "10px" }}
         >
           {toast.message}
         </Alert>

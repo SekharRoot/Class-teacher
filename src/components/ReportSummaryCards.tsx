@@ -20,7 +20,7 @@ export const ReportSummaryCards: React.FC<ReportSummaryCardsProps> = ({
           sx={{
             p: 3,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             bgcolor: "primary.light",
             color: "primary.contrastText",
           }}
@@ -37,7 +37,7 @@ export const ReportSummaryCards: React.FC<ReportSummaryCardsProps> = ({
           sx={{
             p: 3,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             bgcolor: "success.light",
             color: "success.contrastText",
           }}
@@ -59,7 +59,7 @@ export const ReportSummaryCards: React.FC<ReportSummaryCardsProps> = ({
             onClick={onDownloadCSV}
             sx={{
               height: 80,
-              borderRadius: 3,
+              borderRadius: "10px",
               borderStyle: "dashed",
               borderWidth: 2,
               fontSize: "1.1rem",

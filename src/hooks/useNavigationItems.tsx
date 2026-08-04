@@ -41,14 +41,16 @@ export function useNavigationItems(userProfile: UserProfile | null) {
       { text: "Dashboard", icon: <DashboardIcon />, path: "/" },
       { text: "Attendance", icon: <CheckCircleIcon />, path: "/attendance" },
       { text: "Profiles", icon: <AccountBoxIcon />, path: "/profiles" },
-      { text: "Reports", icon: <AssessmentIcon />, path: "/reports" },
     ];
   }, []);
 
   const secondaryMenuItems = useMemo<MenuItemType[]>(() => {
-    if (!userProfile) return [];
+    const items: MenuItemType[] = [
+      { text: "Class", icon: <SchoolIcon />, path: "/class" },
+      { text: "Reports", icon: <AssessmentIcon />, path: "/reports" },
+    ];
 
-    const items: MenuItemType[] = [];
+    if (!userProfile) return items;
 
     if (
       userProfile.role === "admin" ||

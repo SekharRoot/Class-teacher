@@ -41,7 +41,7 @@ export const TransferSchoolDialog: React.FC<TransferSchoolDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} id="transfer-school-dialog" maxWidth="xs" fullWidth sx={{ borderRadius: 3 }}>
+    <Dialog open={open} onClose={onClose} id="transfer-school-dialog" maxWidth="xs" fullWidth sx={{ borderRadius: "10px" }}>
       <DialogTitle id="transfer-school-dialog-title" sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
         <Business color="primary" />
         Transfer School
@@ -61,7 +61,7 @@ export const TransferSchoolDialog: React.FC<TransferSchoolDialogProps> = ({
               value={targetSchoolId}
               label="Target School"
               onChange={(e) => setTargetSchoolId(e.target.value as string)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "10px" }}
             >
               {schools.filter((school) => school.isActive !== false).map((school) => (
                 <MenuItem key={school.id} value={school.id}>
@@ -77,7 +77,7 @@ export const TransferSchoolDialog: React.FC<TransferSchoolDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button id="btn-cancel-transfer-school" onClick={onClose} color="inherit" sx={{ textTransform: "none", borderRadius: 2 }}>
+        <Button id="btn-cancel-transfer-school" onClick={onClose} color="inherit" sx={{ textTransform: "none", borderRadius: "10px" }}>
           Cancel
         </Button>
         <Button
@@ -86,7 +86,7 @@ export const TransferSchoolDialog: React.FC<TransferSchoolDialogProps> = ({
           variant="contained"
           color="primary"
           disabled={!targetSchoolId}
-          sx={{ textTransform: "none", borderRadius: 2, px: 3 }}
+          sx={{ textTransform: "none", borderRadius: "10px", px: 3 }}
         >
           Confirm Transfer
         </Button>

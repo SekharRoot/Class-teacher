@@ -28,7 +28,7 @@ export const PendingApproval: React.FC<PendingApprovalProps> = ({
         sx={{
           p: 4,
           maxWidth: 500,
-          borderRadius: 3,
+          borderRadius: "10px",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",

@@ -52,7 +52,7 @@ export const StudentCardGridLayout: React.FC<StudentCardGridLayoutProps> = ({
       id={`profile-card-${item.id}`}
       elevation={selected ? 6 : 2}
       sx={{
-        borderRadius: 3,
+        borderRadius: "10px",
         height: "100%",
         display: "flex",
         flexDirection: "column",

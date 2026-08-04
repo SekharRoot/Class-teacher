@@ -186,7 +186,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
       elevation={2}
       sx={{
         p: 3,
-        borderRadius: 3,
+        borderRadius: "10px",
         bgcolor: "background.paper",
         mb: 4,
       }}
@@ -265,7 +265,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
             slotProps={{ inputLabel: { shrink: true } }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
+                borderRadius: "10px",
                 fontWeight: "medium",
               },
             }}
@@ -289,7 +289,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
             }}
             sx={{
               "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
+                borderRadius: "10px",
               },
             }}
           />
@@ -301,7 +301,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
         sx={{
           mb: 3,
           p: 2,
-          borderRadius: 2.5,
+          borderRadius: "10px",
           bgcolor: "action.hover",
           display: "flex",
           justifyContent: "space-between",
@@ -356,7 +356,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                 sx={{
                   border: "1px solid",
                   borderColor: "divider",
-                  borderRadius: "8px !important",
+                  borderRadius: "10px !important",
                   overflow: "hidden",
                   "&:before": { display: "none" },
                   transition: "all 0.3s cubic-bezier(0.25, 1, 0.5, 1)",
@@ -455,7 +455,7 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                               variant="outlined"
                               sx={{
                                 p: 1.5,
-                                borderRadius: 2,
+                                borderRadius: "10px",
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "space-between",

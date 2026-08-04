@@ -110,7 +110,7 @@ export const OversightDashboard = React.memo(({
             gap: 1,
             p: 2,
             mb: 4,
-            borderRadius: 3,
+            borderRadius: "10px",
             bgcolor: "action.hover",
             border: "1px dashed",
             borderColor: "primary.light",
@@ -124,7 +124,7 @@ export const OversightDashboard = React.memo(({
               Updating your dashboard silently with the latest school registers
             </Typography>
           </Box>
-          <LinearProgress color="primary" sx={{ borderRadius: 1, height: 4 }} />
+          <LinearProgress color="primary" sx={{ borderRadius: "10px", height: 4 }} />
         </Box>
       )}
 
@@ -156,7 +156,7 @@ export const OversightDashboard = React.memo(({
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
-              borderRadius: 3,
+              borderRadius: "10px",
               border: `1px solid ${theme.palette.divider}`,
               boxShadow: "none",
             }}
@@ -204,7 +204,7 @@ export const OversightDashboard = React.memo(({
                         : "error"
                   }
                   sx={{
-                    borderRadius: 1,
+                    borderRadius: "10px",
                     height: 6,
                     [`& .MuiLinearProgress-bar`]: {
                       transition: "transform 0.4s cubic-bezier(0.25, 1, 0.5, 1)",
@@ -220,7 +220,7 @@ export const OversightDashboard = React.memo(({
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
-              borderRadius: 3,
+              borderRadius: "10px",
               border: `1px solid ${theme.palette.divider}`,
               boxShadow: "none",
             }}
@@ -269,7 +269,7 @@ export const OversightDashboard = React.memo(({
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
-              borderRadius: 3,
+              borderRadius: "10px",
               border: `1px solid ${theme.palette.divider}`,
               boxShadow: "none",
             }}
@@ -327,7 +327,7 @@ export const OversightDashboard = React.memo(({
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card
             sx={{
-              borderRadius: 3,
+              borderRadius: "10px",
               border: `1px solid ${theme.palette.divider}`,
               boxShadow: "none",
             }}
@@ -391,7 +391,7 @@ export const OversightDashboard = React.memo(({
             {/* Quick Reporting Actions */}
             <Card
               sx={{
-                borderRadius: 3,
+                borderRadius: "10px",
                 border: `1px solid ${theme.palette.divider}`,
                 boxShadow: "none",
               }}
@@ -410,7 +410,7 @@ export const OversightDashboard = React.memo(({
                     sx={{
                       justifyContent: "space-between",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                       color: "text.primary",
                       borderColor: "divider",
@@ -427,7 +427,7 @@ export const OversightDashboard = React.memo(({
                     sx={{
                       justifyContent: "space-between",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                       color: "text.primary",
                       borderColor: "divider",
@@ -454,7 +454,7 @@ export const OversightDashboard = React.memo(({
                     sx={{
                       justifyContent: "space-between",
                       py: 1.5,
-                      borderRadius: 2,
+                      borderRadius: "10px",
                       fontWeight: 600,
                       color: "text.primary",
                       borderColor: "divider",

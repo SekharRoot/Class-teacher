@@ -303,7 +303,7 @@ export const DailyStatusReport = React.memo(({
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: 2, boxShadow: "none", border: "1px solid", borderColor: "divider" }}>
+        <TableContainer component={Paper} sx={{ borderRadius: "10px", boxShadow: "none", border: "1px solid", borderColor: "divider" }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow sx={{ bgcolor: "action.hover" }}>

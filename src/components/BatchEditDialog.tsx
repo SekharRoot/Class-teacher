@@ -285,7 +285,7 @@ export const BatchEditDialog: React.FC<BatchEditDialogProps> = ({
       onClose={handleResetAndClose}
       maxWidth={editMode === "individual" ? "md" : "sm"}
       fullWidth
-      slotProps={{ paper: { sx: { borderRadius: 3 } } }}
+      slotProps={{ paper: { sx: { borderRadius: "10px" } } }}
     >
       <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>

@@ -66,7 +66,7 @@ export default function Testing() {
         <Alert
           onClose={() => setToastMessage("")}
           severity={toastSeverity}
-          sx={{ width: "100%", borderRadius: 2 }}
+          sx={{ width: "100%", borderRadius: "10px" }}
         >
           {toastMessage}
         </Alert>

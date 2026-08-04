@@ -93,7 +93,7 @@ export function DemoDataGenerationCard({ loading, setLoading, showToast }: DemoD
 
   return (
     <>
-      <Paper sx={{ p: 4, borderRadius: 3 }}>
+      <Paper sx={{ p: 4, borderRadius: "10px" }}>
         <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
           <Storage color="primary" sx={{ mr: 2, fontSize: 32 }} />
           <Typography variant="h6" sx={{ fontWeight: "bold" }}>
@@ -122,7 +122,7 @@ export function DemoDataGenerationCard({ loading, setLoading, showToast }: DemoD
             sx={{
               px: 4,
               py: 1.5,
-              borderRadius: 2,
+              borderRadius: "10px",
               textTransform: "none",
               fontWeight: "bold",
             }}
@@ -139,7 +139,7 @@ export function DemoDataGenerationCard({ loading, setLoading, showToast }: DemoD
             sx={{
               px: 4,
               py: 1.5,
-              borderRadius: 2,
+              borderRadius: "10px",
               textTransform: "none",
               fontWeight: "bold",
             }}

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   AppBar,
   Toolbar,
@@ -11,10 +11,12 @@ import {
   MenuItem,
   Tooltip,
   Button,
+  useTheme,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useAuth } from "../../contexts/AuthContext";
+import { ThemeContext } from "../../contexts/ThemeContext";
 import { schoolsApi } from "../../api/schools";
 import { School } from "../../types";
 
@@ -26,6 +28,7 @@ interface HeaderAppBarProps {
   syncing: boolean;
   onLogoutClick: () => void;
   userRole?: string | null;
+  sidebarOpen?: boolean;
 }
 
 export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
@@ -36,8 +39,11 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
   syncing,
   onLogoutClick,
   userRole,
+  sidebarOpen = true,
 }) => {
   const { userProfile, activeSchoolId, activeSchoolName, setActiveSchool } = useAuth();
+  const { translucencyEnabled } = useContext(ThemeContext);
+  const theme = useTheme();
   const [schools, setSchools] = React.useState<School[]>([]);
 
   const isOwnerOrAdmin =
@@ -53,100 +59,54 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
     }
   }, [isOwnerOrAdmin]);
 
-  const getRoleChip = () => {
-    switch (userRole) {
-      case "principal":
-        return (
-          <Chip
-            label="Principal (Read-Only)"
-            color="info"
-            size="small"
-            sx={{
-              ml: { xs: 1, sm: 2 },
-              fontWeight: "bold",
-              fontSize: { xs: "0.68rem", sm: "0.75rem" },
-              "& .MuiChip-label": { width: "151px" },
-            }}
-          />
-        );
-      case "owner":
-        return (
-          <Chip
-            label="Owner"
-            color="warning"
-            size="small"
-            sx={{
-              ml: { xs: 1, sm: 2 },
-              fontWeight: "bold",
-              fontSize: { xs: "0.68rem", sm: "0.75rem" },
-              "& .MuiChip-label": { width: "151px" },
-            }}
-          />
-        );
-      case "admin":
-        return (
-          <Chip
-            label="Admin Mode"
-            color="error"
-            size="small"
-            sx={{
-              ml: { xs: 1, sm: 2 },
-              fontWeight: "bold",
-              fontSize: { xs: "0.68rem", sm: "0.75rem" },
-              "& .MuiChip-label": { width: "151px" },
-            }}
-          />
-        );
-      case "academic_coordinator":
-        return (
-          <Chip
-            label="Academic Coordinator"
-            color="secondary"
-            size="small"
-            sx={{
-              ml: { xs: 1, sm: 2 },
-              fontWeight: "bold",
-              fontSize: { xs: "0.68rem", sm: "0.75rem" },
-              "& .MuiChip-label": { width: "151px" },
-            }}
-          />
-        );
-      case "class_teacher":
-        return (
-          <Chip
-            label="Class Teacher"
-            color="success"
-            size="small"
-            sx={{
-              ml: { xs: 1, sm: 2 },
-              fontWeight: "bold",
-              fontSize: { xs: "0.68rem", sm: "0.75rem" },
-              "& .MuiChip-label": { width: "151px" },
-            }}
-          />
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
     <AppBar
       position="fixed"
       sx={{
-        boxShadow: 1,
-        width: "100%",
+        top: { xs: 10, sm: 14 },
+        left: { xs: 10, md: sidebarOpen ? 252 : 84 },
+        right: { xs: 10, md: 16 },
+        width: "auto",
+        borderRadius: "10px",
+        zIndex: 1100,
+        transition: theme.transitions.create(["left", "width", "background-color", "box-shadow"], {
+          easing: theme.transitions.easing.sharp,
+          duration: theme.transitions.duration.enteringScreen,
+        }),
+        bgcolor: translucencyEnabled
+          ? theme.palette.mode === "dark"
+            ? "rgba(16, 16, 22, 0.72)"
+            : "rgba(255, 255, 255, 0.68)"
+          : theme.palette.mode === "dark"
+          ? "rgba(20, 20, 26, 0.95)"
+          : "rgba(255, 255, 255, 0.95)",
+        backdropFilter: translucencyEnabled ? "blur(20px) saturate(180%)" : "none",
+        WebkitBackdropFilter: translucencyEnabled ? "blur(20px) saturate(180%)" : "none",
+        transform: "translateZ(0)",
+        willChange: "transform, opacity",
+        border: "1px solid",
+        borderColor: translucencyEnabled
+          ? theme.palette.mode === "dark"
+            ? "rgba(255, 255, 255, 0.12)"
+            : "rgba(255, 255, 255, 0.7)"
+          : theme.palette.mode === "dark"
+          ? "rgba(255, 255, 255, 0.08)"
+          : "rgba(0, 0, 0, 0.08)",
+        boxShadow:
+          theme.palette.mode === "dark"
+            ? "0 8px 32px 0 rgba(0, 0, 0, 0.45)"
+            : "0 8px 32px 0 rgba(31, 38, 135, 0.08)",
       }}
       color="inherit"
     >
-      <Toolbar>
+      <Toolbar sx={{ px: { xs: 2, sm: 2.5 }, minHeight: { xs: 56, sm: 62 }, gap: 1 }}>
         {isDeepNavigation && (
           <IconButton
             color="inherit"
             aria-label="go back"
             edge="start"
             onClick={handleBack}
-            sx={{ mr: 1 }}
+            sx={{ mr: 0.5 }}
           >
             <ArrowBackIcon />
           </IconButton>
@@ -154,44 +114,37 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
         <Box
           sx={{
             display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            alignItems: "center",
+            py: 0.5,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}
         >
           <Typography
-            variant="subtitle1"
+            variant="h6"
+            component="div"
+            noWrap
             sx={{
-              fontWeight: 700,
-              lineHeight: 1.1,
+              fontFamily: "'Outfit', 'Plus Jakarta Sans', sans-serif",
+              fontWeight: 800,
+              lineHeight: 1.2,
               color: "text.primary",
-              fontSize: { xs: "0.95rem", sm: "1.15rem" },
-              letterSpacing: "-0.02em",
+              fontSize: { xs: "1.05rem", sm: "1.25rem", md: "1.35rem" },
+              letterSpacing: "-0.025em",
             }}
           >
-            SMCS by Sekhar
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              fontWeight: 600,
-              fontSize: { xs: "0.68rem", sm: "0.75rem" },
-              lineHeight: 1,
-              mt: 0.25,
-            }}
-          >
-            School: {activeSchoolName || "Default School"}
+            {activeSchoolName || "Default School"}
           </Typography>
         </Box>
-        {getRoleChip()}
         {isOwnerOrAdmin && (
           <FormControl
             size="small"
             sx={{
               ml: { xs: 1, sm: 2 },
-              minWidth: { xs: 140, sm: 200 },
+              minWidth: { xs: 130, sm: 170 },
               "& .MuiOutlinedInput-root": {
-                borderRadius: "12px",
+                borderRadius: "10px",
                 fontSize: "0.8rem",
                 fontWeight: 600,
               },

@@ -49,7 +49,7 @@ export const TransferUserSchoolDialog: React.FC<TransferUserSchoolDialogProps> =
       id="transfer-user-school-dialog"
       maxWidth="xs"
       fullWidth
-      sx={{ borderRadius: 3 }}
+      sx={{ borderRadius: "10px" }}
     >
       <DialogTitle
         id="transfer-user-school-dialog-title"
@@ -73,7 +73,7 @@ export const TransferUserSchoolDialog: React.FC<TransferUserSchoolDialogProps> =
               value={targetSchoolId}
               label="Target School"
               onChange={(e) => setTargetSchoolId(e.target.value as string)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "10px" }}
             >
               {schools.filter((school) => school.isActive !== false).map((school) => (
                 <MenuItem key={school.id} value={school.id}>
@@ -98,7 +98,7 @@ export const TransferUserSchoolDialog: React.FC<TransferUserSchoolDialogProps> =
           id="btn-cancel-transfer-user-school"
           onClick={onClose}
           color="inherit"
-          sx={{ textTransform: "none", borderRadius: 2 }}
+          sx={{ textTransform: "none", borderRadius: "10px" }}
         >
           Cancel
         </Button>
@@ -108,7 +108,7 @@ export const TransferUserSchoolDialog: React.FC<TransferUserSchoolDialogProps> =
           variant="contained"
           color="primary"
           disabled={!targetSchoolId}
-          sx={{ textTransform: "none", borderRadius: 2, px: 3 }}
+          sx={{ textTransform: "none", borderRadius: "10px", px: 3 }}
         >
           Confirm Transfer
         </Button>

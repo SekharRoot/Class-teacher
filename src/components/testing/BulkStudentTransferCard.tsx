@@ -98,7 +98,7 @@ export function BulkStudentTransferCard({ showToast }: BulkStudentTransferCardPr
   };
 
   return (
-    <Paper sx={{ p: 4, borderRadius: 3 }}>
+    <Paper sx={{ p: 4, borderRadius: "10px" }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <SwapHoriz color="primary" sx={{ mr: 2, fontSize: 32 }} />
         <Typography variant="h6" sx={{ fontWeight: "bold" }}>
@@ -119,7 +119,7 @@ export function BulkStudentTransferCard({ showToast }: BulkStudentTransferCardPr
               value={sourceClassId}
               label="Source Class (Origin)"
               onChange={(e) => handleSourceClassChange(e.target.value as string)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "10px" }}
             >
               <MenuItem value="">
                 <em>None Selected</em>
@@ -140,7 +140,7 @@ export function BulkStudentTransferCard({ showToast }: BulkStudentTransferCardPr
               value={targetClassId}
               label="Target Class (Destination)"
               onChange={(e) => setTargetClassId(e.target.value as string)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "10px" }}
             >
               <MenuItem value="">
                 <em>None Selected</em>
@@ -157,7 +157,7 @@ export function BulkStudentTransferCard({ showToast }: BulkStudentTransferCardPr
         </Box>
 
         {sourceClassId && (
-          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 2, bgcolor: "background.paper" }}>
+          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: "10px", p: 2, bgcolor: "background.paper" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, flexWrap: "wrap", gap: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
                 Select Students to Transfer
@@ -243,7 +243,7 @@ export function BulkStudentTransferCard({ showToast }: BulkStudentTransferCardPr
             size="large"
             sx={{
               py: 1.5,
-              borderRadius: 2,
+              borderRadius: "10px",
               textTransform: "none",
               fontWeight: "bold",
             }}

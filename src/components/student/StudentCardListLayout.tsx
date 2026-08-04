@@ -49,7 +49,7 @@ export const StudentCardListLayout: React.FC<StudentCardListLayoutProps> = ({
       id={`profile-card-${item.id}`}
       elevation={selected ? 4 : 1}
       sx={{
-        borderRadius: 2,
+        borderRadius: "10px",
         display: "flex",
         alignItems: "center",
         p: 1.5,

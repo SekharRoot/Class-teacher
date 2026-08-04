@@ -54,7 +54,7 @@ export function LeaveCard({
       <Card
         sx={{
           height: "100%",
-          borderRadius: 3,
+          borderRadius: "10px",
           border: "1px solid",
           borderColor: isPending ? "warning.light" : "divider",
           transition: "transform 0.2s",
@@ -135,7 +135,7 @@ export function LeaveCard({
               gap: 1,
               bgcolor: "action.hover",
               p: 1.5,
-              borderRadius: 2,
+              borderRadius: "10px",
               mb: 2,
             }}
           >

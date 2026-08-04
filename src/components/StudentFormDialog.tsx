@@ -263,7 +263,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
       fullWidth
       slotProps={{
         paper: {
-          sx: { borderRadius: 3, p: 1 },
+          sx: { borderRadius: "10px", p: 1 },
         },
       }}
     >
@@ -323,7 +323,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
             onClick={onClose}
             color="inherit"
             disabled={submitting}
-            sx={{ textTransform: "none", borderRadius: 2 }}
+            sx={{ textTransform: "none", borderRadius: "10px" }}
           >
             Cancel
           </Button>
@@ -333,7 +333,7 @@ export const StudentFormDialog: React.FC<StudentFormDialogProps> = ({
             variant="contained"
             color="primary"
             disabled={submitting}
-            sx={{ textTransform: "none", borderRadius: 2, px: 3 }}
+            sx={{ textTransform: "none", borderRadius: "10px", px: 3 }}
           >
             {submitting ? (
               <CircularProgress size={24} />

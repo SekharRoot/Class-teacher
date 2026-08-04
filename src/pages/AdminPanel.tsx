@@ -214,17 +214,17 @@ export default function AdminPanel() {
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+        <Alert severity="error" sx={{ mb: 3, borderRadius: "10px" }}>
           {error}
         </Alert>
       )}
       {success && (
-        <Alert severity="success" sx={{ mb: 3, borderRadius: 2 }}>
+        <Alert severity="success" sx={{ mb: 3, borderRadius: "10px" }}>
           {success}
         </Alert>
       )}
 
-      <Paper sx={{ mb: 4, borderRadius: 3, overflow: "hidden" }}>
+      <Paper sx={{ mb: 4, borderRadius: "10px", overflow: "hidden" }}>
         <Tabs
           value={activeTab}
           onChange={(_, val) => setActiveTab(val)}
@@ -421,7 +421,7 @@ export default function AdminPanel() {
             onClick={adminSchools.handleConfirmDeleteSchool}
             disabled={adminSchools.schoolsLoading}
             autoFocus
-            sx={{ textTransform: "none", fontWeight: "bold", borderRadius: "8px" }}
+            sx={{ textTransform: "none", fontWeight: "bold", borderRadius: "10px" }}
           >
             {adminSchools.schoolsLoading ? "Removing..." : "Remove School"}
           </Button>

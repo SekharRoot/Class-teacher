@@ -118,7 +118,7 @@ export default function InactiveProfiles() {
           <CircularProgress />
         </Box>
       ) : inactiveStudents.length === 0 ? (
-        <Paper sx={{ p: 8, textAlign: "center", borderRadius: 4, bgcolor: "background.paper" }}>
+        <Paper sx={{ p: 8, textAlign: "center", borderRadius: "10px", bgcolor: "background.paper" }}>
           <Typography variant="h6" color="text.secondary">
             No inactive profiles found.
           </Typography>
@@ -164,7 +164,7 @@ export default function InactiveProfiles() {
                     color="primary"
                     startIcon={<RestoreFromTrash />}
                     onClick={() => handleRestore(student.id)}
-                    sx={{ borderRadius: 2, flexGrow: 2, textTransform: "none" }}
+                    sx={{ borderRadius: "10px", flexGrow: 2, textTransform: "none" }}
                   >
                     Restore
                   </Button>
@@ -175,7 +175,7 @@ export default function InactiveProfiles() {
                       sx={{ 
                         bgcolor: "error.50",
                         "&:hover": { bgcolor: "error.100" },
-                        borderRadius: 2
+                        borderRadius: "10px"
                       }}
                     >
                       <DeleteForever />
@@ -208,7 +208,7 @@ export default function InactiveProfiles() {
             onClick={() => setDeleteConfirmOpen(false)} 
             variant="outlined" 
             color="inherit"
-            sx={{ borderRadius: 2, textTransform: "none" }}
+            sx={{ borderRadius: "10px", textTransform: "none" }}
           >
             Cancel
           </Button>
@@ -217,7 +217,7 @@ export default function InactiveProfiles() {
             variant="contained" 
             color="error"
             startIcon={<DeleteForever />}
-            sx={{ borderRadius: 2, textTransform: "none" }}
+            sx={{ borderRadius: "10px", textTransform: "none" }}
           >
             Permanently Delete
           </Button>

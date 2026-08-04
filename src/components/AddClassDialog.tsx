@@ -110,7 +110,7 @@ export const ClassFormDialog: React.FC<ClassFormDialogProps> = ({
       fullWidth
       slotProps={{
         paper: {
-          sx: { borderRadius: 3, p: 1 },
+          sx: { borderRadius: "10px", p: 1 },
         },
       }}
     >
@@ -181,7 +181,7 @@ export const ClassFormDialog: React.FC<ClassFormDialogProps> = ({
                 bgcolor: "primary.50",
                 border: "1px solid",
                 borderColor: "primary.200",
-                borderRadius: 2,
+                borderRadius: "10px",
               }}
             >
               <Typography
@@ -215,7 +215,7 @@ export const ClassFormDialog: React.FC<ClassFormDialogProps> = ({
             onClick={onClose}
             color="inherit"
             disabled={submitting}
-            sx={{ textTransform: "none", borderRadius: 2 }}
+            sx={{ textTransform: "none", borderRadius: "10px" }}
           >
             Cancel
           </Button>
@@ -225,7 +225,7 @@ export const ClassFormDialog: React.FC<ClassFormDialogProps> = ({
             variant="contained"
             color="primary"
             disabled={submitting}
-            sx={{ textTransform: "none", borderRadius: 2, px: 3 }}
+            sx={{ textTransform: "none", borderRadius: "10px", px: 3 }}
           >
             {submitting ? <CircularProgress size={24} /> : "Save Class"}
           </Button>

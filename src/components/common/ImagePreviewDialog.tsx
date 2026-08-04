@@ -28,7 +28,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
       slotProps={{
         paper: {
           sx: {
-            borderRadius: 3,
+            borderRadius: "10px",
             overflow: "hidden",
             position: "relative",
             bgcolor: "background.paper",
@@ -78,7 +78,7 @@ export const ImagePreviewDialog: React.FC<ImagePreviewDialogProps> = ({
             maxWidth: "100%",
             maxHeight: "70vh",
             objectFit: "contain",
-            borderRadius: 2,
+            borderRadius: "10px",
             boxShadow: 4,
           }}
         />

@@ -41,7 +41,7 @@ export const TransferClassDialog: React.FC<TransferClassDialogProps> = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth sx={{ borderRadius: 3 }}>
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth sx={{ borderRadius: "10px" }}>
       <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
         <SwapHoriz color="primary" />
         Transfer Class
@@ -61,7 +61,7 @@ export const TransferClassDialog: React.FC<TransferClassDialogProps> = ({
               value={targetClassId}
               label="Target Class"
               onChange={(e) => setTargetClassId(e.target.value as string)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "10px" }}
             >
               {classes.map((cls) => (
                 <MenuItem key={cls.id} value={cls.id}>
@@ -77,7 +77,7 @@ export const TransferClassDialog: React.FC<TransferClassDialogProps> = ({
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 3 }}>
-        <Button onClick={onClose} color="inherit" sx={{ textTransform: "none", borderRadius: 2 }}>
+        <Button onClick={onClose} color="inherit" sx={{ textTransform: "none", borderRadius: "10px" }}>
           Cancel
         </Button>
         <Button
@@ -85,7 +85,7 @@ export const TransferClassDialog: React.FC<TransferClassDialogProps> = ({
           variant="contained"
           color="primary"
           disabled={!targetClassId}
-          sx={{ textTransform: "none", borderRadius: 2, px: 3 }}
+          sx={{ textTransform: "none", borderRadius: "10px", px: 3 }}
         >
           Confirm Transfer
         </Button>

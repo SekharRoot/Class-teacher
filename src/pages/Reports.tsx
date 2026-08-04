@@ -123,7 +123,7 @@ export default function Reports() {
         Monthly Attendance Reports
       </Typography>
 
-      <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: 3 }}>
+      <Paper elevation={2} sx={{ p: 3, mb: 4, borderRadius: "10px" }}>
         <ReportFilters
           classes={filteredClasses}
           selectedClassId={selectedClassId}
@@ -142,7 +142,7 @@ export default function Reports() {
       </Paper>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 4, borderRadius: 2 }}>
+        <Alert severity="error" sx={{ mb: 4, borderRadius: "10px" }}>
           {error}
         </Alert>
       )}
@@ -177,7 +177,7 @@ export default function Reports() {
           sx={{
             p: 10,
             textAlign: "center",
-            borderRadius: 3,
+            borderRadius: "10px",
             border: "1px dashed",
             borderColor: "divider",
           }}

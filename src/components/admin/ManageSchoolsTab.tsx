@@ -64,7 +64,7 @@ export const ManageSchoolsTab: React.FC<ManageSchoolsTabProps> = ({
       <Grid container spacing={4}>
         {/* Add School Form Card */}
         <Grid size={{ xs: 12, md: 5 }}>
-          <Card variant="outlined" sx={{ borderRadius: 3, p: 1 }}>
+          <Card variant="outlined" sx={{ borderRadius: "10px", p: 1 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 3 }}>
                 Add New School
@@ -103,7 +103,7 @@ export const ManageSchoolsTab: React.FC<ManageSchoolsTabProps> = ({
                     textTransform: "none",
                     fontWeight: "bold",
                     py: 1.25,
-                    borderRadius: "12px",
+                    borderRadius: "10px",
                   }}
                 >
                   {schoolsLoading ? "Adding..." : "Add School"}
@@ -115,7 +115,7 @@ export const ManageSchoolsTab: React.FC<ManageSchoolsTabProps> = ({
 
         {/* Registered Schools List */}
         <Grid size={{ xs: 12, md: 7 }}>
-          <Card variant="outlined" sx={{ borderRadius: 3, p: 1 }}>
+          <Card variant="outlined" sx={{ borderRadius: "10px", p: 1 }}>
             <CardContent>
               <Typography variant="h6" sx={{ fontWeight: "bold", mb: 3 }}>
                 Registered Schools ({schools.length})
@@ -148,7 +148,7 @@ export const ManageSchoolsTab: React.FC<ManageSchoolsTabProps> = ({
                       variant="outlined"
                       sx={{
                         p: 2,
-                        borderRadius: 2.5,
+                        borderRadius: "10px",
                         display: "flex",
                         justifyContent: "space-between",
                         alignItems: "center",
@@ -213,7 +213,7 @@ export const ManageSchoolsTab: React.FC<ManageSchoolsTabProps> = ({
                             onToggleSchoolActive(sch.id, sch.isActive !== false)
                           }
                           disabled={schoolsLoading}
-                          sx={{ textTransform: "none", borderRadius: "8px" }}
+                          sx={{ textTransform: "none", borderRadius: "10px" }}
                         >
                           {sch.isActive !== false ? "Deactivate" : "Activate"}
                         </Button>
@@ -225,7 +225,7 @@ export const ManageSchoolsTab: React.FC<ManageSchoolsTabProps> = ({
                             startIcon={<DeleteIcon />}
                             onClick={() => onOpenDeleteSchool(sch)}
                             disabled={schoolsLoading}
-                            sx={{ textTransform: "none", borderRadius: "8px" }}
+                            sx={{ textTransform: "none", borderRadius: "10px" }}
                           >
                             Remove
                           </Button>

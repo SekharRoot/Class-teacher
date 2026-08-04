@@ -249,7 +249,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
             startIcon={<EmailIcon />}
             sx={{
               mt: 1,
-              borderRadius: "14px",
+              borderRadius: "10px",
               py: 1.2,
               fontWeight: 700,
               textTransform: "none",

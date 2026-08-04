@@ -110,6 +110,9 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
     () =>
       responsiveFontSizes(
         createTheme({
+          shape: {
+            borderRadius: 10,
+          },
           palette: {
             mode,
             primary: {
@@ -127,11 +130,17 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiPaper: {
               styleOverrides: {
                 root: {
+                  borderRadius: "10px",
                   transition: "background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease",
                   ...(translucencyEnabled && {
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.72)" : "rgba(20, 20, 24, 0.75)",
+                    backdropFilter: "blur(20px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                    transform: "translateZ(0)",
+                    willChange: "transform, opacity",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.65)" : "rgba(20, 20, 26, 0.68)",
                     backgroundImage: "none",
-                    border: mode === "light" ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.6)" : "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: mode === "light" ? "0 8px 32px rgba(0, 0, 0, 0.06)" : "0 8px 32px rgba(0, 0, 0, 0.45)",
                   }),
                 },
               },
@@ -139,10 +148,14 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiCard: {
               styleOverrides: {
                 root: {
+                  borderRadius: "10px",
                   ...(translucencyEnabled && {
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.88)" : "rgba(20, 20, 24, 0.90)",
+                    backdropFilter: "blur(18px) saturate(160%)",
+                    WebkitBackdropFilter: "blur(18px) saturate(160%)",
+                    transform: "translateZ(0)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.72)" : "rgba(20, 20, 26, 0.75)",
                     border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.7)" : "1px solid rgba(255, 255, 255, 0.12)",
-                    boxShadow: mode === "light" ? "0 4px 16px 0 rgba(31, 38, 135, 0.05)" : "0 4px 16px 0 rgba(0, 0, 0, 0.45)",
+                    boxShadow: mode === "light" ? "0 8px 24px 0 rgba(31, 38, 135, 0.06)" : "0 8px 24px 0 rgba(0, 0, 0, 0.45)",
                   }),
                 },
               },
@@ -150,15 +163,18 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiAppBar: {
               styleOverrides: {
                 root: {
-                  transition: "background-color 0.2s ease, border-color 0.2s ease",
+                  borderRadius: "10px",
+                  transition: "all 0.25s ease",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(8px) saturate(120%)",
-                    WebkitBackdropFilter: "blur(8px) saturate(120%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.82)" : "rgba(10, 10, 14, 0.85)",
+                    backdropFilter: "blur(20px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                    transform: "translateZ(0)",
+                    willChange: "transform, opacity",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.68)" : "rgba(14, 14, 18, 0.72)",
                     color: mode === "light" ? "#121212" : "#ffffff",
                     backgroundImage: "none",
-                    borderBottom: mode === "light" ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)",
-                    boxShadow: "none",
+                    border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.7)" : "1px solid rgba(255, 255, 255, 0.12)",
+                    boxShadow: mode === "light" ? "0 8px 32px rgba(0, 0, 0, 0.08)" : "0 8px 32px rgba(0, 0, 0, 0.5)",
                   }),
                 },
               },
@@ -168,11 +184,12 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
                 paper: {
                   transition: "background-color 0.2s ease, border-color 0.2s ease",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(8px) saturate(120%)",
-                    WebkitBackdropFilter: "blur(8px) saturate(120%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.80)" : "rgba(10, 10, 14, 0.82)",
+                    backdropFilter: "blur(20px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                    transform: "translateZ(0)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.68)" : "rgba(10, 10, 14, 0.72)",
                     backgroundImage: "none",
-                    borderRight: mode === "light" ? "1px solid rgba(0, 0, 0, 0.06)" : "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRight: mode === "light" ? "1px solid rgba(255, 255, 255, 0.6)" : "1px solid rgba(255, 255, 255, 0.1)",
                   }),
                 },
               },
@@ -180,14 +197,15 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiDialog: {
               styleOverrides: {
                 paper: {
-                  borderRadius: "20px",
+                  borderRadius: "10px",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(10px) saturate(120%)",
-                    WebkitBackdropFilter: "blur(10px) saturate(120%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.88)" : "rgba(20, 20, 25, 0.90)",
+                    backdropFilter: "blur(22px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(22px) saturate(180%)",
+                    transform: "translateZ(0)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.75)" : "rgba(20, 20, 25, 0.78)",
                     backgroundImage: "none",
                     border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.8)" : "1px solid rgba(255, 255, 255, 0.12)",
-                    boxShadow: mode === "light" ? "0 16px 36px rgba(0, 0, 0, 0.12)" : "0 16px 36px rgba(0, 0, 0, 0.65)",
+                    boxShadow: mode === "light" ? "0 20px 48px rgba(0, 0, 0, 0.12)" : "0 20px 48px rgba(0, 0, 0, 0.65)",
                   }),
                 },
               },
@@ -195,15 +213,45 @@ export const CustomThemeProvider = ({ children }: { children: ReactNode }) => {
             MuiMenu: {
               styleOverrides: {
                 paper: {
-                  borderRadius: "14px",
+                  borderRadius: "10px",
                   ...(translucencyEnabled && {
-                    backdropFilter: "blur(8px) saturate(120%)",
-                    WebkitBackdropFilter: "blur(8px) saturate(120%)",
-                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.88)" : "rgba(20, 20, 25, 0.90)",
+                    backdropFilter: "blur(20px) saturate(180%)",
+                    WebkitBackdropFilter: "blur(20px) saturate(180%)",
+                    transform: "translateZ(0)",
+                    backgroundColor: mode === "light" ? "rgba(255, 255, 255, 0.75)" : "rgba(20, 20, 25, 0.78)",
                     backgroundImage: "none",
                     border: mode === "light" ? "1px solid rgba(255, 255, 255, 0.8)" : "1px solid rgba(255, 255, 255, 0.12)",
-                    boxShadow: mode === "light" ? "0 12px 32px rgba(0, 0, 0, 0.1)" : "0 12px 32px rgba(0, 0, 0, 0.45)",
+                    boxShadow: mode === "light" ? "0 12px 36px rgba(0, 0, 0, 0.1)" : "0 12px 36px rgba(0, 0, 0, 0.45)",
                   }),
+                },
+              },
+            },
+            MuiButton: {
+              styleOverrides: {
+                root: {
+                  borderRadius: "10px",
+                  textTransform: "none",
+                },
+              },
+            },
+            MuiOutlinedInput: {
+              styleOverrides: {
+                root: {
+                  borderRadius: "10px",
+                },
+              },
+            },
+            MuiAlert: {
+              styleOverrides: {
+                root: {
+                  borderRadius: "10px",
+                },
+              },
+            },
+            MuiChip: {
+              styleOverrides: {
+                root: {
+                  borderRadius: "10px",
                 },
               },
             },

@@ -6,7 +6,7 @@ import { ThemeContext } from "../../contexts/ThemeContext";
 export function ExperimentalFeaturesCard() {
   const { translucencyEnabled, toggleTranslucency } = useContext(ThemeContext);
   return (
-    <Paper sx={{ p: 4, borderRadius: 3 }}>
+    <Paper sx={{ p: 4, borderRadius: "10px" }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
         <Science color="primary" sx={{ mr: 2, fontSize: 32 }} />
         <Typography variant="h6" sx={{ fontWeight: "bold" }}>

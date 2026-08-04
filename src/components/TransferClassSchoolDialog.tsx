@@ -47,7 +47,7 @@ export const TransferClassSchoolDialog: React.FC<TransferClassSchoolDialogProps>
       id="transfer-class-school-dialog"
       maxWidth="xs"
       fullWidth
-      sx={{ borderRadius: 3 }}
+      sx={{ borderRadius: "10px" }}
     >
       <DialogTitle
         id="transfer-class-school-dialog-title"
@@ -71,7 +71,7 @@ export const TransferClassSchoolDialog: React.FC<TransferClassSchoolDialogProps>
               value={targetSchoolId}
               label="Target School"
               onChange={(e) => setTargetSchoolId(e.target.value as string)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "10px" }}
             >
               {schools.filter((school) => school.isActive !== false).map((school) => (
                 <MenuItem key={school.id} value={school.id}>
@@ -97,7 +97,7 @@ export const TransferClassSchoolDialog: React.FC<TransferClassSchoolDialogProps>
           id="btn-cancel-transfer-class-school"
           onClick={onClose}
           color="inherit"
-          sx={{ textTransform: "none", borderRadius: 2 }}
+          sx={{ textTransform: "none", borderRadius: "10px" }}
         >
           Cancel
         </Button>
@@ -107,7 +107,7 @@ export const TransferClassSchoolDialog: React.FC<TransferClassSchoolDialogProps>
           variant="contained"
           color="primary"
           disabled={!targetSchoolId}
-          sx={{ textTransform: "none", borderRadius: 2, px: 3 }}
+          sx={{ textTransform: "none", borderRadius: "10px", px: 3 }}
         >
           Confirm Transfer
         </Button>

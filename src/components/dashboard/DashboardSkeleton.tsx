@@ -18,7 +18,7 @@ export const DashboardSkeleton = () => {
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {[1, 2, 3, 4].map((i) => (
           <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
-            <Card sx={{ borderRadius: 3, border: "1px solid #eee", boxShadow: "none" }}>
+            <Card sx={{ borderRadius: "10px", border: "1px solid #eee", boxShadow: "none" }}>
               <CardContent sx={{ p: 3 }}>
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <Box sx={{ width: '100%' }}>
@@ -27,7 +27,7 @@ export const DashboardSkeleton = () => {
                   </Box>
                   <Skeleton variant="circular" width={40} height={40} />
                 </Box>
-                <Skeleton variant="rectangular" width="100%" height={6} sx={{ mt: 2, borderRadius: 1 }} />
+                <Skeleton variant="rectangular" width="100%" height={6} sx={{ mt: 2, borderRadius: "10px" }} />
               </CardContent>
             </Card>
           </Grid>
@@ -36,12 +36,12 @@ export const DashboardSkeleton = () => {
 
       <Grid container spacing={4}>
         <Grid size={{ xs: 12 }}>
-          <Card sx={{ borderRadius: 3, border: "1px solid #eee", boxShadow: "none" }}>
+          <Card sx={{ borderRadius: "10px", border: "1px solid #eee", boxShadow: "none" }}>
             <CardContent>
               <Skeleton variant="text" width="30%" height={30} sx={{ mb: 3 }} />
               <Stack spacing={2}>
-                <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: 2 }} />
-                <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: 2 }} />
+                <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: "10px" }} />
+                <Skeleton variant="rectangular" width="100%" height={56} sx={{ borderRadius: "10px" }} />
               </Stack>
             </CardContent>
           </Card>

@@ -250,7 +250,7 @@ export default function Login() {
               flexDirection: "column",
               alignItems: "center",
               width: "100%",
-              borderRadius: "24px",
+              borderRadius: "10px",
               backdropFilter: "blur(16px)",
               backgroundColor: theme.palette.mode === "dark" 
                 ? "rgba(15, 20, 32, 0.82)" 
@@ -354,12 +354,12 @@ export default function Login() {
           </Typography>
 
           {error && (
-            <Alert severity="error" sx={{ width: "100%", mb: 2, borderRadius: "12px" }}>
+            <Alert severity="error" sx={{ width: "100%", mb: 2, borderRadius: "10px" }}>
               {error}
             </Alert>
           )}
           {resetMessage && (
-            <Alert severity="success" sx={{ width: "100%", mb: 2, borderRadius: "12px" }}>
+            <Alert severity="success" sx={{ width: "100%", mb: 2, borderRadius: "10px" }}>
               {resetMessage}
             </Alert>
           )}
@@ -376,7 +376,7 @@ export default function Login() {
                 autoComplete="name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
               />
             )}
             <TextField
@@ -390,7 +390,7 @@ export default function Login() {
               autoComplete="username email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+              sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
             />
             {!isForgotPassword && (
               <TextField
@@ -404,7 +404,7 @@ export default function Login() {
                 autoComplete={isRegister ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
+                sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}
                 slotProps={{
                   input: {
                     endAdornment: (
@@ -424,7 +424,7 @@ export default function Login() {
               />
             )}
             {!isForgotPassword && isRegister && (
-              <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}>
+              <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}>
                 <InputLabel id="role-select-label">Requested Role</InputLabel>
                 <Select
                   labelId="role-select-label"
@@ -454,7 +454,7 @@ export default function Login() {
             )}
 
             {!isForgotPassword && (activeTab === 0 || activeTab === 1) && (
-              <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}>
+              <FormControl fullWidth margin="normal" sx={{ "& .MuiOutlinedInput-root": { borderRadius: "10px" } }}>
                 <InputLabel id="school-select-label">Select School</InputLabel>
                 <Select
                   labelId="school-select-label"
@@ -512,7 +512,7 @@ export default function Login() {
                 mt: 3, 
                 mb: 2, 
                 py: 1.5, 
-                borderRadius: "12px", 
+                borderRadius: "10px", 
                 textTransform: "none", 
                 fontWeight: "bold",
                 fontSize: "1rem",

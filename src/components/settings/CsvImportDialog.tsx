@@ -40,7 +40,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
           <Box sx={{ p: 2 }}>
-            <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+            <Alert severity="info" sx={{ mb: 2, borderRadius: "10px" }}>
               We've analyzed your CSV file. Review the records below. Duplicate rows will be skipped, and unrecognized class standard names will be auto-formatted and created as new classes in <strong>"BOARD STANDARD SECTION"</strong> format (e.g. CBSE XII PCB3(D)).
             </Alert>
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", mb: 2 }}>
@@ -163,7 +163,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             onClick={() => onClose()}
             disabled={importing}
             color="inherit"
-            sx={{ textTransform: "none", borderRadius: 2 }}
+            sx={{ textTransform: "none", borderRadius: "10px" }}
           >
             Cancel
           </Button>
@@ -173,7 +173,7 @@ export const CsvImportDialog: React.FC<CsvImportDialogProps> = ({
             variant="contained"
             color="primary"
             startIcon={importing ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
-            sx={{ textTransform: "none", px: 3, borderRadius: 2 }}
+            sx={{ textTransform: "none", px: 3, borderRadius: "10px" }}
           >
             {importing ? "Importing..." : `Import ${previewsToImport.filter(p => p.status === "new").length} Profiles`}
           </Button>

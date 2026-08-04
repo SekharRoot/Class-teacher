@@ -50,7 +50,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
           onChange={(e) => setSearchQuery(e.target.value)}
           variant="outlined"
           fullWidth
-          sx={{ bgcolor: "background.paper", borderRadius: 2 }}
+          sx={{ bgcolor: "background.paper", borderRadius: "10px" }}
           slotProps={{
             input: {
               startAdornment: (
@@ -80,7 +80,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             value={classFilter}
             label="Filter by Class"
             onChange={(e) => setClassFilter(e.target.value)}
-            sx={{ bgcolor: "background.paper", borderRadius: 2 }}
+            sx={{ bgcolor: "background.paper", borderRadius: "10px" }}
           >
             <MenuItem value="ALL">Show All Classes</MenuItem>
             {showUnassignedOption && (
@@ -99,7 +99,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             display: "flex",
             bgcolor: "background.paper",
             p: 0.5,
-            borderRadius: 2,
+            borderRadius: "10px",
             border: "1px solid",
             borderColor: "divider",
           }}
@@ -108,7 +108,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             size="small"
             onClick={() => setViewType("list_details")}
             color={viewType === "list_details" ? "primary" : "default"}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: "10px" }}
           >
             <ViewList />
           </IconButton>
@@ -116,7 +116,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             size="small"
             onClick={() => setViewType("list_image")}
             color={viewType === "list_image" ? "primary" : "default"}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: "10px" }}
           >
             <ViewHeadline />
           </IconButton>
@@ -124,7 +124,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             size="small"
             onClick={() => setViewType("grid")}
             color={viewType === "grid" ? "primary" : "default"}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: "10px" }}
           >
             <ViewModule />
           </IconButton>
@@ -132,7 +132,7 @@ export const ProfileFilters: React.FC<ProfileFiltersProps> = ({
             size="small"
             onClick={() => setViewType("grid_compact")}
             color={viewType === "grid_compact" ? "primary" : "default"}
-            sx={{ borderRadius: 1.5 }}
+            sx={{ borderRadius: "10px" }}
           >
             <Apps />
           </IconButton>

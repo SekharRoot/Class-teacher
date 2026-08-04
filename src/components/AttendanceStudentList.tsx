@@ -455,7 +455,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         )}
       </Box>
 
-      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: "10px" }}>
         <Table size="small">
           <TableHead sx={{ bgcolor: "action.hover" }}>
             <TableRow>

@@ -91,7 +91,7 @@ export function DangerZoneCard({ loading, setLoading, showToast }: DangerZoneCar
       <Paper
         sx={{
           p: 4,
-          borderRadius: 3,
+          borderRadius: "10px",
           border: "1px solid",
           borderColor: "error.light",
         }}
@@ -127,7 +127,7 @@ export function DangerZoneCard({ loading, setLoading, showToast }: DangerZoneCar
           sx={{
             px: 4,
             py: 1.5,
-            borderRadius: 2,
+            borderRadius: "10px",
             textTransform: "none",
             fontWeight: "bold",
           }}
