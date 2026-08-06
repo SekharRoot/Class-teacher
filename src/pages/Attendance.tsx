@@ -302,22 +302,20 @@ export default function Attendance() {
             classes={filteredClasses}
             onSelectClass={handleClassSelect}
           />
-          {userProfile?.role !== "class_teacher" && (
-            <Box sx={{ mt: 4 }}>
-              <ClasswiseAbsenteeExport
-                classes={filteredClasses}
-                students={students}
-                attendance={attendance}
-                dateString={dateString}
-                onDateChange={setSelectedDate}
-                loading={loading}
-              />
-            </Box>
-          )}
+          <Box sx={{ mt: 4 }}>
+            <ClasswiseAbsenteeExport
+              classes={filteredClasses}
+              students={students}
+              attendance={attendance}
+              dateString={dateString}
+              onDateChange={setSelectedDate}
+              loading={loading}
+            />
+          </Box>
         </>
       ) : (
         <Box>
-          {userProfile?.role !== "class_teacher" && (
+          {(userProfile?.role !== "class_teacher" || filteredClasses.length > 1) && (
             <Box
               sx={{
                 display: "flex",
@@ -498,12 +496,22 @@ export default function Attendance() {
                 dateString={dateString}
                 loading={loading}
               />
+              <Box sx={{ mt: 4 }}>
+                <ClasswiseAbsenteeExport
+                  classes={filteredClasses.filter((c) => c.id === selectedClassId)}
+                  students={students}
+                  attendance={attendance}
+                  dateString={dateString}
+                  onDateChange={setSelectedDate}
+                  loading={loading}
+                />
+              </Box>
             </Box>
           )}
 
           {activeTab === 1 && (
             <Box>
-              {userProfile?.role !== "class_teacher" && (
+              {(userProfile?.role !== "class_teacher" || filteredClasses.length > 1) && (
                 <Box sx={{ mb: 2 }}>
                   <Button
                     startIcon={<ChevronLeft />}
