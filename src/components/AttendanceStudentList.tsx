@@ -18,8 +18,9 @@ import {
   Select,
   SelectChangeEvent,
   Skeleton,
+  Tooltip,
 } from "@mui/material";
-import { ChevronLeft, CloudUpload, Search, ContentCopy, ArrowDropDown } from "@mui/icons-material";
+import { ChevronLeft, Save, Search, ContentCopy, ArrowDropDown } from "@mui/icons-material";
 import { Student, AttendanceStatus, LeaveRequest } from "../types";
 import { AttendanceRow } from "./AttendanceRow";
 import { unwrapStatus } from "../utils/statusHelper";
@@ -122,6 +123,16 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
       return status === "present";
     });
   }, [classStudents, attendance]);
+
+  const unmarkedStudentsCount = useMemo(() => {
+    return classStudents.filter((student) => {
+      const att = attendance[student.id];
+      const status = unwrapStatus(att);
+      return status !== "present" && status !== "absent" && status !== "leave";
+    }).length;
+  }, [classStudents, attendance]);
+
+  const allMarked = classStudents.length > 0 && unmarkedStudentsCount === 0;
 
   const handleCopyAbsentees = () => {
     if (absentees.length === 0) {
@@ -266,7 +277,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   }, []);
 
   const handleSync = async () => {
-    if (readOnly) return;
+    if (readOnly || !allMarked) return;
     setSyncing(true);
     await onSync();
     setSyncing(false);
@@ -295,23 +306,33 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
             Back
           </Button>
           {!readOnly && (
-            <Button
-              startIcon={
-                syncing ? (
-                  <CircularProgress size={12} color="inherit" />
-                ) : (
-                  <CloudUpload sx={{ fontSize: 16 }} />
-                )
+            <Tooltip
+              title={
+                !allMarked
+                  ? `${unmarkedStudentsCount} student(s) unmarked. Mark all students to save.`
+                  : "Save attendance to server"
               }
-              onClick={handleSync}
-              variant="contained"
-              color="primary"
-              size="small"
-              disabled={syncing}
-              sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
             >
-              {syncing ? "Sync..." : "Sync"}
-            </Button>
+              <span>
+                <Button
+                  startIcon={
+                    syncing ? (
+                      <CircularProgress size={12} color="inherit" />
+                    ) : (
+                      <Save sx={{ fontSize: 16 }} />
+                    )
+                  }
+                  onClick={handleSync}
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  disabled={syncing || !allMarked}
+                  sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
+                >
+                  {syncing ? "Saving..." : "Save"}
+                </Button>
+              </span>
+            </Tooltip>
           )}
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <Select

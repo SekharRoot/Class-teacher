@@ -84,7 +84,7 @@ export function useAttendanceActions(
       localStorage.removeItem(`unsynced_${dateString}`);
       localStorage.removeItem(`summary_${dateString}`);
       localStorage.removeItem(`attendance_${dateString}`);
-      showToast("Attendance successfully synced with server!", "success");
+      showToast("Attendance successfully saved to server!", "success");
       fetchHistory();
     } catch (err) {
       console.error(err);
