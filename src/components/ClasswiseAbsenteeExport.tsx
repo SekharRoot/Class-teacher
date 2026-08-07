@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -27,6 +27,7 @@ import {
 } from "@mui/icons-material";
 import { format, parseISO } from "date-fns";
 import { ClassItem, Student } from "../types";
+import { attendanceApi } from "../api";
 
 interface ClasswiseAbsenteeExportProps {
   classes: ClassItem[];
@@ -76,8 +77,8 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
         return status === "absent";
       }).sort((a, b) => {
         // Sort by first name, then roll number if available
-        const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-        const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
+        const nameA = `${a.firstName || (a as any).name || ""} ${a.lastName || ""}`.toLowerCase();
+        const nameB = `${b.firstName || (b as any).name || ""} ${b.lastName || ""}`.toLowerCase();
         return nameA.localeCompare(nameB);
       });
 
@@ -122,8 +123,9 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
       } else if (item.absentees.length > 0) {
         hasAnyAbsentees = true;
         text += `• ${item.className} (Total: ${item.absentees.length} Absent):\n`;
-        item.absentees.forEach((student, index) => {
-          text += `  ${index + 1}. ${student.firstName} ${student.lastName}\n`;
+        item.absentees.forEach((student: any, index) => {
+          const name = (student as any).name || `${student.firstName || ""} ${student.lastName || ""}`.trim() || `Student ${student.id}`;
+          text += `  ${index + 1}. ${name}\n`;
         });
         text += `\n`;
       } else {
@@ -170,8 +172,9 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
 
     const formattedDate = format(new Date(dateString + "T12:00:00"), "dd/MM/yyyy");
     let text = `${className} - Absentees (${formattedDate}):\n`;
-    absentees.forEach((student, index) => {
-      text += `${index + 1}. ${student.firstName} ${student.lastName}\n`;
+    absentees.forEach((student: any, index) => {
+      const name = (student as any).name || `${student.firstName || ""} ${student.lastName || ""}`.trim() || `Student ${student.id}`;
+      text += `${index + 1}. ${name}\n`;
     });
 
     navigator.clipboard.writeText(text);
@@ -467,11 +470,11 @@ export const ClasswiseAbsenteeExport: React.FC<ClasswiseAbsenteeExportProps> = (
                             >
                               <Box>
                                 <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                                  {index + 1}. {student.firstName} {student.lastName}
+                                  {index + 1}. {(student as any).name || `${student.firstName || ""} ${student.lastName || ""}`.trim() || `Student ${student.id}`}
                                 </Typography>
-                                {student.rollNumber && (
+                                {((student as any).rollNo || student.rollNumber) && (
                                   <Typography variant="caption" color="text.secondary">
-                                    Roll No: {student.rollNumber}
+                                    Roll No: {(student as any).rollNo || student.rollNumber}
                                   </Typography>
                                 )}
                               </Box>

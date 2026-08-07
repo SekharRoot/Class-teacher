@@ -48,6 +48,7 @@ import { LeaveRequest } from "../types";
 import { TeacherDashboard } from "../components/dashboard/TeacherDashboard";
 import { OversightDashboard } from "../components/dashboard/OversightDashboard";
 import { useData } from "../contexts/DataContext";
+import { runClassIdMigration } from "../utils/classUtils";
 import { DashboardSkeleton } from "../components/dashboard/DashboardSkeleton";
 
 interface ClassStat {
@@ -70,6 +71,7 @@ export default function Dashboard() {
   const {
     classes,
     students,
+    setStudents,
     leaves,
     loading: globalLoading,
   } = useData();
@@ -86,6 +88,14 @@ export default function Dashboard() {
   const [classStats, setClassStats] = useState<ClassStat[]>([]);
 
   const [selectedTeacherClassId, setSelectedTeacherClassId] = useState<string>("");
+  const [migrationRun, setMigrationRun] = useState(false);
+
+  useEffect(() => {
+    if (!migrationRun && students.length > 0 && allClasses.length > 0) {
+      runClassIdMigration(students, allClasses, setStudents);
+      setMigrationRun(true);
+    }
+  }, [students, allClasses, migrationRun, setStudents]);
 
   useEffect(() => {
     if (userProfile?.assignedClassId && !selectedTeacherClassId) {
@@ -105,7 +115,6 @@ export default function Dashboard() {
     if (loadingScope || !authResolved || (globalLoading && students.length === 0)) return;
 
     let active = true;
-    let summaryLoaded = false;
 
     const calculateAndSetStats = async (records: any) => {
       if (!active) return;
@@ -119,21 +128,6 @@ export default function Dashboard() {
         if (active) {
           setStats(result.stats);
           setClassStats(result.classStats);
-
-          // Self-healing: If we calculated the full school-wide stats and didn't find a pre-computed online summary,
-          // background-save the computed summary so other devices can load it instantly in 1 request.
-          const isOversight =
-            userProfile?.role === "owner" ||
-            userProfile?.role === "admin" ||
-            userProfile?.role === "principal" ||
-            userProfile?.role === "academic_coordinator";
-
-          if (isOversight && !summaryLoaded) {
-            const todayDateString = format(new Date(), "yyyy-MM-dd");
-            attendanceApi.saveSummaryOnly(todayDateString, result.stats, result.classStats).catch(err => {
-              console.warn("Background summary save failed:", err);
-            });
-          }
         }
       } catch (err) {
         console.error("Worker calculation error:", err);
@@ -145,39 +139,6 @@ export default function Dashboard() {
 
       const todayDateString = format(new Date(), "yyyy-MM-dd");
 
-      // 1. First, check local storage cache for pre-computed summary
-      try {
-        const cachedSummaryStr = localStorage.getItem(`summary_${todayDateString}`);
-        if (cachedSummaryStr) {
-          const cachedSummary = JSON.parse(cachedSummaryStr);
-          if (cachedSummary && cachedSummary.stats && active) {
-            setStats(cachedSummary.stats);
-            setClassStats(cachedSummary.classStats);
-            setLoading(false);
-            summaryLoaded = true;
-          }
-        }
-      } catch (e) {
-        console.warn("Error reading local summary cache:", e);
-      }
-
-      // 2. Fetch fresh online pre-computed summary
-      try {
-        const onlineSummary = await attendanceApi.getSummaryByDate(todayDateString);
-        if (onlineSummary && onlineSummary.stats && active) {
-          setStats(onlineSummary.stats);
-          setClassStats(onlineSummary.classStats);
-          setLoading(false);
-          summaryLoaded = true;
-
-          // Save to local storage cache
-          localStorage.setItem(`summary_${todayDateString}`, JSON.stringify(onlineSummary));
-        }
-      } catch (e) {
-        console.warn("Error reading online summary:", e);
-      }
-
-      // 3. Fallback: If no pre-computed summary is available, run standard cache & calculation sequence
       let lastProcessedRecords: any = null;
 
       try {
@@ -197,9 +158,7 @@ export default function Dashboard() {
           if (todayRecordsLocal) {
             setTodayRecords(todayRecordsLocal);
             lastProcessedRecords = todayRecordsLocal;
-            if (!summaryLoaded) {
-              calculateAndSetStats(todayRecordsLocal);
-            }
+            calculateAndSetStats(todayRecordsLocal);
           }
           setLoading(false);
         }
@@ -218,10 +177,8 @@ export default function Dashboard() {
           if (todayRecordsOnline) {
             const isDifferent = JSON.stringify(todayRecordsOnline) !== JSON.stringify(lastProcessedRecords);
             
-            if (isDifferent || summaryLoaded) {
+            if (isDifferent) {
               setTodayRecords(todayRecordsOnline);
-              // Always recalculate stats when fresh raw data arrives to ensure accuracy,
-              // correcting any potential stale or partial state from the pre-computed summary.
               calculateAndSetStats(todayRecordsOnline);
             }
             

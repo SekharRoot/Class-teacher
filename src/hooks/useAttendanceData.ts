@@ -111,9 +111,19 @@ export function useAttendanceData() {
     }
   };
 
+  const historyCacheKey = `history_cache_${selectedClassId || "all"}_${historyLimit}`;
+
   const fetchHistory = async () => {
     if (!authResolved) return;
     try {
+      // 1. Immediately load cached history if available (SWR)
+      const cached = localStorage.getItem(historyCacheKey);
+      if (cached) {
+        try {
+          setHistoryDates(JSON.parse(cached));
+        } catch (e) {}
+      }
+
       // Fetch students for the selected class specifically to save reads
       let classStudents: Student[] = [];
       if (selectedClassId) {
@@ -127,7 +137,7 @@ export function useAttendanceData() {
       let datesList: any[] = [];
 
       if (!offlineMode) {
-        // Fetch from Firestore (optimized to last 6 days initially, extensible via historyLimit)
+        // Fetch from Firestore (optimized single-read summary history)
         datesList = await attendanceApi.getHistory(
           classStudentIds,
           selectedClassId || undefined,
@@ -151,6 +161,7 @@ export function useAttendanceData() {
       }
 
       setHistoryDates(datesList);
+      localStorage.setItem(historyCacheKey, JSON.stringify(datesList));
     } catch (err) {
       console.error("Error calculating history:", err);
     }

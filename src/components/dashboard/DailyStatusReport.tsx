@@ -1,3 +1,4 @@
+import { isStudentInClass } from "../../utils/classUtils";
 import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
@@ -51,7 +52,6 @@ export const DailyStatusReport = React.memo(({
 }: DailyStatusReportProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [attendance, setAttendance] = useState<Record<string, any>>({});
-  const [precomputedStats, setPrecomputedStats] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   const dateString = format(selectedDate, "yyyy-MM-dd");
@@ -60,18 +60,10 @@ export const DailyStatusReport = React.memo(({
     const fetchAttendance = async () => {
       setLoading(true);
       try {
-        const summary = await attendanceApi.getSummaryByDate(dateString);
-        if (summary && summary.classStats && summary.classStats.length > 0 && summary.classStats[0].hasOwnProperty('totalDB')) {
-          setPrecomputedStats(summary.classStats);
-        } else {
-          // Fallback: Fetch raw attendance and calculate client-side
-          setPrecomputedStats(null);
-          const data = await attendanceApi.getByDate(dateString);
-          setAttendance(data || {});
-        }
+        const data = await attendanceApi.getByDate(dateString);
+        setAttendance(data || {});
       } catch (error) {
         console.error("Error fetching attendance for report:", error);
-        setPrecomputedStats(null);
       } finally {
         setLoading(false);
       }
@@ -80,34 +72,12 @@ export const DailyStatusReport = React.memo(({
   }, [dateString]);
 
   const reportData = useMemo(() => {
-    if (precomputedStats) {
-      // Use pre-computed statistics directly
-      return precomputedStats
-        .filter((cls) => authorizedClassIds.includes(cls.classId))
-        .map((cls) => ({
-          classId: cls.classId,
-          className: cls.className,
-          total: cls.total ?? cls.totalStudents ?? 0,
-          totalDB: cls.totalDB ?? 0,
-          totalDS: cls.totalDS ?? 0,
-          totalBoarder: cls.totalBoarder ?? 0,
-          present: cls.present ?? cls.presentCount ?? 0,
-          presentDB: cls.presentDB ?? 0,
-          presentDS: cls.presentDS ?? 0,
-          presentBoarder: cls.presentBoarder ?? 0,
-          absent: cls.absent ?? cls.absentCount ?? 0,
-          absentDB: cls.absentDB ?? 0,
-          absentDS: cls.absentDS ?? 0,
-          absentBoarder: cls.absentBoarder ?? 0,
-        }));
-    }
-
     // Fallback: Legacy client-side calculation
     const filteredClasses = classes.filter((c) => authorizedClassIds.includes(c.id));
-    const activeStudents = students.filter((s) => s.isActive !== false && s.classId && authorizedClassIds.includes(s.classId));
+    const activeStudents = students.filter((s) => s.isActive !== false && s.classId && filteredClasses.some(c => isStudentInClass(s, c)));
 
     return filteredClasses.map((cls) => {
-      const classStudents = activeStudents.filter((s) => s.classId === cls.id);
+      const classStudents = activeStudents.filter((s) => isStudentInClass(s, cls));
       
       const row: ClassRowData = {
         classId: cls.id,
@@ -149,7 +119,7 @@ export const DailyStatusReport = React.memo(({
 
       return row;
     });
-  }, [classes, students, authorizedClassIds, attendance, precomputedStats]);
+  }, [classes, students, authorizedClassIds, attendance]);
 
   const exportToCSV = () => {
     const headers = [

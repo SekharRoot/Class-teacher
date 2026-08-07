@@ -21,6 +21,7 @@ import {
 import { classesApi, studentsApi, schoolsApi } from "../api";
 import { cache } from "../lib/cache";
 import { ClassItem, School } from "../types";
+import { isStudentInClass } from "../utils/classUtils";
 import { ClassCard } from "../components/ClassCard";
 import { ClassFormDialog } from "../components/AddClassDialog";
 import { DeleteClassDialog } from "../components/DeleteClassDialog";
@@ -125,17 +126,7 @@ export default function Classes() {
     fetchClasses,
   } = useClassesData(showToast);
 
-  const classStudents = studentsList.filter((s) => {
-    if (!selectedClass) return false;
-    if (s.classId === selectedClass.id) return true;
-    if (s.classId) {
-      const normStudentClass = s.classId.trim().toLowerCase();
-      const normStandardSection = `${selectedClass.classStandard} ${selectedClass.section}`.trim().toLowerCase();
-      const normBoardStandardSection = `${selectedClass.board} ${selectedClass.classStandard} ${selectedClass.section}`.trim().toLowerCase();
-      return normStudentClass === normStandardSection || normStudentClass === normBoardStandardSection;
-    }
-    return false;
-  });
+  const classStudents = studentsList.filter((s) => isStudentInClass(s, selectedClass));
 
   const handleSaveClassAsync = async (
     oldId: string | null,

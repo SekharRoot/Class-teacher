@@ -2,9 +2,3 @@ node_modules/
 .env
 .env.*
 !.env.example
-
-# Ensure build artifacts are NOT ignored
-!dist/
-!dist/**
-!build/
-!build/**

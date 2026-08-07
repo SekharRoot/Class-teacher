@@ -60,7 +60,12 @@ export default function Leaves() {
     setLeaves: setLeavesList,
     students: studentsList,
     loading: globalLoading,
+    ensureLeavesLoaded,
   } = useData();
+
+  useEffect(() => {
+    ensureLeavesLoaded();
+  }, [ensureLeavesLoaded]);
 
   const [loading, setLoading] = useState(true);
 

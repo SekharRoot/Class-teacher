@@ -1,5 +1,6 @@
 import { CsvImportDialog } from "../components/settings/CsvImportDialog";
-import React, { useState, useContext } from "react";
+import { MapInvalidClassesDialog } from "../components/MapInvalidClassesDialog";
+import React, { useState, useContext, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Box,
@@ -40,10 +41,11 @@ import {
   ZoomIn,
   ZoomOut,
   RestartAlt,
+  Build,
 } from "@mui/icons-material";
 import { useAuth } from "../contexts/AuthContext";
 import { ThemeContext } from "../contexts/ThemeContext";
-import { studentsApi, classesApi } from "../api";
+import { studentsApi, classesApi, attendanceApi } from "../api";
 import { useData } from "../contexts/DataContext";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
 import { previewProfileImport, ParsedStudentPreview } from "../utils/csvImport";
@@ -54,7 +56,11 @@ import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 
 export default function Settings() {
   const { currentUser, userProfile } = useAuth();
-  const { fetchInitialData, students, setStudents, classes, offlineMode } = useData();
+  const { fetchInitialData, students, setStudents, classes, offlineMode, ensureUsersLoaded } = useData();
+
+  useEffect(() => {
+    ensureUsersLoaded();
+  }, [ensureUsersLoaded]);
   const { isReadOnly } = useHierarchyScope();
   const [notifications, setNotifications] = useState(true);
   const { mode, toggleTheme, translucencyEnabled, toggleTranslucency, zoomLevel, setZoomLevel, coloredNavIconsEnabled, toggleColoredNavIcons } = useContext(ThemeContext);
@@ -81,6 +87,9 @@ export default function Settings() {
     showToast(`Leave Requests view is now ${val ? "enabled" : "disabled"}.`, "info");
   };
   
+  // Backfill pre-computed summaries
+    
+  
   // Data integrity loading
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ count: number; show: boolean }>({ count: 0, show: false });
@@ -89,6 +98,8 @@ export default function Settings() {
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [previewsToImport, setPreviewsToImport] = useState<ParsedStudentPreview[]>([]);
   const [importing, setImporting] = useState(false);
+  
+  const [mapInvalidClassesDialogOpen, setMapInvalidClassesDialogOpen] = useState(false);
 
   // Toast state
   const [toast, setToast] = useState<{
@@ -110,6 +121,10 @@ export default function Settings() {
 
   const darkMode = mode === "dark";
   const isAdmin = ["owner", "admin"].includes(userProfile?.role || "");
+  const isOwnerOrSuperAdmin =
+    userProfile?.role === "owner" ||
+    userProfile?.role === "admin" ||
+    userProfile?.email === "sekhar.root@gmail.com";
 
   const getRoleChip = (role?: string | null) => {
     switch (role) {
@@ -520,6 +535,7 @@ export default function Settings() {
             </Box>
           </Paper>
         </Grid>
+      
 
         {isAdmin && (
           <Grid size={{ xs: 12, md: 6 }}>
@@ -550,6 +566,7 @@ export default function Settings() {
               </Button>
             </Paper>
           </Grid>
+      
         )}
 
         {!isReadOnly && (
@@ -595,33 +612,71 @@ export default function Settings() {
               </Stack>
             </Paper>
           </Grid>
+      
         )}
 
         {isAdmin && (
           <Grid size={{ xs: 12, md: 6 }}>
+              <Paper sx={{ p: 4, borderRadius: "10px", height: "100%" }}>
+                <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
+                  <Autorenew sx={{ mr: 1 }} /> Historical Migration
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  Safely move classes, students, leaves, and attendance records from root collections into nested tenant collections for this school.
+                </Typography>
+                
+                <Button
+                  variant="outlined"
+                  component={Link}
+                  to="/admin"
+                  state={{ activeTab: 6 }}
+                  startIcon={<Autorenew />}
+                  sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
+                >
+                  Go to Migration Tool
+                </Button>
+              </Paper>
+            </Grid>
+        )}
+        
+        {isOwnerOrSuperAdmin && (
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper sx={{ p: 4, borderRadius: "10px", height: "100%" }}>
               <Typography variant="h6" sx={{ mb: 2, display: "flex", alignItems: "center" }}>
-                <Autorenew sx={{ mr: 1 }} /> Historical Migration
+                <Build sx={{ mr: 1 }} /> Owner Actions
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Safely move classes, students, leaves, and attendance records from root collections into nested tenant collections for this school.
+                Advanced tools for managing data integrity. Use with caution.
               </Typography>
-              
+                 
               <Button
                 variant="outlined"
-                component={Link}
-                to="/admin"
-                state={{ activeTab: 6 }}
-                startIcon={<Autorenew />}
+                color="warning"
+                startIcon={<Build />}
+                onClick={() => setMapInvalidClassesDialogOpen(true)}
                 sx={{ borderRadius: "10px", textTransform: "none", fontWeight: "bold" }}
               >
-                Go to Migration Tool
+                Map Invalid Classes
               </Button>
             </Paper>
           </Grid>
         )}
       </Grid>
-
+      
+      <MapInvalidClassesDialog
+        open={mapInvalidClassesDialogOpen}
+        onClose={() => setMapInvalidClassesDialogOpen(false)}
+        students={students}
+        classes={classes}
+        onSuccess={(updatedStudents) => {
+          showToast(`Successfully mapped ${updatedStudents.length} student${updatedStudents.length !== 1 ? 's' : ''}!`, "success");
+          setMapInvalidClassesDialogOpen(false);
+          const updatedIds = new Set(updatedStudents.map(s => s.id));
+          const updated = students.map(s => updatedIds.has(s.id) ? updatedStudents.find(u => u.id === s.id)! : s);
+          setStudents(updated);
+          cache.set("offline_students", updated);
+        }}
+      />
       
       <CsvImportDialog
         open={importDialogOpen}

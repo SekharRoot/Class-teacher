@@ -1,3 +1,5 @@
+import { isStudentInClass } from "../../utils/classUtils";
+
 function unwrapStatus(val: any): string {
   if (!val) return "";
   if (typeof val === "string") return val.trim();
@@ -10,107 +12,130 @@ function unwrapStatus(val: any): string {
 }
 
 export function calculateDashboardStats(payload: any): any {
-  const { classes, students, authorizedClassIds, todayRecords } = payload;
+  const { classes, students, authorizedClassIds, todayRecords = {} } = payload;
   
   const filteredClasses = classes.filter((c: any) =>
     authorizedClassIds.includes(c.id)
   );
-  const filteredStudents = students.filter(
-    (s: any) => s.classId && authorizedClassIds.includes(s.classId) && s.isActive !== false
-  );
 
-  const classesCount = filteredClasses.length;
-  const studentsCount = filteredStudents.length;
+  // Maps to aggregate class-level data
+  const classStatsMap = new Map();
+  filteredClasses.forEach((cls: any) => {
+    classStatsMap.set(cls.id, {
+      classId: cls.id,
+      className: `${cls.classStandard} ${cls.section} (${cls.board})`,
+      totalStudents: 0,
+      presentCount: 0,
+      absentCount: 0,
+      leaveCount: 0,
+      markedCount: 0,
+    });
+  });
+
+  // Track unique students in scope for dashboard totals
+  const scopeStudentIds = new Set<string>();
 
   let todayPresent = 0;
   let todayTotalMarked = 0;
 
-  if (todayRecords) {
-    Object.keys(todayRecords).forEach((studentId) => {
-      const belongsToScope = filteredStudents.some((s: any) => s.id === studentId);
-      if (!belongsToScope) return;
+  // We need to process each student exactly once.
+  const processedStudentIds = new Set<string>();
 
-      const val = todayRecords[studentId];
-      const status = unwrapStatus(val);
-      if (status) {
-        todayTotalMarked++;
-        const lowerStatus = status.toLowerCase();
-        if (lowerStatus === "present") {
-          todayPresent++;
-        }
+  const processStudentRecord = (studentId: string, classId: string, studentObj: any = null) => {
+    // Only process if the class is in our authorized scope
+    if (!classStatsMap.has(classId)) return;
+    
+    const cStats = classStatsMap.get(classId);
+    
+    // Determine if we should count this student in the total
+    if (studentObj && studentObj.isActive !== false) {
+      if (!scopeStudentIds.has(studentId)) {
+        scopeStudentIds.add(studentId);
+        cStats.totalStudents++;
       }
-    });
-  }
+    } else if (!studentObj && !scopeStudentIds.has(studentId)) {
+       // A student marked today but no longer active/present in list counts for today's totals
+       scopeStudentIds.add(studentId);
+       cStats.totalStudents++;
+    }
+
+    // Process attendance
+    const record = todayRecords[studentId];
+    const status = unwrapStatus(record);
+    
+    if (status) {
+      todayTotalMarked++;
+      cStats.markedCount++;
+      
+      const lowerStatus = status.toLowerCase();
+      if (lowerStatus === "present") {
+        todayPresent++;
+        cStats.presentCount++;
+      } else if (lowerStatus === "absent") {
+        cStats.absentCount++;
+      } else if (lowerStatus === "leave") {
+        cStats.leaveCount++;
+      }
+    }
+  };
+
+  // 1. First process all students that have records today
+  Object.keys(todayRecords).forEach((studentId) => {
+    const val = todayRecords[studentId];
+    const isObj = typeof val === "object" && val !== null;
+    const recordClassId = isObj ? val.classId : null;
+    
+    const student = students.find((s: any) => s.id === studentId);
+    
+    let targetClassId = null;
+    
+    if (recordClassId && classStatsMap.has(recordClassId)) {
+      targetClassId = recordClassId;
+    } else if (student) {
+      const matchedClass = filteredClasses.find((cls: any) => isStudentInClass(student, cls));
+      if (matchedClass) {
+        targetClassId = matchedClass.id;
+      }
+    }
+
+    if (targetClassId) {
+      processedStudentIds.add(studentId);
+      processStudentRecord(studentId, targetClassId, student);
+    }
+  });
+
+  // 2. Process all remaining active students that didn't have records today
+  students.forEach((student: any) => {
+    if (student.isActive === false) return;
+    if (processedStudentIds.has(student.id)) return;
+
+    const matchedClass = filteredClasses.find((cls: any) => isStudentInClass(student, cls));
+    if (matchedClass) {
+      processedStudentIds.add(student.id);
+      processStudentRecord(student.id, matchedClass.id, student);
+    }
+  });
+
+  // Calculate rates
+  const classStats = Array.from(classStatsMap.values()).map((cStats: any) => {
+    cStats.attendanceRate = cStats.markedCount > 0 
+      ? Math.round((cStats.presentCount / cStats.markedCount) * 100) 
+      : null;
+    return cStats;
+  });
 
   const attendanceRate =
     todayTotalMarked > 0
       ? Math.round((todayPresent / todayTotalMarked) * 100)
       : null;
 
-  const classStats = filteredClasses.map((cls: any) => {
-    const activeClassStudents = filteredStudents.filter((s: any) => s.classId === cls.id);
-    const activeStudentIds = new Set(activeClassStudents.map((s: any) => s.id));
-    const loggedStudents: any[] = [];
-
-    if (todayRecords) {
-      Object.entries(todayRecords).forEach(([studentId, val]: [string, any]) => {
-        if (activeStudentIds.has(studentId)) return;
-        const isObj = typeof val === "object" && val !== null;
-        const recordClassId = isObj ? val.classId : null;
-        if (
-          recordClassId === cls.id ||
-          (!recordClassId && students.find((s: any) => s.id === studentId)?.classId === cls.id)
-        ) {
-          const found = students.find((s: any) => s.id === studentId);
-          if (found) loggedStudents.push(found);
-          else loggedStudents.push({ id: studentId, classId: cls.id });
-        }
-      });
-    }
-
-    const classStudents = [...activeClassStudents, ...loggedStudents];
-    const total = classStudents.length;
-
-    let present = 0;
-    let absent = 0;
-    let leave = 0;
-    let marked = 0;
-
-    classStudents.forEach((student: any) => {
-      const record = todayRecords ? todayRecords[student.id] : null;
-      const status = unwrapStatus(record);
-
-      if (status) {
-        marked++;
-        const lowerStatus = status.toLowerCase();
-        if (lowerStatus === "present") {
-          present++;
-        } else if (lowerStatus === "absent") {
-          absent++;
-        } else if (lowerStatus === "leave") {
-          leave++;
-        }
-      }
-    });
-
-    const rate = marked > 0 ? Math.round((present / marked) * 100) : null;
-
-    return {
-      classId: cls.id,
-      className: cls.classStandard + " " + cls.section + " (" + cls.board + ")",
-      totalStudents: total,
-      presentCount: present,
-      absentCount: absent,
-      leaveCount: leave,
-      markedCount: marked,
-      attendanceRate: rate,
-    };
-  });
+  const activeTotalStudents = students.filter((s: any) => s.isActive !== false).length;
 
   return {
     stats: {
-      totalClasses: classesCount,
-      totalStudents: studentsCount,
+      totalClasses: filteredClasses.length,
+      totalStudents: scopeStudentIds.size, // Assigned and calculated
+      actualTotalStudents: activeTotalStudents, // Raw active count
       todayAttendanceRate: attendanceRate,
       todayPresentCount: todayPresent,
       todayTotalMarked: todayTotalMarked,

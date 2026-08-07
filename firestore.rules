@@ -87,6 +87,10 @@ service cloud.firestore {
         allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
       }
 
+      match /absentee_summaries/{date} {
+        allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
+      }
+
       match /classes/{classId} {
         allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
 

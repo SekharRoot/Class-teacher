@@ -280,6 +280,7 @@ export const attendanceApi = {
         let leaveDS = 0;
         let leaveBoarder = 0;
         let marked = 0;
+        const classAbsentees: any[] = [];
 
         allUniqueStudentIds.forEach((studentId) => {
           const val = mergedClassRecords[studentId];
@@ -300,6 +301,23 @@ export const attendanceApi = {
               if (boarderType === "Day Boarder") absentDB++;
               else if (boarderType === "Day Scholar") absentDS++;
               else if (boarderType === "Full Boarder") absentBoarder++;
+
+              const studentObj = studentsList.find((st) => st.id === studentId);
+              const name = studentObj
+                ? `${studentObj.firstName} ${studentObj.lastName}`.trim()
+                : (typeof val === "object" && val?.name ? val.name : `Student ${studentId}`);
+              
+              classAbsentees.push({
+                id: studentId,
+                studentId,
+                firstName: studentObj?.firstName || name,
+                lastName: studentObj?.lastName || "",
+                name,
+                rollNo: (studentObj as any)?.rollNo ?? studentObj?.rollNumber ?? (typeof val === "object" ? val?.rollNo : "") ?? "",
+                boarderType,
+                classId: cId,
+                className: `${cls.classStandard} ${cls.section} (${cls.board})`,
+              });
             } else if (lowerStatus === "leave") {
               leave++;
               if (boarderType === "Day Boarder") leaveDB++;
@@ -336,6 +354,7 @@ export const attendanceApi = {
           leaveBoarder,
           markedCount: marked,
           attendanceRate: rate,
+          absentees: classAbsentees,
           date: dateString,
           schoolId: activeSchoolId,
           updatedAt: new Date().toISOString()
@@ -416,17 +435,21 @@ export const attendanceApi = {
 
       const finalClassStats = Object.values(finalClassStatsMap);
 
-      // 6. Compute overall school-wide statistics
+      // 6. Compute overall school-wide statistics & aggregated absentee list
       let todayPresent = 0;
       let todayTotalMarked = 0;
       let todayAbsent = 0;
       let todayLeave = 0;
+      const allSchoolAbsentees: any[] = [];
 
       finalClassStats.forEach((cs: any) => {
         todayPresent += cs.presentCount || 0;
         todayTotalMarked += cs.markedCount || 0;
         todayAbsent += cs.absentCount || 0;
         todayLeave += cs.leaveCount || 0;
+        if (Array.isArray(cs.absentees)) {
+          allSchoolAbsentees.push(...cs.absentees);
+        }
       });
 
       const todayAttendanceRate =
@@ -439,7 +462,7 @@ export const attendanceApi = {
 
       // 7. Save the final aggregated summary document to schools/{schoolId}/attendance_summaries/{dateString}
       const schoolSummaryDocRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
-      await setDoc(schoolSummaryDocRef, {
+      const summaryPayload = {
         date: dateString,
         schoolId: activeSchoolId,
         stats: {
@@ -452,10 +475,91 @@ export const attendanceApi = {
           todayLeaveCount: todayLeave,
         },
         classStats: finalClassStats,
+        absentees: allSchoolAbsentees,
+        updatedAt: new Date().toISOString(),
+      };
+      await setDoc(schoolSummaryDocRef, summaryPayload);
+
+      // Also save dedicated absentee summary for fast admin export
+      const absenteeSummaryRef = doc(db, "schools", activeSchoolId, "absentee_summaries", dateString);
+      await setDoc(absenteeSummaryRef, {
+        date: dateString,
+        schoolId: activeSchoolId,
+        totalAbsentees: allSchoolAbsentees.length,
+        absentees: allSchoolAbsentees,
+        classStats: finalClassStats,
         updatedAt: new Date().toISOString(),
       });
     } catch (err) {
       console.error("Error pre-computing and saving attendance summary:", err);
+    }
+  },
+
+  /**
+   * Fast-fetches the pre-computed absentee summary for a given date.
+   */
+  async getAbsenteeSummaryByDate(dateString: string): Promise<any | null> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const absenteeRef = doc(db, "schools", activeSchoolId, "absentee_summaries", dateString);
+      const snap = await getDoc(absenteeRef);
+      if (snap.exists()) {
+        return snap.data();
+      }
+      
+      // Fallback to attendance_summaries if absentee_summaries document isn't generated yet
+      const summaryRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
+      const summarySnap = await getDoc(summaryRef);
+      if (summarySnap.exists()) {
+        return summarySnap.data();
+      }
+      return null;
+    } catch (error) {
+      console.warn("Absentee summary fetch skipped or failed:", error);
+      return null;
+    }
+  },
+
+  /**
+   * Backfills pre-computed summaries and absentee lists for all historical dates across all classes.
+   */
+  async backfillHistoricalSummaries(onProgress?: (msg: string) => void): Promise<{ processedDates: number }> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const classesList = await classesApi.getAll(false);
+      const historicalDates = new Set<string>();
+
+      if (onProgress) onProgress("Scanning historical attendance logs across all classes...");
+
+      // Scan all classes for attendance dates
+      for (const cls of classesList) {
+        try {
+          const colRef = collection(db, "schools", activeSchoolId, "classes", cls.id, "attendance");
+          const snap = await getDocs(colRef);
+          snap.forEach((d) => {
+            if (d.id && d.id.match(/^\d{4}-\d{2}-\d{2}$/)) {
+              historicalDates.add(d.id);
+            }
+          });
+        } catch (err) {
+          console.warn(`Could not read class ${cls.id} attendance collection:`, err);
+        }
+      }
+
+      const datesArray = Array.from(historicalDates);
+      let count = 0;
+
+      for (const dateStr of datesArray) {
+        count++;
+        if (onProgress) onProgress(`Generating pre-computed summaries for date (${count}/${datesArray.length}): ${dateStr}...`);
+        await this.generateAndSaveSummary(dateStr, {});
+      }
+
+      if (onProgress) onProgress(`Successfully backfilled pre-computed summaries for ${datesArray.length} historical dates!`);
+      return { processedDates: datesArray.length };
+    } catch (error) {
+      console.error("Historical backfill error:", error);
+      throw error;
     }
   },
 
@@ -469,6 +573,7 @@ export const attendanceApi = {
   ): Promise<AttendanceRecordSummary[]> {
     try {
       const activeSchoolId = getActiveSchoolId();
+
       let docs: any[] = [];
 
       if (selectedClassId) {

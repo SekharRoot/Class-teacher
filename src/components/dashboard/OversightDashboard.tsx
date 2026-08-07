@@ -259,7 +259,7 @@ export const OversightDashboard = React.memo(({
                 color="text.secondary"
                 sx={{ mt: 2, fontWeight: 500 }}
               >
-                Across {stats.totalClasses} Active Classes
+                Assigned to {stats.totalClasses} Active Classes
               </Typography>
             </CardContent>
           </Card>

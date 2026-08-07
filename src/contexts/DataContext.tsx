@@ -17,6 +17,10 @@ interface DataContextType {
   offlineMode: boolean; setOfflineMode: React.Dispatch<React.SetStateAction<boolean>>;
   fetchInitialData: () => Promise<void>; handleForceSync: () => Promise<void>;
   
+  // Method B: Lazy Loading Non-Critical Collections
+  ensureLeavesLoaded: (force?: boolean) => Promise<void>;
+  ensureUsersLoaded: (force?: boolean) => Promise<void>;
+  
   // Offline sync queue and conflict properties:
   pendingChanges: OfflineStudentChange[];
   conflicts: ConflictItem[];
@@ -184,29 +188,44 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, [syncOfflineQueue]);
 
+  // Method B: Lazy loading callbacks for non-critical startup collections
+  const ensureLeavesLoaded = useCallback(async (force = false) => {
+    if (!currentUser || userProfile?.status !== "active") return;
+    if (!force && leaves.length > 0) return;
+    try {
+      const canAccessLeaves =
+        userProfile?.role === "admin" ||
+        userProfile?.role === "owner" ||
+        userProfile?.role === "academic_coordinator" ||
+        userProfile?.role === "class_teacher" ||
+        userProfile?.hasLeaveFeatureAccess;
+      if (!canAccessLeaves) return;
+      const freshLeaves = await leavesApi.getAll(true);
+      await dataObserver.notifyAndCache("leaves", freshLeaves || []);
+    } catch (e) {
+      console.warn("Lazy load leaves failed:", e);
+    }
+  }, [currentUser, userProfile, leaves.length]);
+
+  const ensureUsersLoaded = useCallback(async (force = false) => {
+    if (!currentUser || userProfile?.status !== "active") return;
+    if (!force && users.length > 0) return;
+    try {
+      const freshUsers = await usersApi.getAll();
+      await dataObserver.notifyAndCache("users", freshUsers || []);
+    } catch (e) {
+      console.warn("Lazy load users failed:", e);
+    }
+  }, [currentUser, userProfile, users.length]);
+
   const fetchAndCacheAll = useCallback(async (forceRefreshStudents: boolean = false) => {
-    const canAccessLeaves =
-      userProfile?.role === "admin" ||
-      userProfile?.role === "owner" ||
-      userProfile?.role === "academic_coordinator" ||
-      userProfile?.role === "class_teacher" ||
-      userProfile?.hasLeaveFeatureAccess;
-
-    // 1. Fetch lightweight meta collections first (Classes, Leaves, Users)
-    const promises = [
-      classesApi.getAll(true),
-      canAccessLeaves ? leavesApi.getAll(true) : Promise.resolve([]),
-      usersApi.getAll(),
-    ];
-
-    const [classesList, leavesList, usersList] =
-      await Promise.all(promises);
-
-    await Promise.all([
-      dataObserver.notifyAndCache("classes", classesList || []),
-      dataObserver.notifyAndCache("leaves", leavesList || []),
-      dataObserver.notifyAndCache("users", usersList || []),
-    ]);
+    // 1. Method B: Fetch essential startup meta collection (Classes). Defer Leaves & Users to lazy loading.
+    try {
+      const classesList = await classesApi.getAll(true);
+      await dataObserver.notifyAndCache("classes", classesList || []);
+    } catch (err) {
+      console.warn("Classes sync error:", err);
+    }
 
     // Check if we already have cached students available locally
     const cachedStudents = await cache.get("offline_students");
@@ -218,30 +237,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     if (forceRefreshStudents || !hasCachedStudents) {
-      // Method 1: If forcing refresh and we already have cached students, perform an incremental sync first
-      if (forceRefreshStudents && hasCachedStudents) {
+      // Method A: SWR Delta-Sync for students
+      if (hasCachedStudents) {
         try {
-          console.log("Applying Method 1: Performing timestamp-based incremental sync for students...");
+          console.log("[Method A] Performing timestamp-based Delta Sync for students...");
           const syncResult = await studentSyncManager.performSync(false);
           if (syncResult.success) {
             const freshStudents = await cache.get("offline_students");
             if (freshStudents) {
               setStudents(freshStudents);
-              console.log(`Incremental sync completed successfully. Synced: ${syncResult.syncedCount}, Deleted: ${syncResult.deletedCount}`);
+              console.log(`[Method A] Delta Sync completed. Synced: ${syncResult.syncedCount}, Deleted: ${syncResult.deletedCount}`);
               setLoading(false);
               return;
             }
           }
         } catch (syncErr) {
-          console.warn("Incremental sync failed, falling back to full parallel chunk sync:", syncErr);
+          console.warn("Delta Sync failed, falling back to parallel chunk sync:", syncErr);
         }
       }
 
       try {
-        // Fetch students in highly efficient parallel class-by-class chunks
-        const targetClasses = classesList || [];
-
-        const studentsList = await studentsApi.getAllInParallelChunks(targetClasses, true);
+        const classesList = (await cache.get("offline_classes")) || [];
+        const studentsList = await studentsApi.getAllInParallelChunks(classesList, true);
         
         // Preserve local students with pending offline changes
         const offlineChanges = await studentSyncManager.getOfflineChanges();
@@ -262,7 +279,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.error("Progressive parallel chunk student download failed, trying standard:", err);
         const studentsList = await studentsApi.getAll(true);
         
-        // Preserve local students even in fallback
         const offlineChanges = await studentSyncManager.getOfflineChanges();
         const pendingIds = new Set(offlineChanges.map(c => c.studentId));
         const currentLocalStudents = await studentCache.getAll();
@@ -278,23 +294,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     } else {
-      console.log("Mounted with cached student profiles. Triggering on-demand background scan for server data updates...");
+      console.log("Mounted with cached student profiles. Triggering background delta scan...");
       if (cachedStudents) {
         setStudents(cachedStudents);
       }
       setLoading(false);
 
-      // Perform on-demand scan in background if there is updated server data
       studentSyncManager.performSync(false).then(async (syncResult) => {
         if (syncResult.syncedCount > 0 || syncResult.deletedCount > 0) {
-          console.log(`[DataContext] On-demand scan synced ${syncResult.syncedCount} new/updated profiles.`);
+          console.log(`[DataContext] Delta sync updated ${syncResult.syncedCount} profiles.`);
           const updatedCached = await cache.get("offline_students");
           if (updatedCached) {
             setStudents(updatedCached);
           }
         }
       }).catch((err) => {
-        console.warn("[DataContext] On-demand background scan error:", err);
+        console.warn("[DataContext] Background delta scan error:", err);
       });
     }
   }, [userProfile]);
@@ -479,6 +494,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setOfflineMode,
         fetchInitialData,
         handleForceSync,
+        ensureLeavesLoaded,
+        ensureUsersLoaded,
         pendingChanges,
         conflicts,
         syncStatus,
