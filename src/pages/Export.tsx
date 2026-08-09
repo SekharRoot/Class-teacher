@@ -206,7 +206,11 @@ export default function Export() {
           const classesToFetch = selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds;
           const recordsMap = await attendanceApi.getMonthlyRecords(selectedMonth, classesToFetch);
 
-          const datesInMonth = Object.keys(recordsMap).sort();
+          const ignoreSundays = localStorage.getItem("ignore_sundays") === "true";
+          let datesInMonth = Object.keys(recordsMap).sort();
+          if (ignoreSundays) {
+            datesInMonth = datesInMonth.filter((d) => parseISO(d).getDay() !== 0);
+          }
 
           if (datesInMonth.length === 0) {
             throw new Error(
@@ -332,7 +336,11 @@ export default function Export() {
           const classesToFetch = selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds;
           const recordsMap = await attendanceApi.getMonthlyRecords(selectedMonth, classesToFetch);
 
-          const datesInMonth = Object.keys(recordsMap).sort();
+          const ignoreSundays = localStorage.getItem("ignore_sundays") === "true";
+          let datesInMonth = Object.keys(recordsMap).sort();
+          if (ignoreSundays) {
+            datesInMonth = datesInMonth.filter((d) => parseISO(d).getDay() !== 0);
+          }
 
           if (datesInMonth.length === 0) {
             throw new Error(

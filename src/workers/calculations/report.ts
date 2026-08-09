@@ -1,8 +1,21 @@
 export function calculateMonthlyReport(payload: any): any {
-  const { docs, month, classId, students } = payload;
+  const { docs, month, classId, students, ignoreSundays } = payload;
   const reportEntries: any[] = [];
   
-  const monthDocs = docs.filter((doc: any) => doc.id.startsWith(month));
+  const monthDocs = docs.filter((doc: any) => {
+    if (!doc.id.startsWith(month)) return false;
+    if (ignoreSundays) {
+      const parts = doc.id.split("-");
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const monthIndex = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, monthIndex, day);
+        if (d.getDay() === 0) return false;
+      }
+    }
+    return true;
+  });
   const totalWorkingDays = monthDocs.length;
 
   const studentIdsInDocs = new Set();

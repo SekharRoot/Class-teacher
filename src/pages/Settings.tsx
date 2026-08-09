@@ -73,6 +73,10 @@ export default function Settings() {
     return localStorage.getItem("show_leaves_view") === "true";
   });
 
+  const [ignoreSundays, setIgnoreSundays] = useState(() => {
+    return localStorage.getItem("ignore_sundays") === "true";
+  });
+
   const handleToggleEditOldAttendance = (val: boolean) => {
     setAllowEditOldAttendance(val);
     localStorage.setItem("allow_edit_old_attendance", val ? "true" : "false");
@@ -85,6 +89,13 @@ export default function Settings() {
     window.dispatchEvent(new Event("storage"));
     window.dispatchEvent(new Event("leaves_setting_changed"));
     showToast(`Leave Requests view is now ${val ? "enabled" : "disabled"}.`, "info");
+  };
+
+  const handleToggleIgnoreSundays = (val: boolean) => {
+    setIgnoreSundays(val);
+    localStorage.setItem("ignore_sundays", val ? "true" : "false");
+    window.dispatchEvent(new Event("storage"));
+    showToast(`Ignore Sunday setting is now ${val ? "enabled" : "disabled"}.`, "info");
   };
   
   // Backfill pre-computed summaries
@@ -450,6 +461,15 @@ export default function Settings() {
                   />
                 }
                 label="Enable Leave Requests View & Tab"
+              />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={ignoreSundays}
+                    onChange={(e) => handleToggleIgnoreSundays(e.target.checked)}
+                  />
+                }
+                label="Ignore Sunday"
               />
             </Box>
 

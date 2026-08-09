@@ -681,11 +681,13 @@ export const attendanceApi = {
         };
       });
 
+      const ignoreSundays = typeof window !== "undefined" && localStorage.getItem("ignore_sundays") === "true";
       const report = await runCalculationWorker("CALCULATE_MONTHLY_REPORT", {
         docs,
         month,
         classId,
         students,
+        ignoreSundays,
       });
 
       return report;
