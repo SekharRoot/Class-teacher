@@ -15,7 +15,7 @@ process.on("uncaughtException", (err) => {
 async function startServer() {
   const app = express();
 
-  const PORT = Number(process.env.PORT || 3000);
+  const PORT = parseInt(process.env.PORT || "3000", 10) || 3000;
 
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
@@ -26,8 +26,8 @@ async function startServer() {
     } mode on port ${PORT}...`
   );
 
-  // API routes FIRST
-  app.get("/api/health", (req, res) => {
+  // Health check routes FIRST
+  app.get(["/api/health", "/health", "/_health"], (req, res) => {
     res.json({
       status: "ok",
       mode: isProduction ? "production" : "development",

@@ -56,7 +56,7 @@ import { getActiveSchoolId } from "../lib/activeSchoolHelper";
 
 export default function Settings() {
   const { currentUser, userProfile } = useAuth();
-  const { fetchInitialData, students, setStudents, classes, offlineMode, ensureUsersLoaded } = useData();
+  const { fetchInitialData, students, setStudents, classes, setClasses, offlineMode, ensureUsersLoaded } = useData();
 
   useEffect(() => {
     ensureUsersLoaded();
@@ -286,6 +286,7 @@ export default function Settings() {
     setImporting(true);
     try {
       const createdClasses: Record<string, string> = {};
+      const newlyCreatedClassObjects: ClassItem[] = [];
       const activeSchoolId = userProfile?.schoolId || getActiveSchoolId() || "default_school";
       
       // Step 1: Create any necessary new classes
@@ -329,7 +330,14 @@ export default function Settings() {
           
           await classesApi.create(newClass);
           createdClasses[classNameKey] = newClassId;
+          newlyCreatedClassObjects.push(newClass);
         }
+      }
+
+      if (newlyCreatedClassObjects.length > 0) {
+        const updatedClassesList = [...classes, ...newlyCreatedClassObjects];
+        setClasses(updatedClassesList);
+        await cache.set("offline_classes", updatedClassesList);
       }
 
       // Step 2: Prepare new student objects

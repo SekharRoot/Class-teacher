@@ -175,12 +175,15 @@ export const previewProfileImport = (
     } else {
       // Find matching existing class
       const classId = directClassId || classNameToIdMap[parsedClass.formattedName.toLowerCase()];
-      const rollKey = `${classId || "new"}_${rollNumber}`;
+      const classKey = classId || `new_${parsedClass.formattedName.toLowerCase()}`;
+      const rollKey = `${classKey}_${rollNumber}`;
       
       const isDuplicateInCSV = processedRollNumbers.has(rollKey);
-      const isDuplicateInDb = existingStudents.some(
-        (s) => s.classId === classId && s.rollNumber.toUpperCase() === rollNumber && s.isActive !== false
-      );
+      const isDuplicateInDb = classId
+        ? existingStudents.some(
+            (s) => s.classId === classId && s.rollNumber.toUpperCase() === rollNumber && s.isActive !== false
+          )
+        : false;
 
       if (isDuplicateInCSV || isDuplicateInDb) {
         status = "duplicate";
