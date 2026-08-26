@@ -1,4 +1,7 @@
 /**
+ * Main Application Component
+ * Configures application providers, routing, and theme management.
+ *
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */

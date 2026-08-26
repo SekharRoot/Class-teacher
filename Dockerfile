@@ -30,7 +30,7 @@ COPY --from=builder /app/firebase-applet-config.json* ./
 # Install production-only dependencies
 RUN npm install --omit=dev
 
-EXPOSE 8080 3000
+EXPOSE 3000
 
 # Start the application
 CMD ["node", "dist/server.cjs"]

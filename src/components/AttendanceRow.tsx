@@ -225,7 +225,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
           </Box>
         </TableCell>
 
-        <TableCell align="center" sx={{ pr: { xs: 1, sm: 2 } }}>
+        <TableCell align="center" sx={{ p: 0 }}>
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 0.5 }}>
             <ToggleButtonGroup
               value={status || null}
@@ -235,14 +235,15 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               size="medium"
               sx={{
                 "& .MuiToggleButton-root": {
-                  p: { xs: 0.75, sm: 1.5 },
-                  minWidth: { xs: 44, sm: 68 },
-                  height: { xs: 38, sm: 48 },
+                  p: 0,
+                  width: { xs: 55, sm: 55 },
+                  height: { xs: 55, sm: 55 },
+                  minWidth: { xs: 55, sm: 55 },
                   borderRadius: "10px !important",
                   border: "1px solid !important",
                   borderColor: "divider !important",
-                  marginLeft: "0 !important",
-                  mx: { xs: 0.25, sm: 0.75 },
+                  marginLeft: "2px !important",
+                  mx: 0.25,
                 },
                 '& .MuiToggleButton-root.Mui-selected[value="present"]': {
                   bgcolor: "success.main",
@@ -262,7 +263,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               }}
             >
               <ToggleButton value="present" aria-label="present">
-                <CheckCircle sx={{ fontSize: { xs: 20, sm: 28 } }} />
+                <CheckCircle sx={{ width: 40, height: 40, fontSize: 40 }} />
               </ToggleButton>
               <ToggleButton
                 value={status === "leave" ? "leave" : "absent"}
@@ -275,9 +276,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 onClick={handleAbsentClick}
               >
                 {status === "leave" ? (
-                  <Star sx={{ fontSize: { xs: 20, sm: 28 } }} />
+                  <Star sx={{ width: 45, height: 45, fontSize: 45 }} />
                 ) : (
-                  <Cancel sx={{ fontSize: { xs: 20, sm: 28 } }} />
+                  <Cancel sx={{ width: 45, height: 45, fontSize: 45 }} />
                 )}
               </ToggleButton>
             </ToggleButtonGroup>

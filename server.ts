@@ -13,11 +13,11 @@ process.on("uncaughtException", (err) => {
 async function startServer() {
   const app = express();
 
-  // Cloud Run / container port configuration
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
-
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
+
+  // AI Studio infrastructure strictly routes all traffic to 3000.
+  const PORT = 3000;
 
   console.log(
     `Starting server in ${
@@ -89,9 +89,24 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
+
+  const shutdown = (signal: string) => {
+    console.log(`${signal} signal received: closing HTTP server`);
+    server.close(() => {
+      console.log("HTTP server closed");
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.error("Forcing shutdown after timeout");
+      process.exit(1);
+    }, 10000).unref();
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 startServer().catch((err) => {
