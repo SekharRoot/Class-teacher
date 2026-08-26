@@ -33,7 +33,7 @@ process.on("uncaughtException", (err) => {
 });
 async function startServer() {
   const app = (0, import_express.default)();
-  const PORT = 3e3;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
   console.log(
     `Starting server in ${isProduction ? "production" : "development"} mode on port ${PORT}...`
