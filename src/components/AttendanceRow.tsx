@@ -236,9 +236,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               sx={{
                 "& .MuiToggleButton-root": {
                   p: 0,
-                  width: { xs: 55, sm: 55 },
-                  height: { xs: 55, sm: 55 },
-                  minWidth: { xs: 55, sm: 55 },
+                  width: { xs: 45, sm: 45 },
+                  height: { xs: 45, sm: 45 },
+                  minWidth: { xs: 45, sm: 45 },
                   borderRadius: "10px !important",
                   border: "1px solid !important",
                   borderColor: "divider !important",
