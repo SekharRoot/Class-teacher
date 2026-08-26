@@ -13,8 +13,8 @@ process.on("uncaughtException", (err) => {
 async function startServer() {
   const app = express();
 
-  // Cloud Run / container port configuration (defaults strictly to 3000)
-  const PORT = 3000;
+  // Cloud Run / container port configuration
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;

@@ -1,33 +1,9 @@
-import React, { useEffect } from "react";
-import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  Chip,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  Tabs,
-  Tab,
-  TextField,
-  IconButton,
-} from "@mui/material";
-import {
-  CloudOff,
-  Refresh,
-  ChevronLeft,
-  ChevronRight,
-  History,
-  ListAlt,
-  DeleteSweep,
-  ArrowBack,
-  TableChart,
-} from "@mui/icons-material";
+import React, { useEffect, useState } from "react";
+import { Box, Typography, Paper, Chip, CircularProgress, Snackbar, Alert, Button } from "@mui/material";
+import { CloudOff, ChevronLeft } from "@mui/icons-material";
 import { format, subDays, addDays, parseISO } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
 import { AttendanceHistory } from "../components/AttendanceHistory";
-import { AttendanceSummary } from "../components/AttendanceSummary";
 import { ClassSelectionGrid } from "../components/ClassSelectionGrid";
 import { AttendanceStudentList } from "../components/AttendanceStudentList";
 import { ClasswiseAbsenteeExport } from "../components/ClasswiseAbsenteeExport";
@@ -36,6 +12,10 @@ import { useAttendanceData } from "../hooks/useAttendanceData";
 import { useAttendanceActions } from "../hooks/useAttendanceActions";
 import { useAuth } from "../contexts/AuthContext";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
+import { AttendanceHeaderControls } from "../components/attendance/AttendanceHeaderControls";
+import { AttendanceConnectionError } from "../components/attendance/AttendanceConnectionError";
+import { AttendanceTabNavigation } from "../components/attendance/AttendanceTabNavigation";
+import { ClassHeaderBreadcrumb } from "../components/attendance/ClassHeaderBreadcrumb";
 
 export default function Attendance() {
   const { classId } = useParams();
@@ -72,7 +52,6 @@ export default function Attendance() {
     fetchHistory,
     leavesList,
     dayInfo,
-    setDayInfo,
     fetchDayInfo,
   } = useAttendanceData();
 
@@ -80,7 +59,7 @@ export default function Attendance() {
 
   const isPrincipal = isReadOnly;
   const isTeacher = userProfile?.role === "class_teacher";
-  const [isTakeAttendanceMode, setIsTakeAttendanceMode] = React.useState<boolean>(isTeacher);
+  const [isTakeAttendanceMode, setIsTakeAttendanceMode] = useState<boolean>(isTeacher);
 
   const todayDateString = format(new Date(), "yyyy-MM-dd");
   const isOldData = dateString < todayDateString;
@@ -88,11 +67,8 @@ export default function Attendance() {
   const isLockedOldData = isOldData && !allowEditOld;
 
   useEffect(() => {
-    if (userProfile) {
-      // Teachers always default to take attendance mode
-      if (userProfile.role === "class_teacher") {
-        setIsTakeAttendanceMode(true);
-      }
+    if (userProfile?.role === "class_teacher") {
+      setIsTakeAttendanceMode(true);
     }
   }, [userProfile?.role]);
 
@@ -100,16 +76,9 @@ export default function Attendance() {
     if (!userProfile || loadingScope) return;
 
     if (classId) {
-      const isAuthorized = authorizedClassIds.includes(classId);
-      if (!isAuthorized) {
-        if (
-          userProfile.role === "class_teacher" &&
-          (userProfile.assignedClassId || userProfile.assignedClassId2)
-        ) {
-          navigate(`/attendance/${userProfile.assignedClassId || userProfile.assignedClassId2}`);
-        } else {
-          navigate("/attendance");
-        }
+      if (!authorizedClassIds.includes(classId)) {
+        const fallback = userProfile.role === "class_teacher" ? userProfile.assignedClassId || userProfile.assignedClassId2 : null;
+        navigate(fallback ? `/attendance/${fallback}` : "/attendance");
       } else {
         setSelectedClassId(classId);
       }
@@ -120,59 +89,25 @@ export default function Attendance() {
         setSelectedClassId(null);
       }
     }
-  }, [
-    classId,
-    setSelectedClassId,
-    userProfile,
-    navigate,
-    authorizedClassIds,
-    loadingScope,
-    isTeacher,
-    classes,
-  ]);
+  }, [classId, setSelectedClassId, userProfile, navigate, authorizedClassIds, loadingScope]);
 
   const handleClassSelect = (id: string | null) => {
-    if (id) {
-      navigate(`/attendance/${id}`);
-    } else {
-      navigate("/attendance");
-    }
+    navigate(id ? `/attendance/${id}` : "/attendance");
   };
 
-  const { markAttendance, markAllStatus, syncAttendance, clearAllData, assignHoliday } =
-    useAttendanceActions(
-      attendance,
-      setAttendance,
-      students,
-      setStudents,
-      dateString,
-      offlineMode,
-      showToast,
-      fetchHistory,
-      setLoading,
-      historyDates,
-      setHistoryDates,
-      fetchBaseData,
-      selectedClassId,
-      fetchDayInfo,
-    );
+  const { markAttendance, markAllStatus, syncAttendance, assignHoliday } = useAttendanceActions(
+    attendance, setAttendance, students, setStudents, dateString, offlineMode, showToast,
+    fetchHistory, setLoading, historyDates, setHistoryDates, fetchBaseData, selectedClassId, fetchDayInfo,
+  );
 
   useEffect(() => {
-    const handleGlobalSync = () => {
-      syncAttendance();
-    };
+    const handleGlobalSync = () => syncAttendance();
     window.addEventListener("force-sync", handleGlobalSync);
-    return () => {
-      window.removeEventListener("force-sync", handleGlobalSync);
-    };
+    return () => window.removeEventListener("force-sync", handleGlobalSync);
   }, [syncAttendance]);
 
   const handleDateShift = (days: number) => {
-    const nextDate =
-      days > 0
-        ? addDays(selectedDate, days)
-        : subDays(selectedDate, Math.abs(days));
-    setSelectedDate(nextDate);
+    setSelectedDate(days > 0 ? addDays(selectedDate, days) : subDays(selectedDate, Math.abs(days)));
   };
 
   const handleDateSelect = (isoString: string) => {
@@ -180,134 +115,46 @@ export default function Attendance() {
     setActiveTab(0);
   };
 
-  const handleEnableOfflineMode = () => {
-    setOfflineMode(true);
-    setError(null);
-    showToast("Switched to Offline Mode successfully.", "info");
-  };
+  const filteredClasses = classes.filter((cls) =>
+    userProfile?.role === "class_teacher"
+      ? cls.id === userProfile.assignedClassId || cls.id === userProfile.assignedClassId2
+      : authorizedClassIds.includes(cls.id),
+  );
 
-  const filteredClasses = classes.filter((cls) => {
-    if (userProfile?.role === "class_teacher") {
-      return cls.id === userProfile.assignedClassId || cls.id === userProfile.assignedClassId2;
-    }
-    return authorizedClassIds.includes(cls.id);
-  });
+  const selectedClass = classes.find((c) => c.id === selectedClassId);
 
   return (
     <Box sx={{ maxWidth: "lg", mx: "auto", pb: 6 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-          flexWrap: "wrap",
-          gap: 2,
-        }}
-      >
-        <Box>
-          <Typography
-            variant="h4"
-            component="h1"
-            sx={{
-              fontWeight: "bold",
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-            }}
-          >
-            Attendance Sheets{" "}
-            {offlineMode && (
-              <Chip
-                label="Offline Cache Mode"
-                size="small"
-                color="warning"
-                icon={<CloudOff />}
-              />
-            )}
-          </Typography>
-        </Box>
-        <Box sx={{ display: "flex", gap: 1 }} />
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3, flexWrap: "wrap", gap: 2 }}>
+        <Typography variant="h4" component="h1" sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1.5 }}>
+          Attendance Sheets {offlineMode && <Chip label="Offline Cache Mode" size="small" color="warning" icon={<CloudOff />} />}
+        </Typography>
       </Box>
 
       {error ? (
-        <Box sx={{ maxWidth: "sm", mx: "auto", mt: 4 }}>
-          <Paper
-            elevation={3}
-            sx={{ p: 4, textAlign: "center", borderRadius: "10px" }}
-          >
-            <CloudOff sx={{ fontSize: 60, color: "text.secondary", mb: 2 }} />
-            <Typography variant="h5" sx={{ fontWeight: "bold" }} gutterBottom>
-              Database Connection Pending
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              {error}
-            </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 2,
-                justifyContent: "center",
-                flexWrap: "wrap",
-              }}
-            >
-              <Button
-                variant="contained"
-                startIcon={<Refresh />}
-                onClick={fetchBaseData}
-              >
-                Retry Connection
-              </Button>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleEnableOfflineMode}
-              >
-                Work Offline (Demo Mode)
-              </Button>
-            </Box>
-          </Paper>
-        </Box>
-      ) : loading && students.length === 0 && !selectedClassId ? (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            minHeight: "40vh",
-            gap: 2,
+        <AttendanceConnectionError
+          error={error}
+          onRetry={fetchBaseData}
+          onEnableOfflineMode={() => {
+            setOfflineMode(true);
+            setError(null);
+            showToast("Switched to Offline Mode successfully.", "info");
           }}
-        >
+        />
+      ) : loading && students.length === 0 && !selectedClassId ? (
+        <Box sx={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", minHeight: "40vh", gap: 2 }}>
           <CircularProgress size={50} />
-          <Typography
-            variant="body1"
-            color="text.secondary"
-            sx={{ fontWeight: "medium" }}
-          >
+          <Typography variant="body1" color="text.secondary" sx={{ fontWeight: "medium" }}>
             Syncing school registers...
           </Typography>
         </Box>
       ) : filteredClasses.length === 0 ? (
-        <Paper
-          sx={{
-            p: 5,
-            textAlign: "center",
-            borderRadius: "10px",
-            border: "1px dashed",
-            borderColor: "divider",
-          }}
-        >
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No assigned classes found.
-          </Typography>
+        <Paper sx={{ p: 5, textAlign: "center", borderRadius: "10px", border: "1px dashed", borderColor: "divider" }}>
+          <Typography variant="h6" color="text.secondary">No assigned classes found.</Typography>
         </Paper>
       ) : !selectedClassId ? (
         <>
-          <ClassSelectionGrid
-            classes={filteredClasses}
-            onSelectClass={handleClassSelect}
-          />
+          <ClassSelectionGrid classes={filteredClasses} onSelectClass={handleClassSelect} />
           <Box sx={{ mt: 4 }}>
             <ClasswiseAbsenteeExport
               classes={filteredClasses}
@@ -321,184 +168,35 @@ export default function Attendance() {
         </>
       ) : (
         <Box>
-          {(userProfile?.role !== "class_teacher" || filteredClasses.length > 1) && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                mb: 2,
-                gap: 1,
-                flexWrap: "wrap",
-              }}
-            >
-              <Button
-                startIcon={<ArrowBack />}
-                onClick={() => handleClassSelect(null)}
-                variant="text"
-                sx={{
-                  borderRadius: "10px",
-                  textTransform: "none",
-                  fontWeight: "bold",
-                }}
-              >
-                Change Class
-              </Button>
-              <Typography
-                variant="h6"
-                color="text.secondary"
-                sx={{ fontWeight: "bold" }}
-              >
-                / {classes.find((c) => c.id === selectedClassId)?.board} -{" "}
-                {classes.find((c) => c.id === selectedClassId)?.classStandard}{" "}
-                {classes.find((c) => c.id === selectedClassId)?.section}
-              </Typography>
-            </Box>
-          )}
-          <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-            <Tabs
-              value={activeTab}
-              onChange={(_, val) => setActiveTab(val)}
-              aria-label="attendance views"
-              variant="scrollable"
-              scrollButtons="auto"
-              allowScrollButtonsMobile
-              sx={{ "& .MuiTabs-flexContainer": { justifyContent: "center" } }}
-            >
-              <Tab
-                icon={<ListAlt fontSize="large" />}
-                label="Take Attendance"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: "bold",
-                  minHeight: 72,
-                }}
-              />
-              <Tab
-                icon={<History fontSize="large" />}
-                label={`Attendance History (${historyDates.length})`}
-                sx={{
-                  textTransform: "none",
-                  fontWeight: "bold",
-                  minHeight: 72,
-                }}
-              />
-              <Tab
-                icon={<TableChart fontSize="large" />}
-                label="Sheet"
-                sx={{
-                  textTransform: "none",
-                  fontWeight: "bold",
-                  minHeight: 72,
-                }}
-              />
-            </Tabs>
-          </Box>
+          <ClassHeaderBreadcrumb
+            selectedClass={selectedClass}
+            showChangeClassButton={userProfile?.role !== "class_teacher" || filteredClasses.length > 1}
+            onChangeClass={() => handleClassSelect(null)}
+          />
+
+          <AttendanceTabNavigation
+            activeTab={activeTab}
+            historyCount={historyDates.length}
+            onTabChange={setActiveTab}
+          />
 
           {activeTab === 0 && (
             <Box>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: { xs: 1.5, sm: 2 },
-                  mb: 3,
-                  display: "flex",
-                  flexDirection: { xs: "column", md: "row" },
-                  alignItems: { xs: "stretch", md: "center" },
-                  justifyContent: "space-between",
-                  gap: 2,
-                  borderRadius: "10px",
-                  bgcolor: "background.paper",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexWrap: "wrap",
-                    gap: 1,
-                    bgcolor: "action.hover",
-                    p: 0.5,
-                    borderRadius: "10px",
-                  }}
-                >
-                  <IconButton
-                    onClick={() => handleDateShift(-1)}
-                    size="small"
-                    sx={{ bgcolor: "background.paper", boxShadow: 1 }}
-                  >
-                    <ChevronLeft />
-                  </IconButton>
-                  <TextField
-                    type="date"
-                    size="small"
-                    value={dateString}
-                    onChange={(e) => {
-                      if (e.target.value) handleDateSelect(e.target.value);
-                    }}
-                    sx={{
-                      width: 150,
-                      "& .MuiInputBase-root": {
-                        fontWeight: "bold",
-                        fontSize: "0.9rem",
-                      },
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        border: "none",
-                      },
-                    }}
-                  />
-                  <IconButton
-                    onClick={() => handleDateShift(1)}
-                    size="small"
-                    sx={{ bgcolor: "background.paper", boxShadow: 1 }}
-                  >
-                    <ChevronRight />
-                  </IconButton>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() => setSelectedDate(new Date())}
-                    disabled={format(new Date(), "yyyy-MM-dd") === dateString}
-                    sx={{
-                      ml: 1,
-                      borderRadius: "10px",
-                      textTransform: "none",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    Today
-                  </Button>
-                  {!isTeacher && !isPrincipal && (
-                    <Button
-                      variant={isTakeAttendanceMode ? "contained" : "outlined"}
-                      color={isTakeAttendanceMode ? "primary" : "secondary"}
-                      size="small"
-                      startIcon={<ListAlt />}
-                      onClick={() => setIsTakeAttendanceMode(!isTakeAttendanceMode)}
-                      sx={{
-                        ml: 1,
-                        borderRadius: "10px",
-                        textTransform: "none",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {isTakeAttendanceMode ? "View Mode" : "Take Attendance"}
-                    </Button>
-                  )}
-                </Box>
-                <AttendanceSummary
-                  students={students}
-                  attendance={attendance}
-                  selectedClassId={selectedClassId}
-                />
-              </Paper>
-              {isLockedOldData && (
-                <Alert severity="warning" sx={{ mb: 3, borderRadius: "10px", fontWeight: "medium" }}>
-                  Historical Attendance Lock: Editing attendance data for past dates is locked by default. 
-                  To modify this, enable "Allow Editing Old Attendance Data" under Account Preferences in the Settings tab.
-                </Alert>
-              )}
-            <AttendanceStudentList
+              <AttendanceHeaderControls
+                dateString={dateString}
+                selectedDate={selectedDate}
+                isTeacher={isTeacher}
+                isPrincipal={isPrincipal}
+                isTakeAttendanceMode={isTakeAttendanceMode}
+                students={students}
+                attendance={attendance}
+                selectedClassId={selectedClassId}
+                onDateShift={handleDateShift}
+                onDateSelect={handleDateSelect}
+                onSetToday={() => setSelectedDate(new Date())}
+                onToggleTakeAttendanceMode={() => setIsTakeAttendanceMode(!isTakeAttendanceMode)}
+              />
+              <AttendanceStudentList
                 students={students}
                 attendance={attendance}
                 selectedClassId={selectedClassId}
@@ -512,11 +210,7 @@ export default function Attendance() {
                 loading={loading}
                 dayInfo={dayInfo}
                 onAssignHoliday={assignHoliday}
-                className={
-                  classes.find((c) => c.id === selectedClassId)
-                    ? `${classes.find((c) => c.id === selectedClassId)?.classStandard || ""} ${classes.find((c) => c.id === selectedClassId)?.section || ""}`.trim()
-                    : undefined
-                }
+                className={selectedClass ? `${selectedClass.classStandard} ${selectedClass.section}`.trim() : undefined}
               />
               <Box sx={{ mt: 4 }}>
                 <ClasswiseAbsenteeExport
@@ -551,7 +245,7 @@ export default function Attendance() {
                 dateString={dateString}
                 onDateSelect={handleDateSelect}
                 onLoadMore={() => setHistoryLimit((prev) => prev + 6)}
-                hasMore={historyDates.length === historyLimit}
+                hasMore={historyDates.length === historyLimit || historyDates.length === 0}
               />
             </Box>
           )}
@@ -594,15 +288,10 @@ export default function Attendance() {
         onClose={() => setToastMessage("")}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert
-          onClose={() => setToastMessage("")}
-          severity={toastSeverity}
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={() => setToastMessage("")} severity={toastSeverity} sx={{ width: "100%" }}>
           {toastMessage}
         </Alert>
       </Snackbar>
-      {/* Generous bottom spacing safety buffer for floating navigation bar */}
       <Box sx={{ height: { xs: 120, sm: 160 } }} />
     </Box>
   );

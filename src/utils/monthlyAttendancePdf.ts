@@ -169,12 +169,21 @@ export function generateMonthlyAttendancePdf(data: MonthlyReportMatrixData): voi
       const isHoliday = data.holidayDays.has(d);
 
       let cellFill: [number, number, number] | undefined = undefined;
+      let textColor: [number, number, number] | undefined = undefined;
       let textStyle: "normal" | "bold" = "normal";
 
       if (val === "P") {
         textStyle = "bold";
+        textColor = [27, 94, 32]; // Leaf Green Dark (#1b5e20)
+        cellFill = [232, 245, 233]; // Light Green background tint (#e8f5e9)
       } else if (val === "A") {
         textStyle = "bold";
+        textColor = [183, 28, 28]; // Dark Red (#b71c1c)
+        cellFill = [255, 235, 238]; // Light Red background tint (#ffebee)
+      } else if (val === "L") {
+        textStyle = "bold";
+        textColor = [180, 100, 0]; // Dark Yellow / Ochre (#b76e00)
+        cellFill = [255, 243, 224]; // Light Yellow / Warm Orange background tint (#fff3e0)
       } else if (isSunday) {
         cellFill = [245, 245, 245];
       } else if (isHoliday) {
@@ -186,6 +195,7 @@ export function generateMonthlyAttendancePdf(data: MonthlyReportMatrixData): voi
         styles: {
           halign: "center",
           fontStyle: textStyle,
+          textColor: textColor,
           fillColor: cellFill,
         },
       });

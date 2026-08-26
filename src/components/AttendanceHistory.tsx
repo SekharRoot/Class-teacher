@@ -81,12 +81,36 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
         >
           <History sx={{ fontSize: 48, color: "text.secondary", mb: 2 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
-            No attendance logs found for other dates.
+            No attendance logs found in recent history.
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Generate or take attendance on different dates to build a historical
-            list.
+            Fetch older historical logs from previous dates or take new attendance.
           </Typography>
+          {onLoadMore && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleLoadMore}
+              disabled={isFetching}
+              startIcon={
+                isFetching ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <ExpandMore />
+                )
+              }
+              sx={{
+                textTransform: "none",
+                borderRadius: 4,
+                px: 3.5,
+                py: 1,
+                fontWeight: "bold",
+                boxShadow: 2,
+              }}
+            >
+              {isFetching ? "Fetching older logs..." : "Load Older Attendance Data"}
+            </Button>
+          )}
         </Paper>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
