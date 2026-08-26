@@ -7,6 +7,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableFooter,
   TableHead,
   TableRow,
   Paper,
@@ -60,7 +61,7 @@ export const DailyStatusReport = React.memo(({
     const fetchAttendance = async () => {
       setLoading(true);
       try {
-        const data = await attendanceApi.getByDate(dateString);
+        const data = await attendanceApi.getByDate(dateString, authorizedClassIds);
         setAttendance(data || {});
       } catch (error) {
         console.error("Error fetching attendance for report:", error);
@@ -69,12 +70,18 @@ export const DailyStatusReport = React.memo(({
       }
     };
     fetchAttendance();
-  }, [dateString]);
+  }, [dateString, authorizedClassIds]);
 
   const reportData = useMemo(() => {
-    // Fallback: Legacy client-side calculation
     const filteredClasses = classes.filter((c) => authorizedClassIds.includes(c.id));
-    const activeStudents = students.filter((s) => s.isActive !== false && s.classId && filteredClasses.some(c => isStudentInClass(s, c)));
+    const activeStudents = students.filter((s) => {
+      const isCurrentlyActive = s.isActive !== false;
+      let wasActiveOnDate = isCurrentlyActive;
+      if (!isCurrentlyActive && s.deactivatedAt) {
+        wasActiveOnDate = s.deactivatedAt >= dateString;
+      }
+      return wasActiveOnDate && s.classId && filteredClasses.some((c) => isStudentInClass(s, c));
+    });
 
     return filteredClasses.map((cls) => {
       const classStudents = activeStudents.filter((s) => isStudentInClass(s, cls));
@@ -119,13 +126,46 @@ export const DailyStatusReport = React.memo(({
 
       return row;
     });
-  }, [classes, students, authorizedClassIds, attendance]);
+  }, [classes, students, authorizedClassIds, attendance, dateString]);
+
+  const totals = useMemo(() => {
+    return reportData.reduce(
+      (acc, r) => ({
+        total: acc.total + r.total,
+        totalDB: acc.totalDB + r.totalDB,
+        totalDS: acc.totalDS + r.totalDS,
+        totalBoarder: acc.totalBoarder + r.totalBoarder,
+        present: acc.present + r.present,
+        presentDB: acc.presentDB + r.presentDB,
+        presentDS: acc.presentDS + r.presentDS,
+        presentBoarder: acc.presentBoarder + r.presentBoarder,
+        absent: acc.absent + r.absent,
+        absentDB: acc.absentDB + r.absentDB,
+        absentDS: acc.absentDS + r.absentDS,
+        absentBoarder: acc.absentBoarder + r.absentBoarder,
+      }),
+      {
+        total: 0,
+        totalDB: 0,
+        totalDS: 0,
+        totalBoarder: 0,
+        present: 0,
+        presentDB: 0,
+        presentDS: 0,
+        presentBoarder: 0,
+        absent: 0,
+        absentDB: 0,
+        absentDS: 0,
+        absentBoarder: 0,
+      }
+    );
+  }, [reportData]);
 
   const exportToCSV = () => {
     const headers = [
       "Class", "Total Students", "Total DB", "Total DS", "Total BOARDER",
       "Present", "Present DB", "Present DS", "Present Boarders",
-      "Absent", "Absent DS", "Absent DB", "Absent Boarders"
+      "Absent", "Absent DB", "Absent DS", "Absent Boarders"
     ];
     
     const rows = reportData.map(row => [
@@ -139,9 +179,25 @@ export const DailyStatusReport = React.memo(({
       row.presentDS,
       row.presentBoarder,
       row.absent,
-      row.absentDS,
       row.absentDB,
+      row.absentDS,
       row.absentBoarder
+    ]);
+
+    rows.push([
+      `"TOTAL (${reportData.length} Classes)"`,
+      totals.total,
+      totals.totalDB,
+      totals.totalDS,
+      totals.totalBoarder,
+      totals.present,
+      totals.presentDB,
+      totals.presentDS,
+      totals.presentBoarder,
+      totals.absent,
+      totals.absentDB,
+      totals.absentDS,
+      totals.absentBoarder
     ]);
     
     const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
@@ -175,7 +231,7 @@ export const DailyStatusReport = React.memo(({
     const head = [[
       "Class", "Total", "Total DB", "Total DS", "Total Boarder",
       "Present", "Present DB", "Present DS", "Present Boarders",
-      "Absent", "Absent DS", "Absent DB", "Absent Boarders"
+      "Absent", "Absent DB", "Absent DS", "Absent Boarders"
     ]];
 
     const body = reportData.map(row => [
@@ -189,9 +245,25 @@ export const DailyStatusReport = React.memo(({
       row.presentDS,
       row.presentBoarder,
       row.absent,
-      row.absentDS,
       row.absentDB,
+      row.absentDS,
       row.absentBoarder
+    ]);
+
+    body.push([
+      `TOTAL (${reportData.length} Classes)`,
+      totals.total,
+      totals.totalDB,
+      totals.totalDS,
+      totals.totalBoarder,
+      totals.present,
+      totals.presentDB,
+      totals.presentDS,
+      totals.presentBoarder,
+      totals.absent,
+      totals.absentDB,
+      totals.absentDS,
+      totals.absentBoarder
     ]);
 
     autoTable(doc, {
@@ -322,6 +394,27 @@ export const DailyStatusReport = React.memo(({
                 </TableRow>
               )}
             </TableBody>
+            {reportData.length > 0 && (
+              <TableFooter>
+                <TableRow sx={{ bgcolor: "action.selected", "& .MuiTableCell-root": { fontWeight: 800 } }}>
+                  <TableCell sx={{ fontWeight: 800 }}>Total ({reportData.length} Classes)</TableCell>
+                  <TableCell align="center">{totals.total}</TableCell>
+                  <TableCell align="center">{totals.totalDB}</TableCell>
+                  <TableCell align="center">{totals.totalDS}</TableCell>
+                  <TableCell align="center">{totals.totalBoarder}</TableCell>
+
+                  <TableCell align="center" sx={{ color: "success.main" }}>{totals.present}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main" }}>{totals.presentDB}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main" }}>{totals.presentDS}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main" }}>{totals.presentBoarder}</TableCell>
+
+                  <TableCell align="center" sx={{ color: "error.main" }}>{totals.absent}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main" }}>{totals.absentDB}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main" }}>{totals.absentDS}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main" }}>{totals.absentBoarder}</TableCell>
+                </TableRow>
+              </TableFooter>
+            )}
           </Table>
         </TableContainer>
       )}

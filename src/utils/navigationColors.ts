@@ -79,12 +79,6 @@ export const TAB_ESSENCE_MAP: Record<string, EssenceColor> = {
     bgLight: "rgba(0, 105, 92, 0.12)",
     bgDark: "rgba(128, 203, 196, 0.22)",
   },
-  "App Info": {
-    main: "#ad1457", // Fuchsia Magenta
-    darkMain: "#f48fb1", // Rose Pink
-    bgLight: "rgba(173, 20, 87, 0.12)",
-    bgDark: "rgba(244, 143, 177, 0.22)",
-  },
   Testing: {
     main: "#6a1b9a", // Deep Violet
     darkMain: "#b388ff", // Neon Violet

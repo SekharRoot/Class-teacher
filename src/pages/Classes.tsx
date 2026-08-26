@@ -107,6 +107,7 @@ export default function Classes() {
     classesList,
     setClassesList,
     studentsList,
+    setStudentsList,
     loading,
     offlineMode,
     searchQuery,
@@ -215,10 +216,18 @@ export default function Classes() {
     if (!classToDelete) return;
     const { id: classId, name: className } = classToDelete;
     const originalClasses = [...classesList];
+    const originalStudents = [...studentsList];
 
     const updatedList = classesList.filter((c) => c.id !== classId);
     setClassesList(updatedList);
     cache.set("offline_classes", updatedList);
+
+    const updatedStudents = deleteStudents
+      ? studentsList.filter((s) => s.classId !== classId)
+      : studentsList.map((s) => (s.classId === classId ? { ...s, classId: "" } : s));
+    setStudentsList(updatedStudents);
+    cache.set("offline_students", updatedStudents);
+
     setClassToDelete(null);
 
     if (offlineMode) {
@@ -230,14 +239,14 @@ export default function Classes() {
     (async () => {
       try {
         if (deleteStudents) {
-          const studentsInClass = studentsList.filter(
+          const studentsInClass = originalStudents.filter(
             (s) => s.classId === classId,
           );
           await Promise.all(
             studentsInClass.map((st) => studentsApi.delete(st.id)),
           );
         } else {
-          const studentsInClass = studentsList.filter(
+          const studentsInClass = originalStudents.filter(
             (s) => s.classId === classId,
           );
           await Promise.all(
@@ -257,6 +266,9 @@ export default function Classes() {
           "error",
         );
         setClassesList(originalClasses);
+        setStudentsList(originalStudents);
+        cache.set("offline_classes", originalClasses);
+        cache.set("offline_students", originalStudents);
         fetchClasses();
       }
     })();

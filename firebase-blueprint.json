@@ -27,13 +27,16 @@
     },
     "AttendanceRecord": {
       "title": "AttendanceRecord",
-      "description": "A daily attendance sheet where keys are student IDs and values are attendance statuses (present, absent, leave)",
+      "description": "A daily attendance sheet where keys are student IDs and values are attendance statuses (present, absent, leave), along with optional holiday metadata",
       "type": "object",
       "properties": {
         "statusMap": {
           "type": "object",
           "description": "Dynamic mapping of student IDs to their attendance status"
-        }
+        },
+        "dayReason": { "type": "string" },
+        "dayReasonType": { "type": "string" },
+        "isHoliday": { "type": "boolean" }
       }
     },
     "ClassItem": {
@@ -83,6 +86,19 @@
         "appliedById",
         "appliedAt"
       ]
+    },
+    "MonthlyReportSnapshot": {
+      "title": "MonthlyReportSnapshot",
+      "description": "Pre-computed monthly attendance matrix snapshot containing 39-column data, working days, PCA, and TCA",
+      "type": "object",
+      "properties": {
+        "classId": { "type": "string" },
+        "month": { "type": "string" },
+        "workingDays": { "type": "number" },
+        "totalWorkingDays": { "type": "number" },
+        "rows": { "type": "array" }
+      },
+      "required": ["classId", "month"]
     }
   },
   "firestore": {
@@ -101,6 +117,10 @@
     "leaves/{leaveId}": {
       "schema": "LeaveRequest",
       "description": "Collection of student leave requests"
+    },
+    "schools/{schoolId}/classes/{classId}/monthly_reports/{month}": {
+      "schema": "MonthlyReportSnapshot",
+      "description": "Monthly attendance matrix snapshots"
     }
   }
 }

@@ -46,7 +46,6 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     const classesItem = allItems.find((item) => item.text === "Classes" || item.text === "Class");
     const profilesItem = allItems.find((item) => item.text === "Profiles");
     const settingsItem = allItems.find((item) => item.text === "Settings");
-    const appInfoItem = allItems.find((item) => item.text === "App Info");
 
     const otherItems = allItems.filter(
       (item) =>
@@ -55,8 +54,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         item.text !== "Classes" &&
         item.text !== "Class" &&
         item.text !== "Profiles" &&
-        item.text !== "Settings" &&
-        item.text !== "App Info"
+        item.text !== "Settings"
     );
     otherItems.sort((a, b) => a.text.localeCompare(b.text));
 
@@ -67,7 +65,6 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
     if (profilesItem) result.push(profilesItem);
     if (settingsItem) result.push(settingsItem);
     result.push(...otherItems);
-    if (appInfoItem) result.push(appInfoItem);
 
     return result;
   }, [primaryMenuItems, secondaryMenuItems]);

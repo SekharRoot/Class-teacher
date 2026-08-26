@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   Box,
   Typography,
@@ -14,10 +14,8 @@ import {
   TextField,
   Grid,
 } from "@mui/material";
-import { PictureAsPdf, Download } from "@mui/icons-material";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { jsPDF } from "jspdf";
-import autoTable from "jspdf-autotable";
+import { Download } from "@mui/icons-material";
+import { format, parseISO, getDaysInMonth } from "date-fns";
 import { useProfilesData } from "../hooks/useProfilesData";
 import { attendanceApi } from "../api/attendance";
 import { useHierarchyScope } from "../hooks/useHierarchyScope";
@@ -67,6 +65,7 @@ export default function Export() {
   );
   const [selectedBoarderType, setSelectedBoarderType] = useState<string>("all");
   const [selectedGender, setSelectedGender] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("active"); // 'active', 'inactive', 'all'
 
   const getFullStudentsForExport = async (): Promise<Student[]> => {
     if (offlineMode) {
@@ -89,193 +88,6 @@ export default function Export() {
       console.warn("Failed to fetch fresh students from server for export, falling back to local cache:", err);
       const allCached = await studentCache.getAll();
       return allCached;
-    }
-  };
-
-  const handleExport = async () => {
-    setLoading(true);
-    try {
-      const doc = new jsPDF();
-
-      let classFilterName = "All Classes";
-      if (selectedClassId !== "all") {
-        const classInfo = classes.find((c) => c.id === selectedClassId);
-        if (classInfo)
-          classFilterName = `${classInfo.board} - ${classInfo.classStandard} ${classInfo.section}`;
-      }
-
-      const fullStudentsList = await getFullStudentsForExport();
-      let filteredStudents = fullStudentsList;
-      if (selectedClassId !== "all") {
-        filteredStudents = fullStudentsList.filter(
-          (s) => s.classId === selectedClassId,
-        );
-      } else {
-        filteredStudents = fullStudentsList.filter(
-          (s) => s.classId && authorizedClassIds.includes(s.classId),
-        );
-      }
-
-      if (selectedBoarderType !== "all") {
-        filteredStudents = filteredStudents.filter(
-          (s) => s.boarderType === selectedBoarderType,
-        );
-      }
-      if (selectedGender !== "all") {
-        filteredStudents = filteredStudents.filter(
-          (s) => s.gender === selectedGender,
-        );
-      }
-
-      if (exportTarget === "profiles") {
-        doc.setFontSize(18);
-        doc.text("Student Profiles Report", 14, 22);
-        doc.setFontSize(11);
-        doc.text(`Class: ${classFilterName}`, 14, 30);
-
-        const head = [["Roll No", "Name", "Gender", "Phone", "Boarder Type"]];
-        const body: any[] = [];
-
-        filteredStudents.forEach((student) => {
-          body.push([
-            student.rollNumber,
-            `${student.firstName} ${student.lastName}`,
-            student.gender,
-            student.phoneNumber || "N/A",
-            student.boarderType || "N/A",
-          ]);
-        });
-
-        autoTable(doc, {
-          startY: 38,
-          head: head,
-          body: body,
-          theme: "grid",
-          headStyles: { fillColor: [25, 118, 210] },
-        });
-
-        doc.save(
-          `Student_Profiles_${selectedClassId === "all" ? "All" : selectedClassId}.pdf`,
-        );
-        showToast("Profiles PDF exported successfully!");
-      } else {
-        doc.setFontSize(18);
-        doc.text("Attendance Report", 14, 22);
-        doc.setFontSize(11);
-        doc.text(`Class: ${classFilterName}`, 14, 30);
-
-        const head = [["Roll No", "Name", "Status"]];
-        const body: any[] = [];
-
-        if (exportType === "date") {
-          doc.text(
-            `Date: ${format(parseISO(selectedDate), "dd MMM yyyy")}`,
-            14,
-            38,
-          );
-          const records = await attendanceApi.getByDate(
-            selectedDate,
-            selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds
-          );
-
-          filteredStudents.forEach((student) => {
-            const statusVal = records[student.id];
-            const statusStr = statusVal ? getDisplayStatus(unwrapStatus(statusVal)) : "N/A";
-            body.push([
-              student.rollNumber,
-              `${student.firstName} ${student.lastName}`,
-              statusStr,
-            ]);
-          });
-
-          autoTable(doc, {
-            startY: 45,
-            head: head,
-            body: body,
-            theme: "grid",
-            headStyles: { fillColor: [25, 118, 210] },
-          });
-        } else if (exportType === "month") {
-          doc.text(
-            `Month: ${format(parseISO(selectedMonth + "-01"), "MMM yyyy")}`,
-            14,
-            38,
-          );
-
-          // Fast range query for the entire month's classwise attendance records
-          const classesToFetch = selectedClassId !== "all" ? [selectedClassId] : authorizedClassIds;
-          const recordsMap = await attendanceApi.getMonthlyRecords(selectedMonth, classesToFetch);
-
-          const ignoreSundays = localStorage.getItem("ignore_sundays") === "true";
-          let datesInMonth = Object.keys(recordsMap).sort();
-          if (ignoreSundays) {
-            datesInMonth = datesInMonth.filter((d) => parseISO(d).getDay() !== 0);
-          }
-
-          if (datesInMonth.length === 0) {
-            throw new Error(
-              "No attendance records found for the selected month.",
-            );
-          }
-
-          const monthHead = [
-            [
-              "Roll No",
-              "Name",
-              ...datesInMonth.map((d) => format(parseISO(d), "dd/MM")),
-              "Present",
-              "Absent",
-            ],
-          ];
-          const monthBody: any[] = [];
-
-          filteredStudents.forEach((student) => {
-            const row = [
-              student.rollNumber,
-              `${student.firstName} ${student.lastName}`,
-            ];
-            let presentCount = 0;
-            let absentCount = 0;
-            datesInMonth.forEach((date) => {
-              const status = recordsMap[date]?.[student.id];
-              const s = status ? status.toLowerCase() : "";
-              if (s === "present") presentCount++;
-              if (s === "absent") absentCount++;
-              row.push(
-                s === "present"
-                  ? "P"
-                  : s === "absent"
-                    ? "A"
-                    : s === "leave"
-                      ? "L"
-                      : "-",
-              );
-            });
-            row.push(presentCount.toString());
-            row.push(absentCount.toString());
-            monthBody.push(row);
-          });
-
-          autoTable(doc, {
-            startY: 45,
-            head: monthHead,
-            body: monthBody,
-            theme: "grid",
-            headStyles: { fillColor: [25, 118, 210] },
-            styles: { fontSize: 8, cellPadding: 1 },
-          });
-        }
-
-        doc.save(
-          `Attendance_Report_${exportType === "date" ? selectedDate : selectedMonth}.pdf`,
-        );
-        showToast("Attendance PDF exported successfully!");
-      }
-    } catch (err: any) {
-      console.error(err);
-      showToast(err.message || "Failed to generate PDF.", "error");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -304,17 +116,27 @@ export default function Export() {
           (s) => s.gender === selectedGender,
         );
       }
+      if (selectedStatus === "active") {
+        filteredStudents = filteredStudents.filter((s) => s.isActive !== false);
+      } else if (selectedStatus === "inactive") {
+        filteredStudents = filteredStudents.filter((s) => s.isActive === false);
+      }
 
       let csvContent = "";
       let fileName = "";
 
       if (exportTarget === "profiles") {
-        csvContent +=
-          "Roll No,First Name,Last Name,Class ID,Gender,Phone,Boarder Type\n";
+        const includeStatusCol = selectedStatus === "all";
+        csvContent += includeStatusCol
+          ? "Roll No,First Name,Last Name,Class ID,Gender,Phone,Boarder Type,Status\n"
+          : "Roll No,First Name,Last Name,Class ID,Gender,Phone,Boarder Type\n";
         filteredStudents.forEach((student) => {
-          csvContent += `${student.rollNumber},"${student.firstName}","${student.lastName}",${student.classId},${student.gender},${student.phoneNumber || ""},${student.boarderType || ""}\n`;
+          const statusStr = student.isActive !== false ? "Active" : "Inactive";
+          csvContent += includeStatusCol
+            ? `${student.rollNumber},"${student.firstName}","${student.lastName}",${student.classId},${student.gender},${student.phoneNumber || ""},${student.boarderType || ""},${statusStr}\n`
+            : `${student.rollNumber},"${student.firstName}","${student.lastName}",${student.classId},${student.gender},${student.phoneNumber || ""},${student.boarderType || ""}\n`;
         });
-        fileName = `Student_Profiles_${selectedClassId === "all" ? "All" : selectedClassId}.csv`;
+        fileName = `Student_Profiles_${selectedStatus}_${selectedClassId === "all" ? "All" : selectedClassId}.csv`;
       } else {
         if (exportType === "date") {
           const records = await attendanceApi.getByDate(
@@ -337,15 +159,21 @@ export default function Export() {
           const recordsMap = await attendanceApi.getMonthlyRecords(selectedMonth, classesToFetch);
 
           const ignoreSundays = localStorage.getItem("ignore_sundays") === "true";
+          const ignoreSaturdays = localStorage.getItem("ignore_saturdays") === "true";
           let datesInMonth = Object.keys(recordsMap).sort();
+          if (datesInMonth.length === 0) {
+            const monthStart = parseISO(selectedMonth + "-01");
+            const totalDays = getDaysInMonth(monthStart);
+            datesInMonth = Array.from({ length: totalDays }, (_, i) => {
+              const day = (i + 1).toString().padStart(2, "0");
+              return `${selectedMonth}-${day}`;
+            });
+          }
           if (ignoreSundays) {
             datesInMonth = datesInMonth.filter((d) => parseISO(d).getDay() !== 0);
           }
-
-          if (datesInMonth.length === 0) {
-            throw new Error(
-              "No attendance records found for the selected month.",
-            );
+          if (ignoreSaturdays) {
+            datesInMonth = datesInMonth.filter((d) => parseISO(d).getDay() !== 6);
           }
 
           const dateHeaders = datesInMonth
@@ -478,6 +306,21 @@ export default function Export() {
             </FormControl>
           </Grid>
 
+          <Grid size={{ xs: 12, md: 6 }}>
+            <FormControl fullWidth>
+              <InputLabel>Profile Status</InputLabel>
+              <Select
+                value={selectedStatus}
+                label="Profile Status"
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <MenuItem value="active">Active Profiles Only (Default)</MenuItem>
+                <MenuItem value="inactive">Inactive / Removed Profiles Only</MenuItem>
+                <MenuItem value="all">All Profiles (Active & Inactive)</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
           {exportTarget === "attendance" && (
             <>
               <Grid size={{ xs: 12, md: 6 }}>
@@ -518,25 +361,9 @@ export default function Export() {
             </>
           )}
 
-          <Grid size={{ xs: 12 }} sx={{ mt: 2, display: "flex", gap: 2 }}>
+          <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
             <Button
               variant="contained"
-              size="large"
-              startIcon={
-                loading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  <PictureAsPdf />
-                )
-              }
-              onClick={handleExport}
-              disabled={loading}
-              fullWidth
-            >
-              Generate PDF Report
-            </Button>
-            <Button
-              variant="outlined"
               size="large"
               startIcon={
                 loading ? (

@@ -23,7 +23,7 @@ import {
   Cancel,
   HourglassEmpty,
 } from "@mui/icons-material";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { LeaveRequest, LeaveStatus, Student, ClassItem } from "../../types";
 
 interface LeaveCardProps {
@@ -143,8 +143,8 @@ export function LeaveCard({
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
               {(() => {
                 try {
-                  const startStr = leave.startDate ? format(new Date(leave.startDate), "MMM d, yyyy") : "N/A";
-                  const endStr = leave.endDate ? format(new Date(leave.endDate), "MMM d, yyyy") : "N/A";
+                  const startStr = leave.startDate ? format(parseISO(leave.startDate), "MMM d, yyyy") : "N/A";
+                  const endStr = leave.endDate ? format(parseISO(leave.endDate), "MMM d, yyyy") : "N/A";
                   return `${startStr} - ${endStr}`;
                 } catch (e) {
                   return "Invalid date range";

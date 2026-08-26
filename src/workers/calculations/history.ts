@@ -25,10 +25,7 @@ export function calculateHistory(payload: any): any[] {
 
         if (status === "present") present++;
         else if (status === "absent") absent++;
-        else if (status === "leave") {
-          leave++;
-          absent++;
-        }
+        else if (status === "leave") leave++;
       }
     }
 
@@ -68,10 +65,7 @@ export function calculateLocalHistory(payload: any): any[] {
 
         if (status === "present") present++;
         else if (status === "absent") absent++;
-        else if (status === "leave") {
-          leave++;
-          absent++;
-        }
+        else if (status === "leave") leave++;
       }
 
       datesList.push({

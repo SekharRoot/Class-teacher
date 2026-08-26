@@ -59,6 +59,13 @@ A modular, scalable React application for managing student profiles, class roste
 
 - **Mobile First**: All views must be responsive and optimized for mobile touch interactions (large buttons, readable text).
 - **Floating Navigation Safety**: All content-rendering screens MUST preserve a generous bottom spacing margin (at least 120px to 160px) or include a dedicated vertical spacing element at the bottom to ensure no interactive elements, tables, forms, or actions get hidden under the floating bottom navigation bar.
-- **Color Palette**: MUI default theme (Primary: Blue, Secondary: Pink/Purple), customized for a professional academic look.
-- **Typography**: Roboto (MUI default) for clean readability.
-- **Components**: Use MUI's DataGrid or List components for student rosters. Use Cards for dashboard summaries.
+- **Color Palette & Attendance Tokens**:
+  - Theme: Modern MUI palette with full Dark Mode and Light Mode support.
+  - Present (P): Leaf Green (`#1b5e20` light / `#81c784` dark).
+  - Absent (A): Dark Red (`#b71c1c` light / `#ef5350` dark).
+  - Leave (L): Warm Orange (`#e65100` light / `#ffb74d` dark).
+  - Unmarked (-): Neutral grey / disabled background.
+- **Typography**: Roboto and system font stack for clean readability and high contrast (WCAG AA).
+- **Reports & PDF Exports**: Consolidated under the Reports tab with deferred on-demand calculation and modular metric toggles (TA, % TA, PCA, TCA, % TCA).
+- **Workflow Reference**: For full change-control rules and operational standards, refer to `WORKFLOW.md` and `AGENTS.md`.
+

@@ -10,7 +10,6 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import SupervisorAccountIcon from "@mui/icons-material/SupervisorAccount";
 import DeleteSweepIcon from "@mui/icons-material/DeleteSweep";
-import InfoIcon from "@mui/icons-material/Info";
 import { UserProfile } from "../types";
 
 export interface MenuItemType {
@@ -65,7 +64,15 @@ export function useNavigationItems(userProfile: UserProfile | null) {
       });
     }
 
-    if (userProfile.hasLeaveFeatureAccess && showLeavesView) {
+    const canAccessLeaves =
+      userProfile.role === "admin" ||
+      userProfile.role === "owner" ||
+      userProfile.role === "school_admin" ||
+      userProfile.role === "academic_coordinator" ||
+      userProfile.role === "class_teacher" ||
+      Boolean(userProfile.hasLeaveFeatureAccess);
+
+    if (canAccessLeaves && showLeavesView) {
       items.push({
         text: "Leave Requests",
         icon: <DateRangeIcon />,
@@ -90,8 +97,7 @@ export function useNavigationItems(userProfile: UserProfile | null) {
 
     items.push(
       { text: "Export", icon: <PictureAsPdfIcon />, path: "/export" },
-      { text: "Settings", icon: <SettingsIcon />, path: "/settings" },
-      { text: "App Info", icon: <InfoIcon />, path: "/app-info" }
+      { text: "Settings", icon: <SettingsIcon />, path: "/settings" }
     );
 
     if (userProfile.role === "owner") {

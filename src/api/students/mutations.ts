@@ -60,6 +60,9 @@ export async function update(
     }
 
     const payload = { ...studentData };
+    if (payload.isActive === false && !payload.deactivatedAt) {
+      payload.deactivatedAt = new Date().toISOString();
+    }
 
     const oldClassId = studentInfo.classId;
     const targetClassId = payload.classId !== undefined ? payload.classId : oldClassId;
@@ -119,12 +122,33 @@ export async function deleteStudent(studentId: string): Promise<void> {
 export async function batchDelete(studentIds: string[]): Promise<void> {
   try {
     const activeSchoolId = getActiveSchoolId();
-    for (const id of studentIds) {
-      const studentInfo = await findStudentClass(id);
-      if (studentInfo) {
-        const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, id);
-        await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
+    const studentInfos = await Promise.all(
+      studentIds.map(async (id) => {
+        const info = await findStudentClass(id);
+        return info ? { id, ...info } : null;
+      }),
+    );
+
+    const validStudents = studentInfos.filter(Boolean);
+    const BATCH_SIZE = 450;
+    for (let i = 0; i < validStudents.length; i += BATCH_SIZE) {
+      const chunk = validStudents.slice(i, i + BATCH_SIZE);
+      const batch = writeBatch(db);
+      for (const item of chunk) {
+        if (item) {
+          const studentRef = getStudentDocRef(
+            activeSchoolId,
+            item.classId,
+            item.id,
+          );
+          batch.set(
+            studentRef,
+            { isActive: false, updatedAt: new Date().toISOString() },
+            { merge: true },
+          );
+        }
       }
+      await batch.commit();
     }
     clearStudentsCache();
   } catch (error) {

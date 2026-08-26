@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react";
-import { AttendanceStatus, Student } from "../types";
+import { AttendanceStatus, DayReasonType, Student } from "../types";
 import { attendanceApi, classesApi, studentsApi } from "../api";
 import { cache } from "../lib/cache";
 import { useAuth } from "../contexts/AuthContext";
@@ -23,6 +23,8 @@ export function useAttendanceActions(
   historyDates: any[],
   setHistoryDates: (hd: any[]) => void,
   fetchBaseData: () => void,
+  selectedClassId?: string | null,
+  fetchDayInfo?: (dateStr: string, classId?: string | null) => void,
 ) {
   const { userProfile } = useAuth();
   const updateLocalCache = useCallback((clientAtt: Record<string, any>) => {
@@ -84,7 +86,36 @@ export function useAttendanceActions(
       localStorage.removeItem(`unsynced_${dateString}`);
       localStorage.removeItem(`summary_${dateString}`);
       localStorage.removeItem(`attendance_${dateString}`);
-      showToast("Attendance successfully saved to server!", "success");
+
+      // Check for any other unsynced offline dates in local storage
+      let otherCount = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith("unsynced_") && key !== `unsynced_${dateString}`) {
+          const otherDate = key.replace("unsynced_", "");
+          if (otherDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            const rawCached = localStorage.getItem(`attendance_${otherDate}`);
+            if (rawCached) {
+              try {
+                const parsed = JSON.parse(rawCached);
+                await attendanceApi.saveByDate(otherDate, parsed, false);
+                localStorage.removeItem(`unsynced_${otherDate}`);
+                localStorage.removeItem(`summary_${otherDate}`);
+                localStorage.removeItem(`attendance_${otherDate}`);
+                otherCount++;
+              } catch (e) {
+                console.warn(`Could not sync pending offline date ${otherDate}:`, e);
+              }
+            }
+          }
+        }
+      }
+
+      if (otherCount > 0) {
+        showToast(`Synced active attendance and ${otherCount} offline registers to server!`, "success");
+      } else {
+        showToast("Attendance successfully saved to server!", "success");
+      }
       fetchHistory();
     } catch (err) {
       console.error(err);
@@ -167,10 +198,78 @@ export function useAttendanceActions(
     fetchBaseData,
   ]);
 
-  return useMemo(() => ({ markAttendance, markAllStatus, syncAttendance, clearAllData }), [
-    markAttendance,
-    markAllStatus,
-    syncAttendance,
-    clearAllData,
-  ]);
+  const assignHoliday = useCallback(
+    async (dayReasonType: DayReasonType, dayReason: string) => {
+      if (!selectedClassId) {
+        showToast("Please select a class first.", "warning");
+        return;
+      }
+      try {
+        setLoading(true);
+        await attendanceApi.assignDayHoliday(
+          dateString,
+          selectedClassId,
+          dayReasonType,
+          dayReason,
+        );
+
+        if (dayReasonType !== "none") {
+          const classStudents = students.filter(
+            (s) => s.classId === selectedClassId && s.isActive !== false,
+          );
+          const updated = { ...attendance };
+          classStudents.forEach((st) => {
+            updated[st.id] = "absent";
+          });
+          setAttendance(updated);
+          updateLocalCache(updated);
+          showToast(
+            `Day assigned as ${dayReason || "Holiday"} and saved to server!`,
+            "success",
+          );
+        } else {
+          showToast("Holiday revoked. Regular working day restored.", "info");
+        }
+
+        if (fetchDayInfo) {
+          fetchDayInfo(dateString, selectedClassId);
+        }
+        fetchHistory();
+      } catch (err) {
+        console.error("Failed to assign holiday:", err);
+        showToast("Failed to assign day status.", "error");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      selectedClassId,
+      dateString,
+      students,
+      attendance,
+      updateLocalCache,
+      setAttendance,
+      showToast,
+      fetchDayInfo,
+      fetchHistory,
+      setLoading,
+    ],
+  );
+
+  return useMemo(
+    () => ({
+      markAttendance,
+      markAllStatus,
+      syncAttendance,
+      clearAllData,
+      assignHoliday,
+    }),
+    [
+      markAttendance,
+      markAllStatus,
+      syncAttendance,
+      clearAllData,
+      assignHoliday,
+    ],
+  );
 }

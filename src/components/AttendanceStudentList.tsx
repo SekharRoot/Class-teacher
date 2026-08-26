@@ -19,11 +19,21 @@ import {
   SelectChangeEvent,
   Skeleton,
   Tooltip,
+  Alert,
 } from "@mui/material";
-import { ChevronLeft, Save, Search, ContentCopy, ArrowDropDown } from "@mui/icons-material";
-import { Student, AttendanceStatus, LeaveRequest } from "../types";
+import {
+  ChevronLeft,
+  Save,
+  Search,
+  ContentCopy,
+  ArrowDropDown,
+  EventBusy,
+  Celebration,
+} from "@mui/icons-material";
+import { Student, AttendanceStatus, LeaveRequest, DayReasonType } from "../types";
 import { AttendanceRow } from "./AttendanceRow";
 import { unwrapStatus } from "../utils/statusHelper";
+import { HolidayAssignDialog } from "./HolidayAssignDialog";
 
 interface AttendanceStudentListProps {
   students: Student[];
@@ -40,6 +50,9 @@ interface AttendanceStudentListProps {
   leavesList?: LeaveRequest[];
   dateString?: string;
   loading?: boolean;
+  dayInfo?: { isHoliday?: boolean; dayReasonType?: string; dayReason?: string };
+  onAssignHoliday?: (reasonType: DayReasonType, reason: string) => Promise<void>;
+  className?: string;
 }
 
 export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
@@ -54,59 +67,22 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
   leavesList = [],
   dateString = "",
   loading = false,
+  dayInfo,
+  onAssignHoliday,
+  className,
 }) => {
   const [syncing, setSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<string>("name-asc");
   const [copied, setCopied] = useState(false);
   const [copiedType, setCopiedType] = useState<"absent" | "present" | null>(null);
+  const [holidayDialogOpen, setHolidayDialogOpen] = useState(false);
 
   const classStudents = useMemo(() => {
-    // 1. Get all currently active students in this class
-    const activeStudents = students.filter(
+    return students.filter(
       (s) => s.classId === selectedClassId && s.isActive !== false
     );
-    const activeStudentIds = new Set(activeStudents.map((s) => s.id));
-
-    // 2. Also look at students who have attendance records on this date for this class
-    const loggedStudents: Student[] = [];
-    Object.entries(attendance).forEach(([studentId, val]) => {
-      if (activeStudentIds.has(studentId)) return; // Already in active list
-
-      // Determine if this attendance record belongs to the selected class
-      const isObj = typeof val === "object" && val !== null;
-      const recordClassId = isObj ? (val as any).classId : null;
-
-      if (
-        recordClassId === selectedClassId ||
-        (!recordClassId &&
-          students.find((s) => s.id === studentId)?.classId === selectedClassId)
-      ) {
-        // Find the student in the master students list (even if they are inactive/deleted!)
-        const foundStudent = students.find((s) => s.id === studentId);
-        if (foundStudent) {
-          loggedStudents.push(foundStudent);
-        } else {
-          // Synthesize a student object so they still show up in history
-          loggedStudents.push({
-            id: studentId,
-            firstName: "Profile",
-            lastName: "Removed",
-            rollNumber: "-",
-            classId: selectedClassId,
-            gender: "Male",
-            boarderType: isObj
-              ? (val as any).boarderType || "Day Scholar"
-              : "Day Scholar",
-            isActive: false,
-            schoolId: "",
-          } as Student);
-        }
-      }
-    });
-
-    return [...activeStudents, ...loggedStudents];
-  }, [students, selectedClassId, attendance]);
+  }, [students, selectedClassId]);
 
   const absentees = useMemo(() => {
     return classStudents.filter((student) => {
@@ -334,6 +310,29 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               </span>
             </Tooltip>
           )}
+
+          {/* Holiday Assignment Button to the right of Save button */}
+          {!readOnly && onAssignHoliday && (
+            <Button
+              startIcon={<EventBusy sx={{ fontSize: 16 }} />}
+              onClick={() => setHolidayDialogOpen(true)}
+              variant={dayInfo?.isHoliday ? "contained" : "outlined"}
+              color={dayInfo?.isHoliday ? "warning" : "inherit"}
+              size="small"
+              sx={{
+                borderRadius: 2,
+                textTransform: "none",
+                height: 32,
+                fontSize: "0.75rem",
+                fontWeight: dayInfo?.isHoliday ? "bold" : "medium",
+                boxShadow: dayInfo?.isHoliday ? 2 : 0,
+              }}
+            >
+              {dayInfo?.isHoliday
+                ? `${dayInfo.dayReason || (dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
+                : "Assign Holiday"}
+            </Button>
+          )}
           <FormControl size="small" sx={{ minWidth: 120 }}>
             <Select
               value=""
@@ -476,6 +475,33 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         )}
       </Box>
 
+      {dayInfo?.isHoliday && (
+        <Alert
+          severity="warning"
+          icon={<Celebration fontSize="small" />}
+          action={
+            !readOnly && onAssignHoliday ? (
+              <Button
+                color="inherit"
+                size="small"
+                onClick={() => setHolidayDialogOpen(true)}
+                sx={{ fontWeight: "bold", textTransform: "none" }}
+              >
+                Change / Revoke
+              </Button>
+            ) : undefined
+          }
+          sx={{ mb: 2, borderRadius: "10px" }}
+        >
+          <strong>Special Day Assigned:</strong> This date is marked as{" "}
+          <strong>
+            {dayInfo.dayReason ||
+              (dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}
+          </strong>
+          . All students in this class register are recorded as Absent for the day.
+        </Alert>
+      )}
+
       <TableContainer component={Paper} elevation={2} sx={{ borderRadius: "10px" }}>
         <Table size="small">
           <TableHead sx={{ bgcolor: "action.hover" }}>
@@ -543,6 +569,18 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
           </TableBody>
         </Table>
       </TableContainer>
+
+      {onAssignHoliday && (
+        <HolidayAssignDialog
+          open={holidayDialogOpen}
+          onClose={() => setHolidayDialogOpen(false)}
+          dateString={dateString}
+          className={className}
+          currentReasonType={dayInfo?.dayReasonType as DayReasonType}
+          currentReason={dayInfo?.dayReason}
+          onSave={onAssignHoliday}
+        />
+      )}
     </Box>
   );
 };

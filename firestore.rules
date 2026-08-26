@@ -110,6 +110,14 @@ service cloud.firestore {
         match /attendance_summary/{date} {
           allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
         }
+
+        match /monthly_reports/{month} {
+          allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
+        }
+      }
+
+      match /monthly_reports/{reportId} {
+        allow read, write: if belongsToSchool(schoolId) || isAdminOrOwner();
       }
     }
 
@@ -159,8 +167,16 @@ service cloud.firestore {
       // Anyone authenticated can read user profiles (needed for UI lists, etc.)
       allow read: if isAuthenticated();
       
-      // Creating a user profile during signup is allowed if it's their own ID, or if admin/owner creates a pre-configured account
-      allow create: if isAuthenticated() && (request.auth.uid == userId || isAdminOrOwner());
+      // Creating a user profile during signup:
+      // - Admins/Owners can create any pre-configured profile
+      // - Self-registration by regular users must strictly default to 'class_teacher' role and 'pending' status
+      allow create: if isAuthenticated() && (
+        isAdminOrOwner() ||
+        (request.auth.uid == userId &&
+         request.resource.data.get('role', 'class_teacher') == 'class_teacher' &&
+         request.resource.data.get('status', 'pending') == 'pending' &&
+         request.resource.data.get('hasLeaveFeatureAccess', false) == false)
+      );
                     
       // Updating a user profile
       allow update: if isAuthenticated() && (

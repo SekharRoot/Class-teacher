@@ -5,6 +5,8 @@ import {
   getDoc,
   doc,
   collectionGroup,
+  where,
+  documentId,
 } from "firebase/firestore";
 import { db } from "../../lib/firebase";
 import { getActiveSchoolId } from "../../lib/activeSchoolHelper";
@@ -44,12 +46,12 @@ export async function findStudentClass(studentId: string): Promise<{ schoolId: s
 
   try {
     const q = query(
-      collectionGroup(db, "students")
+      collectionGroup(db, "students"),
+      where(documentId(), "==", studentId)
     );
     const snapshot = await getDocs(q);
-    const foundDoc = snapshot.docs.find(d => d.id === studentId);
-    
-    if (foundDoc) {
+    if (!snapshot.empty) {
+      const foundDoc = snapshot.docs[0];
       const data = foundDoc.data();
       let classId = data.classId;
       if (classId === undefined) {
@@ -65,7 +67,7 @@ export async function findStudentClass(studentId: string): Promise<{ schoolId: s
       };
     }
   } catch (err) {
-    console.warn("findStudentClass collectionGroup fallback failed:", err);
+    console.warn("findStudentClass targeted collectionGroup lookup failed:", err);
   }
 
   try {

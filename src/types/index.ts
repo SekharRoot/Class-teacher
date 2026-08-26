@@ -1,3 +1,10 @@
+export type StudentStatusFilter =
+  | "active"
+  | "active_entire_month"
+  | "active_in_month"
+  | "inactive"
+  | "all";
+
 export interface Student {
   id: string;
   profileId?: string;
@@ -13,11 +20,23 @@ export interface Student {
   image?: string; // base64 Data URL
   boarderType?: "Day Boarder" | "Day Scholar" | "Full Boarder";
   isActive?: boolean;
+  deactivatedAt?: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
 export type AttendanceStatus = "present" | "absent" | "leave";
+
+export type DayReasonType = "holiday" | "weekly_off" | "other" | "none";
+
+export interface DayInfo {
+  date?: string;
+  classId?: string;
+  isHoliday?: boolean;
+  dayReasonType?: DayReasonType;
+  dayReason?: string;
+  updatedAt?: string;
+}
 
 export interface AttendanceRecord {
   id: string; // usually combination of date and studentId or a unique doc id
@@ -78,6 +97,7 @@ export interface MonthlyReportEntry {
   studentId: string;
   studentName: string;
   rollNumber: string;
+  isActive?: boolean;
   present: number;
   absent: number;
   leave: number;
@@ -88,6 +108,7 @@ export interface MonthlyReportEntry {
 export interface MonthlyReport {
   month: string; // YYYY-MM
   classId: string;
+  totalWorkingDays?: number;
   entries: MonthlyReportEntry[];
 }
 

@@ -144,34 +144,32 @@ export function useProfilesData(
     }
   }, [loading, hasMore, lastVisible, offlineMode, searchQuery, classFilter]);
 
-  // Execute combined local & server-side search when searchQuery changes
+  // Unified effect for search query and class filtering
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      // Restore default list
-      const restoreList = async () => {
+    let isCancelled = false;
+
+    // 1. Search Query active: perform debounced mixed search
+    if (searchQuery.trim()) {
+      const queryStr = searchQuery.trim();
+      const performMixedSearch = async () => {
         setLoading(true);
         try {
-          if (classFilter === "ALL") {
-            await fetchInitialData();
-          } else if (classFilter === "UNASSIGNED") {
-            const localList = await studentCache.getAll();
-            const unassigned = localList.filter((s) => !s.classId || s.classId === "");
-            setStudents(unassigned);
-            setHasMore(false);
-          } else {
-            // Load the filtered class students with merge logic
-            const localList = await studentCache.getAll();
-            const localClassStudents = localList.filter(s => (s.classId || "").trim() === classFilter.trim());
-            if (localClassStudents.length > 0) {
-              setStudents(localClassStudents);
-            }
+          // A. Search locally in IndexedDB
+          const localMatches = await studentCache.searchLocal(queryStr);
+          if (isCancelled) return;
+          setStudents(localMatches);
 
-            if (!offlineMode && authResolved) {
-              const serverClassStudents = await studentsApi.getByClass(classFilter);
+          // B. Query server for prefix search (if online)
+          if (!offlineMode) {
+            const serverMatches = await studentsApi.search(queryStr);
+            if (isCancelled) return;
+            if (serverMatches.length > 0) {
+              await studentCache.setBatch(serverMatches);
               setStudents((prev) => {
-                const mergedMap = new Map(prev.map((s) => [s.id, s]));
-                serverClassStudents.forEach((s) => mergedMap.set(s.id, s));
-                const list = Array.from(mergedMap.values()).filter(s => (s.classId || "").trim() === classFilter.trim());
+                const mergedMap = new Map();
+                localMatches.forEach((s) => mergedMap.set(s.id, s));
+                serverMatches.forEach((s) => mergedMap.set(s.id, s));
+                const list = Array.from(mergedMap.values());
                 list.sort((a, b) => {
                   const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
                   const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
@@ -179,40 +177,66 @@ export function useProfilesData(
                 });
                 return list;
               });
-              await studentCache.setBatch(serverClassStudents);
             }
-            setHasMore(false);
           }
         } catch (err) {
-          console.error("Failed to restore list", err);
+          console.error("Search failed", err);
         } finally {
-          setLoading(false);
+          if (!isCancelled) {
+            setHasMore(false);
+            setLoading(false);
+          }
         }
       };
-      restoreList();
-      return;
+
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+      searchTimeoutRef.current = setTimeout(performMixedSearch, 300);
+
+      return () => {
+        isCancelled = true;
+        if (searchTimeoutRef.current) {
+          clearTimeout(searchTimeoutRef.current);
+        }
+      };
     }
 
-    const performMixedSearch = async () => {
+    // 2. No search query: handle class filter
+    const handleClassFilter = async () => {
       setLoading(true);
-      const queryStr = searchQuery.trim();
-
       try {
-        // 1. Search locally in IndexedDB (very fast, handles partial/substring matches)
-        const localMatches = await studentCache.searchLocal(queryStr);
-        setStudents(localMatches);
+        if (classFilter === "ALL") {
+          await fetchInitialData();
+        } else if (classFilter === "UNASSIGNED") {
+          const localList = await studentCache.getAll();
+          if (isCancelled) return;
+          const unassigned = localList.filter(
+            (s) => !s.classId || s.classId === "",
+          );
+          setStudents(unassigned);
+          setHasMore(false);
+        } else {
+          // Specific class filter
+          const localList = await studentCache.getAll();
+          if (isCancelled) return;
+          const localClassStudents = localList.filter(
+            (s) => (s.classId || "").trim() === classFilter.trim(),
+          );
+          if (localClassStudents.length > 0) {
+            setStudents(localClassStudents);
+          }
 
-        // 2. Query server for prefix search (if online)
-        if (!offlineMode) {
-          const serverMatches = await studentsApi.search(queryStr);
-          if (serverMatches.length > 0) {
-            await studentCache.setBatch(serverMatches);
-            
+          if (!offlineMode && authResolved) {
+            const serverClassStudents =
+              await studentsApi.getByClass(classFilter);
+            if (isCancelled) return;
             setStudents((prev) => {
-              const mergedMap = new Map();
-              localMatches.forEach((s) => mergedMap.set(s.id, s));
-              serverMatches.forEach((s) => mergedMap.set(s.id, s));
-              const list = Array.from(mergedMap.values());
+              const mergedMap = new Map(prev.map((s) => [s.id, s]));
+              serverClassStudents.forEach((s) => mergedMap.set(s.id, s));
+              const list = Array.from(mergedMap.values()).filter(
+                (s) => (s.classId || "").trim() === classFilter.trim(),
+              );
               list.sort((a, b) => {
                 const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
                 const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
@@ -220,82 +244,28 @@ export function useProfilesData(
               });
               return list;
             });
+            await studentCache.setBatch(serverClassStudents);
           }
+          setHasMore(false);
         }
       } catch (err) {
-        console.error("Search failed", err);
+        console.error("Failed to load class filter data", err);
       } finally {
-        setHasMore(false); // No scrolling pagination during search results
-        setLoading(false);
+        if (!isCancelled) {
+          setLoading(false);
+        }
       }
     };
 
-    // Debounce to prevent server-side query on every keystroke
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    searchTimeoutRef.current = setTimeout(performMixedSearch, 300);
+    handleClassFilter();
 
     return () => {
+      isCancelled = true;
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
     };
   }, [searchQuery, classFilter, offlineMode, fetchInitialData, authResolved]);
-
-  // Load specific class students on filter select
-  useEffect(() => {
-    if (searchQuery.trim()) return; // Search query listener handles its own filtering
-
-    if (classFilter === "ALL") {
-      fetchInitialData();
-    } else if (classFilter === "UNASSIGNED") {
-      setLoading(true);
-      studentCache.getAll().then((localList) => {
-        const unassigned = localList.filter((s) => !s.classId || s.classId === "");
-        setStudents(unassigned);
-        setHasMore(false);
-        setLoading(false);
-      });
-    } else {
-      const loadClassStudents = async () => {
-        try {
-          setLoading(true);
-          // 1. Get from local cache first for instant UI
-          const localList = await studentCache.getAll();
-          const localClassStudents = localList.filter(s => (s.classId || "").trim() === classFilter.trim());
-          if (localClassStudents.length > 0) {
-            setStudents(localClassStudents);
-          }
-
-          // 2. Load from server
-          if (!offlineMode && authResolved) {
-            const serverClassStudents = await studentsApi.getByClass(classFilter);
-            
-            // Merge local and server data
-            setStudents((prev) => {
-              const mergedMap = new Map(prev.map((s) => [s.id, s]));
-              serverClassStudents.forEach((s) => mergedMap.set(s.id, s));
-              const list = Array.from(mergedMap.values()).filter(s => (s.classId || "").trim() === classFilter.trim());
-              list.sort((a, b) => {
-                const nameA = `${a.firstName} ${a.lastName}`.toLowerCase();
-                const nameB = `${b.firstName} ${b.lastName}`.toLowerCase();
-                return nameA.localeCompare(nameB);
-              });
-              return list;
-            });
-            
-            await studentCache.setBatch(serverClassStudents);
-          }
-        } catch (err) {
-          console.error("Failed to load class students", err);
-        } finally {
-          setLoading(false);
-        }
-      };
-      loadClassStudents();
-    }
-  }, [classFilter, fetchInitialData, searchQuery]);
 
   return {
     students,

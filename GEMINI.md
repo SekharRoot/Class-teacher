@@ -2,24 +2,33 @@
 
 This project is prepared for Gemini AI integration.
 
-## API Key Management
+## API Key Management & Security
 
-- The Gemini API key should be stored in the `GEMINI_API_KEY` environment variable.
-- **SECURITY**: Never expose the Gemini API key to the client. Always use it in server-side code (e.g., `server.ts` or a dedicated server-side module).
+- The Gemini API key must be stored in the `GEMINI_API_KEY` environment variable.
+- **SECURITY**: Never expose the Gemini API key to the client. Always execute AI calls in server-side code (e.g., `server.ts` or a dedicated server-side API handler).
+
+## Strict Scope & Data Integrity
+
+- **No Unsolicited AI Execution**: Do not trigger automatic AI calls or synthetic generation unless explicitly requested by the user.
+- **No Synthetic Hallucinations**: AI responses and summaries must be grounded strictly in authentic Firestore data; do not populate fake records or mock statistics.
 
 ## Potential Use Cases
 
-- **Attendance Insights**: Use Gemini to analyze attendance patterns and suggest interventions for students with low attendance.
-- **Smart Reports**: Generate natural language summaries of school-wide attendance metrics for administrators.
-- **Profile Matching**: Automatically categorize students based on historical data or natural language descriptions.
+- **Attendance Insights**: Analyze attendance patterns and identify students who may require academic support or leave reviews.
+- **Smart Administrative Summaries**: Generate concise summaries of monthly or quarterly school attendance metrics.
+- **Natural Language Querying**: Assist administrators in querying student records or attendance statistics.
 
 ## SDK Usage
 
-Use the `@google/genai` SDK for interactions:
+Use the modern `@google/genai` SDK for server-side interactions:
 
 ```typescript
-import { GoogleGenerAI } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-const genAI = new GoogleGenerAI(process.env.GEMINI_API_KEY!);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const response = await ai.models.generateContent({
+  model: "gemini-2.5-flash",
+  contents: prompt,
+});
 ```
+

@@ -28,6 +28,10 @@ import {
   Stack,
   IconButton,
   Slider,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Fingerprint,
@@ -77,6 +81,10 @@ export default function Settings() {
     return localStorage.getItem("ignore_sundays") === "true";
   });
 
+  const [ignoreSaturdays, setIgnoreSaturdays] = useState(() => {
+    return localStorage.getItem("ignore_saturdays") === "true";
+  });
+
   const handleToggleEditOldAttendance = (val: boolean) => {
     setAllowEditOldAttendance(val);
     localStorage.setItem("allow_edit_old_attendance", val ? "true" : "false");
@@ -96,6 +104,13 @@ export default function Settings() {
     localStorage.setItem("ignore_sundays", val ? "true" : "false");
     window.dispatchEvent(new Event("storage"));
     showToast(`Ignore Sunday setting is now ${val ? "enabled" : "disabled"}.`, "info");
+  };
+
+  const handleToggleIgnoreSaturdays = (val: boolean) => {
+    setIgnoreSaturdays(val);
+    localStorage.setItem("ignore_saturdays", val ? "true" : "false");
+    window.dispatchEvent(new Event("storage"));
+    showToast(`Ignore Saturday setting is now ${val ? "enabled" : "disabled"}.`, "info");
   };
   
   // Backfill pre-computed summaries
@@ -479,6 +494,15 @@ export default function Settings() {
                 }
                 label="Ignore Sunday"
               />
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={ignoreSaturdays}
+                    onChange={(e) => handleToggleIgnoreSaturdays(e.target.checked)}
+                  />
+                }
+                label="Ignore Saturday"
+              />
             </Box>
 
             <Divider sx={{ my: 2 }} />
@@ -640,7 +664,6 @@ export default function Settings() {
               </Stack>
             </Paper>
           </Grid>
-      
         )}
 
         {isAdmin && (

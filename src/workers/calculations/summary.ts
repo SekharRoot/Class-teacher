@@ -12,41 +12,10 @@ function unwrapStatus(val: any): string {
 export function calculateSummary(payload: any): any {
   const { students, attendance, selectedClassId } = payload;
   
-  const activeStudents = (students || []).filter((st: any) => 
+  const classStudents = (students || []).filter((st: any) => 
     (!selectedClassId || st.classId === selectedClassId) && 
     st.isActive !== false
   );
-  
-  const activeStudentIds = new Set(activeStudents.map((st: any) => st.id));
-  const loggedStudentsMap = new Map<string, any>();
-
-  if (attendance) {
-    Object.entries(attendance).forEach(([studentId, val]: [string, any]) => {
-      if (activeStudentIds.has(studentId)) return;
-
-      const isObj = typeof val === "object" && val !== null;
-      const recordClassId = isObj ? val.classId : null;
-
-      if (
-        (selectedClassId && (recordClassId === selectedClassId || (!recordClassId && students.find((s: any) => s.id === studentId)?.classId === selectedClassId))) ||
-        !selectedClassId
-      ) {
-        const foundStudent = students.find((s: any) => s.id === studentId);
-        if (foundStudent) {
-          loggedStudentsMap.set(studentId, foundStudent);
-        } else {
-          loggedStudentsMap.set(studentId, {
-            id: studentId,
-            classId: selectedClassId,
-            boarderType: isObj ? val.boarderType || "Day Scholar" : "Day Scholar",
-            isActive: false,
-          });
-        }
-      }
-    });
-  }
-
-  const classStudents = [...activeStudents, ...Array.from(loggedStudentsMap.values())];
   
   const totalCount = classStudents.length;
   const totalDayScholar = classStudents.filter((st: any) => st.boarderType === "Day Scholar").length;

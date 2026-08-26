@@ -22,6 +22,7 @@ import {
   ListAlt,
   DeleteSweep,
   ArrowBack,
+  TableChart,
 } from "@mui/icons-material";
 import { format, subDays, addDays, parseISO } from "date-fns";
 import { useParams, useNavigate } from "react-router-dom";
@@ -30,6 +31,7 @@ import { AttendanceSummary } from "../components/AttendanceSummary";
 import { ClassSelectionGrid } from "../components/ClassSelectionGrid";
 import { AttendanceStudentList } from "../components/AttendanceStudentList";
 import { ClasswiseAbsenteeExport } from "../components/ClasswiseAbsenteeExport";
+import { MonthlyAttendanceSheet } from "../components/MonthlyAttendanceSheet";
 import { useAttendanceData } from "../hooks/useAttendanceData";
 import { useAttendanceActions } from "../hooks/useAttendanceActions";
 import { useAuth } from "../contexts/AuthContext";
@@ -69,6 +71,9 @@ export default function Attendance() {
     fetchBaseData,
     fetchHistory,
     leavesList,
+    dayInfo,
+    setDayInfo,
+    fetchDayInfo,
   } = useAttendanceData();
 
   const { authorizedClassIds, isReadOnly, loadingScope } = useHierarchyScope();
@@ -134,7 +139,7 @@ export default function Attendance() {
     }
   };
 
-  const { markAttendance, markAllStatus, syncAttendance, clearAllData } =
+  const { markAttendance, markAllStatus, syncAttendance, clearAllData, assignHoliday } =
     useAttendanceActions(
       attendance,
       setAttendance,
@@ -148,6 +153,8 @@ export default function Attendance() {
       historyDates,
       setHistoryDates,
       fetchBaseData,
+      selectedClassId,
+      fetchDayInfo,
     );
 
   useEffect(() => {
@@ -155,10 +162,9 @@ export default function Attendance() {
       syncAttendance();
     };
     window.addEventListener("force-sync", handleGlobalSync);
-  
-  
-
-  return () => window.removeEventListener("force-sync", handleGlobalSync);
+    return () => {
+      window.removeEventListener("force-sync", handleGlobalSync);
+    };
   }, [syncAttendance]);
 
   const handleDateShift = (days: number) => {
@@ -376,6 +382,15 @@ export default function Attendance() {
                   minHeight: 72,
                 }}
               />
+              <Tab
+                icon={<TableChart fontSize="large" />}
+                label="Sheet"
+                sx={{
+                  textTransform: "none",
+                  fontWeight: "bold",
+                  minHeight: 72,
+                }}
+              />
             </Tabs>
           </Box>
 
@@ -495,6 +510,13 @@ export default function Attendance() {
                 leavesList={leavesList}
                 dateString={dateString}
                 loading={loading}
+                dayInfo={dayInfo}
+                onAssignHoliday={assignHoliday}
+                className={
+                  classes.find((c) => c.id === selectedClassId)
+                    ? `${classes.find((c) => c.id === selectedClassId)?.classStandard || ""} ${classes.find((c) => c.id === selectedClassId)?.section || ""}`.trim()
+                    : undefined
+                }
               />
               <Box sx={{ mt: 4 }}>
                 <ClasswiseAbsenteeExport
@@ -530,6 +552,36 @@ export default function Attendance() {
                 onDateSelect={handleDateSelect}
                 onLoadMore={() => setHistoryLimit((prev) => prev + 6)}
                 hasMore={historyDates.length === historyLimit}
+              />
+            </Box>
+          )}
+
+          {activeTab === 2 && selectedClassId && (
+            <Box>
+              {(userProfile?.role !== "class_teacher" || filteredClasses.length > 1) && (
+                <Box sx={{ mb: 2 }}>
+                  <Button
+                    startIcon={<ChevronLeft />}
+                    onClick={() => handleClassSelect(null)}
+                    variant="outlined"
+                    size="small"
+                    sx={{ borderRadius: "10px", textTransform: "none" }}
+                  >
+                    Back to Classes
+                  </Button>
+                </Box>
+              )}
+              <MonthlyAttendanceSheet
+                students={students}
+                selectedClassId={selectedClassId}
+                currentMonthDate={selectedDate}
+                onMonthChange={(newDate) => setSelectedDate(newDate)}
+                readOnly={isPrincipal}
+                allowEditOld={allowEditOld}
+                onSaveSuccess={() => {
+                  fetchBaseData();
+                  fetchHistory();
+                }}
               />
             </Box>
           )}

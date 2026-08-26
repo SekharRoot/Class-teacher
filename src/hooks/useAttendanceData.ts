@@ -46,6 +46,11 @@ export function useAttendanceData() {
     }[]
   >([]);
   const [activeTab, setActiveTab] = useState(0);
+  const [dayInfo, setDayInfo] = useState<{
+    isHoliday: boolean;
+    dayReasonType: string;
+    dayReason: string;
+  }>({ isHoliday: false, dayReasonType: "none", dayReason: "" });
 
   useEffect(() => {
     if (!globalLoading) {
@@ -63,10 +68,22 @@ export function useAttendanceData() {
 
   const fetchBaseData = async () => {
     await fetchAttendanceForDate(dateString);
+    await fetchDayInfo(dateString, selectedClassId);
+  };
+
+  const fetchDayInfo = async (dateStr: string, classId?: string | null) => {
+    if (!authResolved) return;
+    try {
+      const info = await attendanceApi.getDayInfo(dateStr, classId || undefined);
+      setDayInfo(info);
+    } catch {
+      setDayInfo({ isHoliday: false, dayReasonType: "none", dayReason: "" });
+    }
   };
 
   const fetchAttendanceForDate = async (dateStr: string) => {
     if (!authResolved) return;
+    fetchDayInfo(dateStr, selectedClassId);
     if (offlineMode) {
       try {
         setLoading(true);
@@ -235,6 +252,21 @@ export function useAttendanceData() {
             ...existingCached,
             ...data
           }));
+        } else {
+          // If no remote attendance document exists for this date and class, reset records for this class
+          setAttendance(prev => {
+            const next = { ...prev };
+            // Remove records belonging to the current class
+            const classStudentIds = new Set(
+              students.filter(s => s.classId === selectedClassId).map(s => s.id)
+            );
+            Object.keys(next).forEach(studentId => {
+              if (classStudentIds.has(studentId)) {
+                delete next[studentId];
+              }
+            });
+            return next;
+          });
         }
         setLoading(false);
       },
@@ -376,5 +408,8 @@ export function useAttendanceData() {
     fetchAttendanceForDate,
     fetchHistory,
     leavesList,
+    dayInfo,
+    setDayInfo,
+    fetchDayInfo,
   };
 }

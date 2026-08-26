@@ -112,22 +112,25 @@ export default function Leaves() {
       showToast("Access Denied: Read-only profile", "error");
       return;
     }
-    const originalLeaves = [...leavesList];
-    const updatedLeaves = leavesList.map((leave) =>
-      leave.id === leaveId
-        ? {
-            ...leave,
-            status,
-            resolvedBy:
-              userProfile?.displayName ||
-              userProfile?.email ||
-              "Authorized Resolver",
-            resolvedById: userProfile?.uid,
-            resolvedAt: new Date().toISOString(),
-          }
-        : leave,
+    const previousItem = leavesList.find((l) => l.id === leaveId);
+    if (!previousItem) return;
+
+    setLeavesList((prev) =>
+      prev.map((leave) =>
+        leave.id === leaveId
+          ? {
+              ...leave,
+              status,
+              resolvedBy:
+                userProfile?.displayName ||
+                userProfile?.email ||
+                "Authorized Resolver",
+              resolvedById: userProfile?.uid,
+              resolvedAt: new Date().toISOString(),
+            }
+          : leave,
+      ),
     );
-    setLeavesList(updatedLeaves);
     showToast(`Leave request marked as ${status}!`, "success");
 
     // Perform API call in the background
@@ -145,7 +148,9 @@ export default function Leaves() {
       } catch (err) {
         console.error("Failed to update leave status in background:", err);
         showToast("Error syncing status to cloud.", "error");
-        setLeavesList(originalLeaves);
+        setLeavesList((prev) =>
+          prev.map((leave) => (leave.id === leaveId ? previousItem : leave)),
+        );
       }
     })();
   };
@@ -163,12 +168,11 @@ export default function Leaves() {
   const handleConfirmDeleteRequest = async () => {
     if (!leaveIdToDelete) return;
     const toDeleteId = leaveIdToDelete;
+    const itemToDelete = leavesList.find((l) => l.id === toDeleteId);
     setDeleteConfirmOpen(false);
     setLeaveIdToDelete(null);
 
-    const originalLeaves = [...leavesList];
-    const updatedLeaves = leavesList.filter((l) => l.id !== toDeleteId);
-    setLeavesList(updatedLeaves);
+    setLeavesList((prev) => prev.filter((l) => l.id !== toDeleteId));
     showToast("Leave request removed successfully.", "success");
 
     // Background delete API
@@ -178,7 +182,11 @@ export default function Leaves() {
       } catch (err) {
         console.error("Failed to delete leave request in background:", err);
         showToast("Error removing leave request from server.", "error");
-        setLeavesList(originalLeaves);
+        if (itemToDelete) {
+          setLeavesList((prev) =>
+            prev.some((l) => l.id === toDeleteId) ? prev : [...prev, itemToDelete],
+          );
+        }
       }
     })();
   };
@@ -294,7 +302,15 @@ export default function Leaves() {
     }
   }, [openApplyDialog, filteredClassesList]);
 
-  if (userProfile && !userProfile.hasLeaveFeatureAccess) {
+  const canAccessLeaves =
+    userProfile?.role === "admin" ||
+    userProfile?.role === "owner" ||
+    userProfile?.role === "school_admin" ||
+    userProfile?.role === "academic_coordinator" ||
+    userProfile?.role === "class_teacher" ||
+    Boolean(userProfile?.hasLeaveFeatureAccess);
+
+  if (userProfile && !canAccessLeaves) {
     return (
       <Box sx={{ p: 4 }}>
         <Alert severity="error" variant="filled">

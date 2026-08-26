@@ -6,6 +6,7 @@ import {
   setDoc,
   getDoc,
   deleteDoc,
+  writeBatch,
   orderBy,
   limit,
   where,
@@ -14,11 +15,18 @@ import {
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../lib/firebase";
 import { getActiveSchoolId, matchesActiveSchool } from "../lib/activeSchoolHelper";
-import { AttendanceStatus } from "../types";
+import { AttendanceStatus, StudentStatusFilter } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 import { classesApi } from "./classes";
 import { studentsApi } from "./students";
 import { unwrapStatus } from "../utils/statusHelper";
+import {
+  loadMonthlySheetCache,
+  saveMonthlySheetCache,
+  updateMonthlySheetCacheForDate,
+  MonthlySheetCache,
+  CACHE_TTL_MS,
+} from "../utils/monthlyAttendanceCache";
 
 export interface AttendanceRecordSummary {
   date: string;
@@ -105,8 +113,15 @@ export const attendanceApi = {
       });
 
       // Group records by class
+      const metaKeys = new Set(["_meta", "dayReason", "dayReasonType", "isHoliday", "updatedAt", "date", "classId"]);
+      const holidayPayload: Record<string, any> = {};
+      if (cleanRecords.dayReason !== undefined) holidayPayload.dayReason = cleanRecords.dayReason;
+      if (cleanRecords.dayReasonType !== undefined) holidayPayload.dayReasonType = cleanRecords.dayReasonType;
+      if (cleanRecords.isHoliday !== undefined) holidayPayload.isHoliday = cleanRecords.isHoliday;
+
       const classIdToRecords: Record<string, Record<string, any>> = {};
       Object.entries(cleanRecords).forEach(([studentId, val]) => {
+        if (metaKeys.has(studentId)) return;
         let classId = val && typeof val === "object" ? (val as any).classId : null;
         if (!classId) {
           classId = studentToClass[studentId] || "unassigned";
@@ -121,12 +136,68 @@ export const attendanceApi = {
           : { status: statusStr, classId };
       });
 
-      // Save class-level attendance
-      const savePromises = Object.entries(classIdToRecords).map(async ([cId, classRecords]) => {
-        const ref = doc(db, "schools", activeSchoolId, "classes", cId, "attendance", dateString);
-        await setDoc(ref, classRecords, { merge: true });
-      });
-      await Promise.all(savePromises);
+      // Save class-level attendance using atomic batch writes
+      const nowIso = new Date().toISOString();
+      const classEntries = Object.entries(classIdToRecords);
+      if (classEntries.length > 0) {
+        const BATCH_LIMIT = 450;
+        for (let i = 0; i < classEntries.length; i += BATCH_LIMIT) {
+          const batch = writeBatch(db);
+          const chunk = classEntries.slice(i, i + BATCH_LIMIT);
+          for (const [cId, classRecords] of chunk) {
+            const ref = doc(
+              db,
+              "schools",
+              activeSchoolId,
+              "classes",
+              cId,
+              "attendance",
+              dateString,
+            );
+            batch.set(ref, { ...classRecords, ...holidayPayload, updatedAt: nowIso }, { merge: true });
+          }
+          await batch.commit();
+        }
+
+        // Update local monthly cache for all affected classes immediately
+        for (const [cId, classRecords] of classEntries) {
+          const unwrapMap: Record<string, string> = {};
+          Object.entries(classRecords).forEach(([sId, sObj]) => {
+            unwrapMap[sId] = unwrapStatus(sObj);
+          });
+          const dayInfo = (holidayPayload.isHoliday || holidayPayload.dayReason || holidayPayload.dayReasonType)
+            ? {
+                isHoliday: !!holidayPayload.isHoliday,
+                dayReasonType: holidayPayload.dayReasonType,
+                dayReason: holidayPayload.dayReason,
+              }
+            : undefined;
+          updateMonthlySheetCacheForDate(cId, dateString, unwrapMap, dayInfo, nowIso);
+        }
+      } else if (Object.keys(holidayPayload).length > 0) {
+        // If updating holiday payload directly without student records
+        const classesList = await classesApi.getAll();
+        const batch = writeBatch(db);
+        classesList.forEach((cls) => {
+          const ref = doc(db, "schools", activeSchoolId, "classes", cls.id, "attendance", dateString);
+          batch.set(ref, { ...holidayPayload, updatedAt: nowIso }, { merge: true });
+        });
+        await batch.commit();
+
+        classesList.forEach((cls) => {
+          updateMonthlySheetCacheForDate(
+            cls.id,
+            dateString,
+            {},
+            {
+              isHoliday: !!holidayPayload.isHoliday,
+              dayReasonType: holidayPayload.dayReasonType,
+              dayReason: holidayPayload.dayReason,
+            },
+            nowIso
+          );
+        });
+      }
 
       // Automatically pre-compute and save lightweight summary doc for the oversight dashboard
       // Performance Optimization: Skip this for class_teachers who only have local class data context!
@@ -360,14 +431,31 @@ export const attendanceApi = {
           updatedAt: new Date().toISOString()
         };
 
-        // Write this class-level summary document
-        const summaryDocRef = doc(db, "schools", activeSchoolId, "classes", cId, "attendance_summary", dateString);
-        await setDoc(summaryDocRef, classStat, { merge: true });
-
         newlyComputedClassStats[cId] = classStat;
       });
 
-      await Promise.all(classSummaryPromises);
+      // Write class-level summary documents using atomic batch writes
+      const computedEntries = Object.entries(newlyComputedClassStats);
+      if (computedEntries.length > 0) {
+        const BATCH_LIMIT = 450;
+        for (let i = 0; i < computedEntries.length; i += BATCH_LIMIT) {
+          const batch = writeBatch(db);
+          const chunk = computedEntries.slice(i, i + BATCH_LIMIT);
+          for (const [cId, classStat] of chunk) {
+            const summaryDocRef = doc(
+              db,
+              "schools",
+              activeSchoolId,
+              "classes",
+              cId,
+              "attendance_summary",
+              dateString,
+            );
+            batch.set(summaryDocRef, classStat, { merge: true });
+          }
+          await batch.commit();
+        }
+      }
 
       // 4. Query all class summaries for this dateString
       const finalClassStatsMap: Record<string, any> = {};
@@ -460,7 +548,8 @@ export const attendanceApi = {
       const classesCount = classesList.length;
       const studentsCount = finalClassStats.reduce((sum: number, cs: any) => sum + (cs.totalStudents || 0), 0);
 
-      // 7. Save the final aggregated summary document to schools/{schoolId}/attendance_summaries/{dateString}
+      // 7. Save the final aggregated summary and absentee documents using atomic writeBatch
+      const batchSummaries = writeBatch(db);
       const schoolSummaryDocRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
       const summaryPayload = {
         date: dateString,
@@ -478,11 +567,11 @@ export const attendanceApi = {
         absentees: allSchoolAbsentees,
         updatedAt: new Date().toISOString(),
       };
-      await setDoc(schoolSummaryDocRef, summaryPayload);
+      batchSummaries.set(schoolSummaryDocRef, summaryPayload);
 
       // Also save dedicated absentee summary for fast admin export
       const absenteeSummaryRef = doc(db, "schools", activeSchoolId, "absentee_summaries", dateString);
-      await setDoc(absenteeSummaryRef, {
+      batchSummaries.set(absenteeSummaryRef, {
         date: dateString,
         schoolId: activeSchoolId,
         totalAbsentees: allSchoolAbsentees.length,
@@ -490,6 +579,7 @@ export const attendanceApi = {
         classStats: finalClassStats,
         updatedAt: new Date().toISOString(),
       });
+      await batchSummaries.commit();
     } catch (err) {
       console.error("Error pre-computing and saving attendance summary:", err);
     }
@@ -636,17 +726,20 @@ export const attendanceApi = {
       const classesList = await classesApi.getAll();
       const classIds = ["unassigned", ...classesList.map(c => c.id)];
 
-      const promises = classIds.map(async (cId) => {
+      const batch = writeBatch(db);
+      classIds.forEach((cId) => {
         const ref = doc(db, "schools", activeSchoolId, "classes", cId, "attendance", dateString);
-        await deleteDoc(ref);
+        batch.delete(ref);
         const classSummaryRef = doc(db, "schools", activeSchoolId, "classes", cId, "attendance_summary", dateString);
-        await deleteDoc(classSummaryRef);
+        batch.delete(classSummaryRef);
       });
 
       const summaryRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
-      promises.push(deleteDoc(summaryRef));
+      batch.delete(summaryRef);
+      const absenteeSummaryRef = doc(db, "schools", activeSchoolId, "absentee_summaries", dateString);
+      batch.delete(absenteeSummaryRef);
 
-      await Promise.all(promises);
+      await batch.commit();
     } catch (error) {
       handleFirestoreError(
         error,
@@ -663,6 +756,12 @@ export const attendanceApi = {
     month: string,
     classId: string,
     students: any[],
+    options?: {
+      ignoreSundays?: boolean;
+      ignoreSaturdays?: boolean;
+      studentStatus?: StudentStatusFilter;
+      overrideTotalWd?: number;
+    },
   ): Promise<any> {
     try {
       const activeSchoolId = getActiveSchoolId();
@@ -681,14 +780,26 @@ export const attendanceApi = {
         };
       });
 
-      const ignoreSundays = typeof window !== "undefined" && localStorage.getItem("ignore_sundays") === "true";
+      const defaultIgnoreSundays = typeof window !== "undefined" && localStorage.getItem("ignore_sundays") === "true";
+      const defaultIgnoreSaturdays = typeof window !== "undefined" && localStorage.getItem("ignore_saturdays") === "true";
+
+      const ignoreSundays = options?.ignoreSundays !== undefined ? options.ignoreSundays : defaultIgnoreSundays;
+      const ignoreSaturdays = options?.ignoreSaturdays !== undefined ? options.ignoreSaturdays : defaultIgnoreSaturdays;
+      const studentStatus = options?.studentStatus || "active";
+
       const report = await runCalculationWorker("CALCULATE_MONTHLY_REPORT", {
         docs,
         month,
         classId,
         students,
         ignoreSundays,
+        ignoreSaturdays,
+        studentStatus,
       });
+
+      if (report && options?.overrideTotalWd !== undefined && !isNaN(options.overrideTotalWd)) {
+        report.totalWorkingDays = options.overrideTotalWd;
+      }
 
       return report;
     } catch (error) {
@@ -723,6 +834,9 @@ export const attendanceApi = {
           }
           // Extract the unwrapped status string for each student
           Object.entries(data).forEach(([studentId, val]) => {
+            if (studentId === "_meta" || studentId === "dayReason" || studentId === "dayReasonType" || studentId === "isHoliday" || studentId === "updatedAt" || studentId === "classId") {
+              return;
+            }
             recordsMap[date][studentId] = unwrapStatus(val);
           });
         });
@@ -733,6 +847,308 @@ export const attendanceApi = {
     } catch (error) {
       console.error("Error fetching monthly records in bulk:", error);
       return {};
+    }
+  },
+
+  /**
+   * Fetches detailed monthly records including day metadata (holiday / weekly off / reason).
+   * Uses localStorage cache with timestamp-based delta sync to avoid redundant Firestore reads.
+   */
+  async getMonthlyRecordsDetailed(
+    month: string,
+    classId: string,
+    options?: { forceRefresh?: boolean }
+  ): Promise<{
+    recordsMap: Record<string, Record<string, string>>;
+    dayInfoMap: Record<string, { isHoliday?: boolean; dayReasonType?: string; dayReason?: string }>;
+  }> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const cached = loadMonthlySheetCache(activeSchoolId, classId, month);
+      const isFresh = cached && Date.now() - cached.savedAt < CACHE_TTL_MS;
+
+      // 1. If cache is fresh and not forcing refresh, return immediately (0 Firestore reads)
+      if (cached && isFresh && !options?.forceRefresh) {
+        return {
+          recordsMap: cached.recordsMap,
+          dayInfoMap: cached.dayInfoMap,
+        };
+      }
+
+      // 2. Fetch records from Firestore for the month
+      const colRef = collection(db, "schools", activeSchoolId, "classes", classId, "attendance");
+      const q = query(
+        colRef,
+        where(documentId(), ">=", `${month}-01`),
+        where(documentId(), "<=", `${month}-31`)
+      );
+      const snap = await getDocs(q);
+
+      const mergedRecordsMap: Record<string, Record<string, string>> = cached?.recordsMap
+        ? { ...cached.recordsMap }
+        : {};
+      const mergedDayInfoMap: Record<string, { isHoliday?: boolean; dayReasonType?: string; dayReason?: string }> =
+        cached?.dayInfoMap ? { ...cached.dayInfoMap } : {};
+      const dateTimestamps: Record<string, string> = cached?.dateTimestamps ? { ...cached.dateTimestamps } : {};
+
+      snap.forEach((docSnap) => {
+        const date = docSnap.id;
+        const data = docSnap.data();
+        const docUpdatedAt = data.updatedAt || "";
+
+        // Check if this date was modified on the server
+        const cachedUpdatedAt = dateTimestamps[date];
+        const needsUpdate =
+          !cached || !cachedUpdatedAt || cachedUpdatedAt !== docUpdatedAt || options?.forceRefresh;
+
+        if (needsUpdate) {
+          mergedRecordsMap[date] = {};
+
+          if (data.isHoliday || data.dayReason || data.dayReasonType) {
+            mergedDayInfoMap[date] = {
+              isHoliday: !!data.isHoliday,
+              dayReasonType: data.dayReasonType || (data.isHoliday ? "holiday" : undefined),
+              dayReason: data.dayReason || "",
+            };
+          } else {
+            delete mergedDayInfoMap[date];
+          }
+
+          Object.entries(data).forEach(([studentId, val]) => {
+            if (
+              studentId === "_meta" ||
+              studentId === "dayReason" ||
+              studentId === "dayReasonType" ||
+              studentId === "isHoliday" ||
+              studentId === "updatedAt" ||
+              studentId === "classId"
+            ) {
+              return;
+            }
+            mergedRecordsMap[date][studentId] = unwrapStatus(val);
+          });
+
+          dateTimestamps[date] = docUpdatedAt || new Date().toISOString();
+        }
+      });
+
+      // Save updated cache to localStorage
+      const updatedCache: MonthlySheetCache = {
+        schoolId: activeSchoolId,
+        classId,
+        month,
+        savedAt: Date.now(),
+        dateTimestamps,
+        recordsMap: mergedRecordsMap,
+        dayInfoMap: mergedDayInfoMap,
+      };
+      saveMonthlySheetCache(updatedCache);
+
+      return { recordsMap: mergedRecordsMap, dayInfoMap: mergedDayInfoMap };
+    } catch (error) {
+      console.error("Error fetching detailed monthly records:", error);
+      const activeSchoolId = getActiveSchoolId();
+      const cached = loadMonthlySheetCache(activeSchoolId, classId, month);
+      if (cached) {
+        return { recordsMap: cached.recordsMap, dayInfoMap: cached.dayInfoMap };
+      }
+      return { recordsMap: {}, dayInfoMap: {} };
+    }
+  },
+
+  /**
+   * Retrieves holiday and day reason metadata for a given date and class.
+   */
+  async getDayInfo(
+    dateString: string,
+    classId?: string,
+  ): Promise<{ isHoliday: boolean; dayReasonType: string; dayReason: string }> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      if (classId) {
+        const ref = doc(db, "schools", activeSchoolId, "classes", classId, "attendance", dateString);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          return {
+            isHoliday: !!data.isHoliday,
+            dayReasonType: data.dayReasonType || (data.isHoliday ? "holiday" : "none"),
+            dayReason: data.dayReason || "",
+          };
+        }
+      }
+
+      // Check school-wide summary
+      const sumRef = doc(db, "schools", activeSchoolId, "attendance_summaries", dateString);
+      const sumSnap = await getDoc(sumRef);
+      if (sumSnap.exists()) {
+        const data = sumSnap.data();
+        return {
+          isHoliday: !!data.isHoliday,
+          dayReasonType: data.dayReasonType || (data.isHoliday ? "holiday" : "none"),
+          dayReason: data.dayReason || "",
+        };
+      }
+
+      return { isHoliday: false, dayReasonType: "none", dayReason: "" };
+    } catch (error) {
+      console.error("Error fetching day info:", error);
+      return { isHoliday: false, dayReasonType: "none", dayReason: "" };
+    }
+  },
+
+  /**
+   * Assigns or revokes a holiday/weekly off/other reason for a day.
+   * If assigned (not 'none'), automatically marks all students in the class as absent and updates Firebase.
+   */
+  async assignDayHoliday(
+    dateString: string,
+    classId: string,
+    dayReasonType: string,
+    dayReason: string,
+  ): Promise<void> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const isHoliday = dayReasonType !== "none";
+      const nowIso = new Date().toISOString();
+
+      if (!isHoliday) {
+        // Revoke holiday
+        const ref = doc(db, "schools", activeSchoolId, "classes", classId, "attendance", dateString);
+        await setDoc(
+          ref,
+          {
+            isHoliday: false,
+            dayReasonType: "none",
+            dayReason: "",
+            updatedAt: nowIso,
+          },
+          { merge: true }
+        );
+        updateMonthlySheetCacheForDate(
+          classId,
+          dateString,
+          {},
+          { isHoliday: false, dayReasonType: "none", dayReason: "" },
+          nowIso
+        );
+        return;
+      }
+
+      // Fetch students for this class
+      const classStudents = await studentsApi.getByClass(classId);
+      const attendancePayload: Record<string, any> = {
+        isHoliday: true,
+        dayReasonType,
+        dayReason: dayReason || (dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday"),
+        updatedAt: nowIso,
+      };
+
+      const unwrapMap: Record<string, string> = {};
+      // Set all active students to 'absent'
+      classStudents.forEach((student) => {
+        attendancePayload[student.id] = {
+          status: "absent",
+          classId: student.classId || classId,
+          boarderType: student.boarderType || "",
+        };
+        unwrapMap[student.id] = "absent";
+      });
+
+      const ref = doc(db, "schools", activeSchoolId, "classes", classId, "attendance", dateString);
+      await setDoc(ref, attendancePayload, { merge: true });
+
+      // Update local monthly cache
+      updateMonthlySheetCacheForDate(
+        classId,
+        dateString,
+        unwrapMap,
+        {
+          isHoliday: true,
+          dayReasonType,
+          dayReason: attendancePayload.dayReason,
+        },
+        nowIso
+      );
+
+      // Save summary
+      await this.generateAndSaveSummary(dateString, attendancePayload);
+    } catch (error) {
+      handleFirestoreError(
+        error,
+        OperationType.WRITE,
+        `classes/${classId}/attendance/${dateString}/holiday`,
+      );
+    }
+  },
+
+  /**
+   * Saves individual cell modifications made from the Monthly Sheet view.
+   */
+  async saveMonthlyModifications(
+    classId: string,
+    modifications: { studentId: string; date: string; status: string }[],
+  ): Promise<void> {
+    try {
+      const activeSchoolId = getActiveSchoolId();
+      const nowIso = new Date().toISOString();
+      // Group modifications by date
+      const dateToUpdates: Record<string, Record<string, any>> = {};
+      modifications.forEach(({ studentId, date, status }) => {
+        if (!dateToUpdates[date]) {
+          dateToUpdates[date] = { updatedAt: nowIso };
+        }
+        if (status === "none" || !status) {
+          dateToUpdates[date][studentId] = {
+            status: "",
+            classId,
+          };
+        } else {
+          dateToUpdates[date][studentId] = {
+            status,
+            classId,
+          };
+        }
+      });
+
+      const dates = Object.keys(dateToUpdates);
+      const BATCH_LIMIT = 400;
+
+      for (let i = 0; i < dates.length; i += BATCH_LIMIT) {
+        const batch = writeBatch(db);
+        const chunk = dates.slice(i, i + BATCH_LIMIT);
+        chunk.forEach((dStr) => {
+          const ref = doc(db, "schools", activeSchoolId, "classes", classId, "attendance", dStr);
+          batch.set(ref, dateToUpdates[dStr], { merge: true });
+        });
+        await batch.commit();
+      }
+
+      // Update local storage cache for modified dates and monthly cache
+      dates.forEach((dStr) => {
+        try {
+          const cached = localStorage.getItem(`attendance_${dStr}`);
+          const parsed = cached ? JSON.parse(cached) : {};
+          Object.assign(parsed, dateToUpdates[dStr]);
+          localStorage.setItem(`attendance_${dStr}`, JSON.stringify(parsed));
+        } catch {
+          // ignore local cache error
+        }
+
+        const unwrapMap: Record<string, string> = {};
+        modifications
+          .filter((m) => m.date === dStr)
+          .forEach((m) => {
+            unwrapMap[m.studentId] = m.status === "none" ? "" : m.status;
+          });
+        updateMonthlySheetCacheForDate(classId, dStr, unwrapMap, undefined, nowIso);
+      });
+    } catch (error) {
+      handleFirestoreError(
+        error,
+        OperationType.WRITE,
+        `classes/${classId}/attendance/monthly_modifications`,
+      );
     }
   },
 };

@@ -1,6 +1,28 @@
 import { useState } from "react";
-import { collection, getDocs, setDoc, doc } from "firebase/firestore";
+import { collection, getDocs, writeBatch, doc, Firestore } from "firebase/firestore";
 import { firebaseConfig, getFirestoreForDbId } from "../../../lib/firebase";
+
+// Helper function to safely commit writes in batches of 400 (Firestore limit is 500)
+async function batchWriteDocs(
+  dstDb: Firestore,
+  operations: { path: string; id: string; data: any }[],
+  onBatchProgress?: (completed: number, total: number) => void
+) {
+  const BATCH_SIZE = 400;
+  const total = operations.length;
+  for (let i = 0; i < total; i += BATCH_SIZE) {
+    const chunk = operations.slice(i, i + BATCH_SIZE);
+    const batch = writeBatch(dstDb);
+    for (const op of chunk) {
+      const docRef = doc(dstDb, op.path, op.id);
+      batch.set(docRef, op.data, { merge: true });
+    }
+    await batch.commit();
+    if (onBatchProgress) {
+      onBatchProgress(Math.min(i + BATCH_SIZE, total), total);
+    }
+  }
+}
 
 export const useCrossDatabaseMigration = () => {
   const configDbs = (firebaseConfig as any).alternateDatabases || [
@@ -77,20 +99,22 @@ export const useCrossDatabaseMigration = () => {
         setTransferStatus("Fetching schools from source database...");
         addLog("Querying root 'schools' collection in source DB...");
         const schoolsSnap = await getDocs(collection(srcDb, "schools"));
-        schoolDocs = schoolsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        schoolDocs = schoolsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         addLog(`Found ${schoolDocs.length} schools in source database.`);
 
-        setTransferStatus("Migrating schools to target database...");
-        for (const sDoc of schoolDocs) {
-          const { id, ...data } = sDoc;
-          addLog(`Migrating school document: ${data.name || id}...`);
-          await setDoc(doc(dstDb, "schools", id), data, { merge: true });
+        if (schoolDocs.length > 0) {
+          setTransferStatus("Migrating schools to target database using batch operations...");
+          const schoolOps = schoolDocs.map((s) => {
+            const { id, ...data } = s;
+            return { path: "schools", id, data };
+          });
+          await batchWriteDocs(dstDb, schoolOps);
+          addLog(`[Success] ${schoolDocs.length} root 'schools' records transferred.`);
         }
-        addLog("[Success] Root 'schools' collection transferred.");
       } else {
         addLog("Skipping schools collection transfer. Querying source schools list for subcollection context...");
         const schoolsSnap = await getDocs(collection(srcDb, "schools"));
-        schoolDocs = schoolsSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        schoolDocs = schoolsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       }
       progress = 25;
       setTransferProgress(progress);
@@ -100,16 +124,18 @@ export const useCrossDatabaseMigration = () => {
         setTransferStatus("Fetching system users from source database...");
         addLog("Querying root 'users' collection in source DB...");
         const usersSnap = await getDocs(collection(srcDb, "users"));
-        const userDocs: any[] = usersSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const userDocs: any[] = usersSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         addLog(`Found ${userDocs.length} users in source database.`);
 
-        setTransferStatus("Migrating users to target database...");
-        for (const uDoc of userDocs) {
-          const { id, ...data } = uDoc;
-          addLog(`Migrating user document: ${data.email || id}...`);
-          await setDoc(doc(dstDb, "users", id), data, { merge: true });
+        if (userDocs.length > 0) {
+          setTransferStatus("Migrating users to target database using batch operations...");
+          const userOps = userDocs.map((u) => {
+            const { id, ...data } = u;
+            return { path: "users", id, data };
+          });
+          await batchWriteDocs(dstDb, userOps);
+          addLog(`[Success] ${userDocs.length} root 'users' records transferred.`);
         }
-        addLog("[Success] Root 'users' collection transferred.");
       }
       progress = 40;
       setTransferProgress(progress);
@@ -127,14 +153,16 @@ export const useCrossDatabaseMigration = () => {
         // Classes Collection
         setTransferStatus(`Fetching classes for school tenancy [${sId}]...`);
         const classesSnap = await getDocs(collection(srcDb, "schools", sId, "classes"));
-        const classDocs = classesSnap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+        const classDocs = classesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         
         if (transferOptions.classes && classDocs.length > 0) {
-          addLog(`Found ${classDocs.length} classes for school [${sId}]. Transferring...`);
-          for (const cDoc of classDocs) {
-            const { id, ...data } = cDoc;
-            await setDoc(doc(dstDb, "schools", sId, "classes", id), data, { merge: true });
-          }
+          addLog(`Found ${classDocs.length} classes for school [${sId}]. Transferring in batch...`);
+          const classOps = classDocs.map((c) => {
+            const { id, ...data } = c;
+            return { path: `schools/${sId}/classes`, id, data };
+          });
+          await batchWriteDocs(dstDb, classOps);
+          addLog(`[Success] Transferred ${classDocs.length} classes for [${sId}].`);
         }
         
         const classIds = ["unassigned", ...classDocs.map((c) => c.id)];
@@ -144,10 +172,13 @@ export const useCrossDatabaseMigration = () => {
           if (transferOptions.students) {
             const studentsSnap = await getDocs(collection(srcDb, "schools", sId, "classes", cId, "students"));
             if (!studentsSnap.empty) {
-              addLog(`Found ${studentsSnap.size} students in school [${sId}], class [${cId}]. Copying...`);
-              for (const stdDoc of studentsSnap.docs) {
-                await setDoc(doc(dstDb, "schools", sId, "classes", cId, "students", stdDoc.id), stdDoc.data(), { merge: true });
-              }
+              addLog(`Found ${studentsSnap.size} students in school [${sId}], class [${cId}]. Copying via batch write...`);
+              const studentOps = studentsSnap.docs.map((stdDoc) => ({
+                path: `schools/${sId}/classes/${cId}/students`,
+                id: stdDoc.id,
+                data: stdDoc.data()
+              }));
+              await batchWriteDocs(dstDb, studentOps);
             }
           }
           
@@ -155,10 +186,13 @@ export const useCrossDatabaseMigration = () => {
           if (transferOptions.leaves) {
             const leavesSnap = await getDocs(collection(srcDb, "schools", sId, "classes", cId, "leaves"));
             if (!leavesSnap.empty) {
-              addLog(`Found ${leavesSnap.size} leave requests in school [${sId}], class [${cId}]. Copying...`);
-              for (const lvDoc of leavesSnap.docs) {
-                await setDoc(doc(dstDb, "schools", sId, "classes", cId, "leaves", lvDoc.id), lvDoc.data(), { merge: true });
-              }
+              addLog(`Found ${leavesSnap.size} leave requests in school [${sId}], class [${cId}]. Copying via batch write...`);
+              const leaveOps = leavesSnap.docs.map((lvDoc) => ({
+                path: `schools/${sId}/classes/${cId}/leaves`,
+                id: lvDoc.id,
+                data: lvDoc.data()
+              }));
+              await batchWriteDocs(dstDb, leaveOps);
             }
           }
 
@@ -166,10 +200,13 @@ export const useCrossDatabaseMigration = () => {
           if (transferOptions.attendance) {
             const attendanceSnap = await getDocs(collection(srcDb, "schools", sId, "classes", cId, "attendance"));
             if (!attendanceSnap.empty) {
-              addLog(`Found ${attendanceSnap.size} attendance sheets in school [${sId}], class [${cId}]. Copying...`);
-              for (const attDoc of attendanceSnap.docs) {
-                await setDoc(doc(dstDb, "schools", sId, "classes", cId, "attendance", attDoc.id), attDoc.data(), { merge: true });
-              }
+              addLog(`Found ${attendanceSnap.size} attendance sheets in school [${sId}], class [${cId}]. Copying via batch write...`);
+              const attOps = attendanceSnap.docs.map((attDoc) => ({
+                path: `schools/${sId}/classes/${cId}/attendance`,
+                id: attDoc.id,
+                data: attDoc.data()
+              }));
+              await batchWriteDocs(dstDb, attOps);
             }
           }
         }

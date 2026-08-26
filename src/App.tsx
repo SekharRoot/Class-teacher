@@ -87,7 +87,6 @@ import InactiveProfiles from "./pages/InactiveProfiles";
 import Settings from "./pages/Settings";
 import Export from "./pages/Export";
 import Dashboard from "./pages/Dashboard";
-import AppInfo from "./pages/AppInfo";
 
 const FallbackLoader = () => (
   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%' }}>
@@ -118,7 +117,6 @@ export default function App() {
                   <Route path="export" element={<Export />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="testing" element={<Testing />} />
-                  <Route path="app-info" element={<AppInfo />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
