@@ -10,5 +10,5 @@ export function unwrapStatus(val: any): string {
       return unwrapStatus(val.status);
     }
   }
-  return String(val || "").trim();
+  return "";
 }

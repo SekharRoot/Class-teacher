@@ -340,7 +340,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                 }}
               >
                 {dayInfo?.isHoliday
-                  ? `${dayInfo.dayReason || (dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
+                  ? `${typeof dayInfo.dayReason === "string" && dayInfo.dayReason.trim() ? dayInfo.dayReason : (typeof dayInfo.dayReasonType === "string" && dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
                   : "Assign Holiday"}
               </Button>
             )}
@@ -544,8 +544,11 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         >
           <strong>Special Day Assigned:</strong> This date is marked as{" "}
           <strong>
-            {dayInfo.dayReason ||
-              (dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}
+            {typeof dayInfo.dayReason === "string" && dayInfo.dayReason.trim()
+              ? dayInfo.dayReason
+              : typeof dayInfo.dayReasonType === "string" && dayInfo.dayReasonType === "weekly_off"
+                ? "Weekly Off"
+                : "Holiday"}
           </strong>
           . All students in this class register are recorded as Absent for the day.
         </Alert>

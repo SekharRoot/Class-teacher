@@ -115,9 +115,15 @@ export const attendanceApi = {
       // Group records by class
       const metaKeys = new Set(["_meta", "dayReason", "dayReasonType", "isHoliday", "updatedAt", "date", "classId"]);
       const holidayPayload: Record<string, any> = {};
-      if (cleanRecords.dayReason !== undefined) holidayPayload.dayReason = cleanRecords.dayReason;
-      if (cleanRecords.dayReasonType !== undefined) holidayPayload.dayReasonType = cleanRecords.dayReasonType;
-      if (cleanRecords.isHoliday !== undefined) holidayPayload.isHoliday = cleanRecords.isHoliday;
+      if (cleanRecords.dayReason !== undefined && typeof cleanRecords.dayReason === "string") {
+        holidayPayload.dayReason = cleanRecords.dayReason;
+      }
+      if (cleanRecords.dayReasonType !== undefined && typeof cleanRecords.dayReasonType === "string") {
+        holidayPayload.dayReasonType = cleanRecords.dayReasonType;
+      }
+      if (cleanRecords.isHoliday !== undefined && typeof cleanRecords.isHoliday === "boolean") {
+        holidayPayload.isHoliday = cleanRecords.isHoliday;
+      }
 
       const classIdToRecords: Record<string, Record<string, any>> = {};
       Object.entries(cleanRecords).forEach(([studentId, val]) => {
@@ -908,10 +914,12 @@ export const attendanceApi = {
           mergedRecordsMap[date] = {};
 
           if (data.isHoliday || data.dayReason || data.dayReasonType) {
+            const dayReason = typeof data.dayReason === "string" ? data.dayReason : "";
+            const dayReasonType = typeof data.dayReasonType === "string" ? data.dayReasonType : (data.isHoliday ? "holiday" : undefined);
             mergedDayInfoMap[date] = {
               isHoliday: !!data.isHoliday,
-              dayReasonType: data.dayReasonType || (data.isHoliday ? "holiday" : undefined),
-              dayReason: data.dayReason || "",
+              dayReasonType,
+              dayReason,
             };
           } else {
             delete mergedDayInfoMap[date];
@@ -973,10 +981,12 @@ export const attendanceApi = {
         const snap = await getDoc(ref);
         if (snap.exists()) {
           const data = snap.data();
+          const dayReason = typeof data.dayReason === "string" ? data.dayReason : "";
+          const dayReasonType = typeof data.dayReasonType === "string" ? data.dayReasonType : (data.isHoliday ? "holiday" : "none");
           return {
             isHoliday: !!data.isHoliday,
-            dayReasonType: data.dayReasonType || (data.isHoliday ? "holiday" : "none"),
-            dayReason: data.dayReason || "",
+            dayReasonType,
+            dayReason,
           };
         }
       }
@@ -986,10 +996,12 @@ export const attendanceApi = {
       const sumSnap = await getDoc(sumRef);
       if (sumSnap.exists()) {
         const data = sumSnap.data();
+        const dayReason = typeof data.dayReason === "string" ? data.dayReason : "";
+        const dayReasonType = typeof data.dayReasonType === "string" ? data.dayReasonType : (data.isHoliday ? "holiday" : "none");
         return {
           isHoliday: !!data.isHoliday,
-          dayReasonType: data.dayReasonType || (data.isHoliday ? "holiday" : "none"),
-          dayReason: data.dayReason || "",
+          dayReasonType,
+          dayReason,
         };
       }
 

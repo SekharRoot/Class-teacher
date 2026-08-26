@@ -143,7 +143,14 @@ export const MonthlySheetTable: React.FC<MonthlySheetTableProps> = ({
                     </Typography>
 
                     {isHoliday && (
-                      <Tooltip title={dayInfo?.dayReason || "Holiday / Off"} arrow>
+                      <Tooltip
+                        title={
+                          typeof dayInfo?.dayReason === "string" && dayInfo.dayReason.trim()
+                            ? dayInfo.dayReason
+                            : "Holiday / Off"
+                        }
+                        arrow
+                      >
                         <Box
                           sx={{
                             mt: 0.25,
@@ -157,7 +164,7 @@ export const MonthlySheetTable: React.FC<MonthlySheetTableProps> = ({
                             whiteSpace: "nowrap",
                           }}
                         >
-                          {dayInfo?.dayReasonType === "weekly_off" ? "Off" : "Hol"}
+                          {typeof dayInfo?.dayReasonType === "string" && dayInfo.dayReasonType === "weekly_off" ? "Off" : "Hol"}
                         </Box>
                       </Tooltip>
                     )}

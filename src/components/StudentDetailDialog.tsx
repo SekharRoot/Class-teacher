@@ -130,14 +130,14 @@ export const StudentDetailDialog: React.FC<StudentDetailDialogProps> = ({
                 {student.phoneNumber || "No contact provided"}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ pl: 3 }}>
-                Father: <strong>{student.fatherName || "Not recorded"}</strong>
+                Father: <strong>{typeof student.fatherName === "string" && student.fatherName.trim() ? student.fatherName : "Not recorded"}</strong>
               </Typography>
               <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{ pl: 3, mt: 0.5 }}
               >
-                Mother: <strong>{student.motherName || "Not recorded"}</strong>
+                Mother: <strong>{typeof student.motherName === "string" && student.motherName.trim() ? student.motherName : "Not recorded"}</strong>
               </Typography>
             </Box>
           </Box>
