@@ -11,10 +11,12 @@ import {
   MenuItem,
   Tooltip,
   Button,
+  CircularProgress,
   useTheme,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LogoutIcon from "@mui/icons-material/Logout";
+import SyncIcon from "@mui/icons-material/Sync";
 import { useAuth } from "../../contexts/AuthContext";
 import { ThemeContext } from "../../contexts/ThemeContext";
 import { schoolsApi } from "../../api/schools";
@@ -179,6 +181,63 @@ export const HeaderAppBar: React.FC<HeaderAppBarProps> = ({
               ))}
             </Select>
           </FormControl>
+        )}
+        {syncing ? (
+          <Tooltip title="Fetching data in background...">
+            <Chip
+              icon={
+                <CircularProgress
+                  size={14}
+                  thickness={5}
+                  color="inherit"
+                  sx={{ color: "primary.main" }}
+                />
+              }
+              label="Fetching Data..."
+              size="small"
+              variant="outlined"
+              color="primary"
+              sx={{
+                ml: { xs: 1, sm: 1.5 },
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                height: 28,
+                borderRadius: "8px",
+                bgcolor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(144, 202, 249, 0.12)"
+                    : "rgba(25, 118, 210, 0.08)",
+                borderColor: (theme) =>
+                  theme.palette.mode === "dark"
+                    ? "rgba(144, 202, 249, 0.3)"
+                    : "rgba(25, 118, 210, 0.25)",
+                animation: "pulse 2s infinite ease-in-out",
+                "@keyframes pulse": {
+                  "0%": { opacity: 0.75 },
+                  "50%": { opacity: 1 },
+                  "100%": { opacity: 0.75 },
+                },
+                "& .MuiChip-label": {
+                  px: 1,
+                  display: { xs: "none", sm: "inline-block" },
+                },
+              }}
+            />
+          </Tooltip>
+        ) : (
+          <Tooltip title="Sync / Refresh Data">
+            <IconButton
+              size="small"
+              onClick={handleSync}
+              sx={{
+                ml: { xs: 0.5, sm: 1 },
+                color: "text.secondary",
+                "&:hover": { color: "primary.main" },
+              }}
+            >
+              <SyncIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
         )}
         <Box sx={{ flexGrow: 1 }} />
         <Tooltip title="Log Out">
