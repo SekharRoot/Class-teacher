@@ -166,9 +166,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 variant="rounded"
                 src={displayImage}
                 sx={{
-                  width: { xs: 44, sm: 60 },
-                  height: { xs: 44, sm: 60 },
-                  borderRadius: 1,
+                  width: { xs: 50, sm: 60 },
+                  height: { xs: 50, sm: 60 },
+                  borderRadius: 0.5,
                   boxShadow: 1,
                   bgcolor: status ? `${statusColor}.light` : "primary.light",
                 }}
@@ -178,7 +178,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               </Avatar>
             </Box>
             <Box>
-              <Typography variant="body2" sx={{ fontWeight: "bold", fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
+              <Typography variant="body2" sx={{ fontWeight: "bold", fontSize: { xs: "0.9rem", sm: "0.975rem" } }}>
                 {student.firstName} {student.lastName}
                 {student.isActive === false && (
                   <Box component="span" sx={{ color: "text.secondary", fontWeight: "normal", fontSize: "0.85em", ml: 1 }}>
@@ -236,9 +236,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               sx={{
                 "& .MuiToggleButton-root": {
                   p: 0,
-                  width: { xs: 45, sm: 45 },
-                  height: { xs: 45, sm: 45 },
-                  minWidth: { xs: 45, sm: 45 },
+                  width: { xs: 50, sm: 50 },
+                  height: { xs: 50, sm: 50 },
+                  minWidth: { xs: 50, sm: 50 },
                   borderRadius: "10px !important",
                   border: "1px solid !important",
                   borderColor: "divider !important",
@@ -276,9 +276,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 onClick={handleAbsentClick}
               >
                 {status === "leave" ? (
-                  <Star sx={{ width: 45, height: 45, fontSize: 45 }} />
+                  <Star sx={{ width: 40, height: 40, fontSize: 40 }} />
                 ) : (
-                  <Cancel sx={{ width: 45, height: 45, fontSize: 45 }} />
+                  <Cancel sx={{ width: 40, height: 40, fontSize: 40 }} />
                 )}
               </ToggleButton>
             </ToggleButtonGroup>

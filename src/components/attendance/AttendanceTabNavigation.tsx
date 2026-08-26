@@ -50,7 +50,7 @@ export const AttendanceTabNavigation: React.FC<AttendanceTabNavigationProps> = (
         />
         <Tab
           icon={<TableChart />}
-          label="Sheet"
+          label="Class Sheet"
         />
       </Tabs>
     </Box>
