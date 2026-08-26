@@ -44,16 +44,28 @@ export default defineConfig(() => {
     ],
     build: {
       outDir: "dist",
+      chunkSizeWarningLimit: 1600,
       rollupOptions: {
         output: {
-          manualChunks: {
-            'mui-vendor': ['@mui/material', '@mui/icons-material'],
-            'firebase-vendor': ['firebase/app', 'firebase/firestore', 'firebase/auth'],
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          }
-        }
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              if (id.includes("@mui") || id.includes("@emotion")) {
+                return "mui-vendor";
+              }
+              if (id.includes("firebase")) {
+                return "firebase-vendor";
+              }
+              if (id.includes("jspdf") || id.includes("html2canvas")) {
+                return "pdf-vendor";
+              }
+              if (id.includes("react") || id.includes("react-dom") || id.includes("react-router-dom")) {
+                return "react-vendor";
+              }
+              return "vendor";
+            }
+          },
+        },
       },
-      chunkSizeWarningLimit: 1000,
     },
     resolve: {
       alias: {
