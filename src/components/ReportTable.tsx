@@ -39,7 +39,13 @@ export const ReportTable: React.FC<ReportTableProps> = ({ entries }) => {
   return (
     <TableContainer
       component={Paper}
-      sx={{ borderRadius: "10px", overflow: "hidden", boxShadow: 2 }}
+      sx={{
+        borderRadius: "10px",
+        overflowX: "auto",
+        maxWidth: "100%",
+        WebkitOverflowScrolling: "touch",
+        boxShadow: 2,
+      }}
     >
       <Table stickyHeader>
         <TableHead>

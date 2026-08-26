@@ -264,178 +264,227 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
-          mb: 2,
-          flexWrap: "wrap",
-          gap: 2,
+          alignItems: { xs: "stretch", sm: "center" },
+          mb: 2.5,
+          gap: 1.5,
         }}
       >
-        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", flexGrow: 1 }}>
-          <Button
-            startIcon={<ChevronLeft />}
-            onClick={onBack}
-            variant="outlined"
-            size="small"
-            sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
-          >
-            Back
-          </Button>
-          {!readOnly && (
-            <Tooltip
-              title={
-                !allMarked
-                  ? `${unmarkedStudentsCount} student(s) unmarked. Mark all students to save.`
-                  : "Save attendance to server"
-              }
-            >
-              <span>
-                <Button
-                  startIcon={
-                    syncing ? (
-                      <CircularProgress size={12} color="inherit" />
-                    ) : (
-                      <Save sx={{ fontSize: 16 }} />
-                    )
-                  }
-                  onClick={handleSync}
-                  variant="contained"
-                  color="primary"
-                  size="small"
-                  disabled={syncing || !allMarked}
-                  sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: '0.75rem' }}
-                >
-                  {syncing ? "Saving..." : "Save"}
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-
-          {/* Holiday Assignment Button to the right of Save button */}
-          {!readOnly && onAssignHoliday && (
+        {/* Buttons and controls container */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1.5,
+            flexGrow: 1,
+            width: "100%",
+          }}
+        >
+          {/* Top Row: Primary action buttons */}
+          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
             <Button
-              startIcon={<EventBusy sx={{ fontSize: 16 }} />}
-              onClick={() => setHolidayDialogOpen(true)}
-              variant={dayInfo?.isHoliday ? "contained" : "outlined"}
-              color={dayInfo?.isHoliday ? "warning" : "inherit"}
+              startIcon={<ChevronLeft />}
+              onClick={onBack}
+              variant="outlined"
               size="small"
-              sx={{
-                borderRadius: 2,
-                textTransform: "none",
-                height: 32,
-                fontSize: "0.75rem",
-                fontWeight: dayInfo?.isHoliday ? "bold" : "medium",
-                boxShadow: dayInfo?.isHoliday ? 2 : 0,
-              }}
+              sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: "0.75rem" }}
             >
-              {dayInfo?.isHoliday
-                ? `${dayInfo.dayReason || (dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
-                : "Assign Holiday"}
+              Back
             </Button>
-          )}
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <Select
-              value=""
-              displayEmpty
-              onChange={handleCopySelect}
-              sx={{
-                borderRadius: 2,
-                height: 32,
-                fontSize: '0.75rem',
-                border: "1px solid",
-                borderColor: copied ? "success.main" : "primary.main",
-                color: copied ? "success.main" : "primary.main",
-                fontWeight: "medium",
-                '& .MuiSelect-select': {
-                  py: 0.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
-                  color: copied ? "success.main" : "primary.main",
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  border: "none"
-                },
-                '&:hover': {
-                  borderColor: copied ? "success.dark" : "primary.dark",
+            {!readOnly && (
+              <Tooltip
+                title={
+                  !allMarked
+                    ? `${unmarkedStudentsCount} student(s) unmarked. Mark all students to save.`
+                    : "Save attendance to server"
                 }
-              }}
-              renderValue={() => (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <ContentCopy sx={{ fontSize: 14 }} />
-                  {copied
-                    ? copiedType === "absent"
-                      ? "Copied Abs!"
-                      : "Copied Pres!"
-                    : "Copy List"}
-                </Box>
-              )}
-            >
-              <MenuItem value="" disabled sx={{ fontSize: '0.75rem' }}>
-                <em>Select List to Copy</em>
-              </MenuItem>
-              <MenuItem value="absent" sx={{ fontSize: '0.75rem' }}>
-                Copy Absentees ({absentees.length})
-              </MenuItem>
-              <MenuItem value="present" sx={{ fontSize: '0.75rem' }}>
-                Copy Present Students ({presents.length})
-              </MenuItem>
-            </Select>
-          </FormControl>
-          <FormControl size="small" sx={{ minWidth: 130 }}>
-            <Select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as string)}
-              displayEmpty
+              >
+                <span>
+                  <Button
+                    startIcon={
+                      syncing ? (
+                        <CircularProgress size={12} color="inherit" />
+                      ) : (
+                        <Save sx={{ fontSize: 16 }} />
+                      )
+                    }
+                    onClick={handleSync}
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    disabled={syncing || !allMarked}
+                    sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: "0.75rem" }}
+                  >
+                    {syncing ? "Saving..." : "Save"}
+                  </Button>
+                </span>
+              </Tooltip>
+            )}
+
+            {/* Holiday Assignment Button to the right of Save button */}
+            {!readOnly && onAssignHoliday && (
+              <Button
+                startIcon={<EventBusy sx={{ fontSize: 16 }} />}
+                onClick={() => setHolidayDialogOpen(true)}
+                variant={dayInfo?.isHoliday ? "contained" : "outlined"}
+                color={dayInfo?.isHoliday ? "warning" : "inherit"}
+                size="small"
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  height: 32,
+                  fontSize: "0.75rem",
+                  fontWeight: dayInfo?.isHoliday ? "bold" : "medium",
+                  boxShadow: dayInfo?.isHoliday ? 2 : 0,
+                }}
+              >
+                {dayInfo?.isHoliday
+                  ? `${dayInfo.dayReason || (dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
+                  : "Assign Holiday"}
+              </Button>
+            )}
+          </Box>
+
+          {/* Bottom Row / Grid: Filters, Search, and Dropdowns */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              gap: 1,
+              flexWrap: "wrap",
+              alignItems: { xs: "stretch", sm: "center" },
+            }}
+          >
+            {/* Side-by-side dropdowns on mobile */}
+            <Box sx={{ display: "flex", gap: 1, width: { xs: "100%", sm: "auto" } }}>
+              <FormControl size="small" sx={{ flex: { xs: 1, sm: "initial" }, minWidth: { xs: 0, sm: 120 } }}>
+                <Select
+                  value=""
+                  displayEmpty
+                  onChange={handleCopySelect}
+                  sx={{
+                    borderRadius: 2,
+                    height: 32,
+                    fontSize: "0.75rem",
+                    border: "1px solid",
+                    borderColor: copied ? "success.main" : "primary.main",
+                    color: copied ? "success.main" : "primary.main",
+                    fontWeight: "medium",
+                    "& .MuiSelect-select": {
+                      py: 0.5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      color: copied ? "success.main" : "primary.main",
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      border: "none",
+                    },
+                    "&:hover": {
+                      borderColor: copied ? "success.dark" : "primary.dark",
+                    },
+                  }}
+                  renderValue={() => (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <ContentCopy sx={{ fontSize: 14 }} />
+                      {copied
+                        ? copiedType === "absent"
+                          ? "Copied Abs!"
+                          : "Copied Pres!"
+                        : "Copy List"}
+                    </Box>
+                  )}
+                >
+                  <MenuItem value="" disabled sx={{ fontSize: "0.75rem" }}>
+                    <em>Select List to Copy</em>
+                  </MenuItem>
+                  <MenuItem value="absent" sx={{ fontSize: "0.75rem" }}>
+                    Copy Absentees ({absentees.length})
+                  </MenuItem>
+                  <MenuItem value="present" sx={{ fontSize: "0.75rem" }}>
+                    Copy Present Students ({presents.length})
+                  </MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ flex: { xs: 1, sm: "initial" }, minWidth: { xs: 0, sm: 130 } }}>
+                <Select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as string)}
+                  displayEmpty
+                  sx={{
+                    borderRadius: 2,
+                    height: 32,
+                    fontSize: "0.75rem",
+                    "& .MuiSelect-select": {
+                      py: 0.5,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                    },
+                    "& .MuiOutlinedInput-notchedOutline": {
+                      borderColor: "rgba(0,0,0,0.15)",
+                    },
+                  }}
+                >
+                  <MenuItem value="name-asc" sx={{ fontSize: "0.75rem" }}>Name (A-Z)</MenuItem>
+                  <MenuItem value="name-desc" sx={{ fontSize: "0.75rem" }}>Name (Z-A)</MenuItem>
+                  <MenuItem value="boarder-day-scholar" sx={{ fontSize: "0.75rem" }}>Scholar First</MenuItem>
+                  <MenuItem value="boarder-day-boarder" sx={{ fontSize: "0.75rem" }}>Day Boarder First</MenuItem>
+                  <MenuItem value="boarder-full-boarder" sx={{ fontSize: "0.75rem" }}>Full Boarder First</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+
+            <TextField
+              placeholder="Search..."
+              size="small"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               sx={{
-                borderRadius: 2,
-                height: 32,
-                fontSize: '0.75rem',
-                '& .MuiSelect-select': {
-                  py: 0.5,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 0.5,
+                width: { xs: "100%", sm: 180 },
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 2,
+                  height: 32,
+                  bgcolor: "background.paper",
+                  fontSize: "0.75rem",
                 },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: "rgba(0,0,0,0.15)"
-                }
               }}
-            >
-              <MenuItem value="name-asc" sx={{ fontSize: '0.75rem' }}>Name (A-Z)</MenuItem>
-              <MenuItem value="name-desc" sx={{ fontSize: '0.75rem' }}>Name (Z-A)</MenuItem>
-              <MenuItem value="boarder-day-scholar" sx={{ fontSize: '0.75rem' }}>Scholar First</MenuItem>
-              <MenuItem value="boarder-day-boarder" sx={{ fontSize: '0.75rem' }}>Day Boarder First</MenuItem>
-              <MenuItem value="boarder-full-boarder" sx={{ fontSize: '0.75rem' }}>Full Boarder First</MenuItem>
-            </Select>
-          </FormControl>
-          <TextField
-            placeholder="Search..."
-            size="small"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ 
-              minWidth: { xs: '100%', sm: 140 },
-              "& .MuiOutlinedInput-root": { borderRadius: 2, height: 32, bgcolor: 'background.paper', fontSize: '0.75rem' }
-            }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-              }
-            }}
-          />
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Box>
         </Box>
 
+        {/* Bulk select container */}
         {!readOnly && (
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "nowrap", alignItems: 'center' }}>
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              alignItems: "center",
+              alignSelf: { xs: "flex-start", sm: "center" },
+              bgcolor: "action.hover",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              mt: { xs: 0.5, sm: 0 },
+            }}
+          >
             <Typography
               variant="caption"
               color="text.secondary"
-              sx={{ fontWeight: "bold", whiteSpace: 'nowrap', fontSize: '0.6rem' }}
+              sx={{ fontWeight: "bold", whiteSpace: "nowrap", fontSize: "0.65rem" }}
             >
               Bulk:
             </Typography>
@@ -449,8 +498,8 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                 fontSize: "0.65rem",
                 textTransform: "none",
                 py: 0.25,
-                px: 1,
-                minWidth: 0
+                px: 1.25,
+                minWidth: 0,
               }}
             >
               Present
@@ -465,8 +514,8 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                 fontSize: "0.65rem",
                 textTransform: "none",
                 py: 0.25,
-                px: 1,
-                minWidth: 0
+                px: 1.25,
+                minWidth: 0,
               }}
             >
               Absent
@@ -502,8 +551,25 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
         </Alert>
       )}
 
-      <TableContainer component={Paper} elevation={2} sx={{ borderRadius: "10px" }}>
-        <Table size="small">
+      <TableContainer
+        component={Paper}
+        elevation={2}
+        sx={{
+          borderRadius: "10px",
+          width: "100%",
+          maxWidth: "100%",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
+          "&::-webkit-scrollbar": {
+            height: 6,
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "rgba(0,0,0,0.15)",
+            borderRadius: 3,
+          },
+        }}
+      >
+        <Table size="small" sx={{ width: "100%", minWidth: { xs: 320, sm: "100%" } }}>
           <TableHead sx={{ bgcolor: "action.hover" }}>
             <TableRow>
               <TableCell sx={{ fontWeight: "bold" }}>Student</TableCell>

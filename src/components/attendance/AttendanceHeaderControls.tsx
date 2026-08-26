@@ -113,10 +113,11 @@ export const AttendanceHeaderControls: React.FC<AttendanceHeaderControlsProps> =
           onClick={onSetToday}
           disabled={todayStr === dateString}
           sx={{
-            ml: 1,
+            ml: { xs: 0, sm: 1 },
             borderRadius: "10px",
             textTransform: "none",
             fontWeight: "bold",
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
           }}
         >
           Today
@@ -130,10 +131,11 @@ export const AttendanceHeaderControls: React.FC<AttendanceHeaderControlsProps> =
             startIcon={<ListAlt />}
             onClick={onToggleTakeAttendanceMode}
             sx={{
-              ml: 1,
+              ml: { xs: 0, sm: 1 },
               borderRadius: "10px",
               textTransform: "none",
               fontWeight: "bold",
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
             }}
           >
             {isTakeAttendanceMode ? "View Mode" : "Take Attendance"}

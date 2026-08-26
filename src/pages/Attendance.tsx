@@ -167,7 +167,16 @@ export default function Attendance() {
           </Box>
         </>
       ) : (
-        <Box>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: { xs: 1.5, sm: 3 },
+            width: "100%",
+            overflowX: "hidden",
+            px: { xs: 0, sm: 0 },
+          }}
+        >
           <ClassHeaderBreadcrumb
             selectedClass={selectedClass}
             showChangeClassButton={userProfile?.role !== "class_teacher" || filteredClasses.length > 1}

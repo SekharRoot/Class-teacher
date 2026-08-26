@@ -14,7 +14,7 @@ export const AttendanceTabNavigation: React.FC<AttendanceTabNavigationProps> = (
   onTabChange,
 }) => {
   return (
-    <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+    <Box sx={{ borderBottom: 1, borderColor: "divider", mb: { xs: 2, sm: 3 } }}>
       <Tabs
         value={activeTab}
         onChange={(_, val) => onTabChange(val)}
@@ -22,22 +22,35 @@ export const AttendanceTabNavigation: React.FC<AttendanceTabNavigationProps> = (
         variant="scrollable"
         scrollButtons="auto"
         allowScrollButtonsMobile
-        sx={{ "& .MuiTabs-flexContainer": { justifyContent: "center" } }}
+        sx={{
+          "& .MuiTabs-flexContainer": {
+            justifyContent: { xs: "flex-start", sm: "center" },
+          },
+          "& .MuiTab-root": {
+            fontSize: { xs: "0.75rem", sm: "0.9rem", md: "1rem" },
+            minWidth: { xs: "33%", sm: "auto" },
+            px: { xs: 1.5, sm: 3 },
+            py: { xs: 1, sm: 1.5 },
+            minHeight: { xs: 58, sm: 72 },
+            textTransform: "none",
+            fontWeight: "bold",
+          },
+          "& .MuiSvgIcon-root": {
+            fontSize: { xs: "1.4rem", sm: "2rem" },
+          }
+        }}
       >
         <Tab
-          icon={<ListAlt fontSize="large" />}
+          icon={<ListAlt />}
           label="Take Attendance"
-          sx={{ textTransform: "none", fontWeight: "bold", minHeight: 72 }}
         />
         <Tab
-          icon={<History fontSize="large" />}
-          label={`Attendance History (${historyCount})`}
-          sx={{ textTransform: "none", fontWeight: "bold", minHeight: 72 }}
+          icon={<History />}
+          label={`History (${historyCount})`}
         />
         <Tab
-          icon={<TableChart fontSize="large" />}
+          icon={<TableChart />}
           label="Sheet"
-          sx={{ textTransform: "none", fontWeight: "bold", minHeight: 72 }}
         />
       </Tabs>
     </Box>

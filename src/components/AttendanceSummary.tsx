@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Box, Paper, Typography, Skeleton } from "@mui/material";
+import {
+  Box,
+  Paper,
+  Typography,
+  Skeleton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+} from "@mui/material";
 import { Student, AttendanceStatus } from "../types";
 import { runCalculationWorker } from "../workers/calculator";
 
@@ -53,201 +64,127 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
     };
   }, [students, attendance, selectedClassId]);
 
-  const renderStats = (ds: number, db: number, fb: number, color: string) => (
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "center",
-        gap: 1.5,
-        mt: 1,
-        flexWrap: "wrap",
-      }}
-    >
-      <Typography variant="caption" sx={{ color, fontWeight: 700 }}>
-        <strong>DS:</strong> {ds || 0}
-      </Typography>
-      <Typography variant="caption" sx={{ color, fontWeight: 700 }}>
-        <strong>DB:</strong> {db || 0}
-      </Typography>
-      <Typography variant="caption" sx={{ color, fontWeight: 700 }}>
-        <strong>B:</strong> {fb || 0}
-      </Typography>
-    </Box>
-  );
-
   if (!stats) {
     return (
-      <Box
+      <TableContainer
+        component={Paper}
+        elevation={1}
         sx={{
-          display: "grid",
-          gridTemplateColumns: showLeavesView
-            ? {
-                xs: "repeat(2, 1fr)",
-                sm: "repeat(3, 1fr)",
-                md: "repeat(4, 1fr)",
-              }
-            : {
-                xs: "repeat(1, 1fr)",
-                sm: "repeat(3, 1fr)",
-              },
-          gap: 2,
-          width: "100%",
           mt: 2,
+          borderRadius: "10px",
+          border: "1px solid",
+          borderColor: "divider",
+          p: 1,
         }}
       >
-        {(showLeavesView ? [1, 2, 3, 4] : [1, 2, 3]).map((i) => (
-          <Paper
-            key={i}
-            sx={{
-              p: 2,
-              textAlign: "center",
-              bgcolor: "background.paper",
-              borderRadius: "10px",
-              border: "1px solid",
-              borderColor: "divider",
-            }}
-          >
-            <Skeleton variant="text" width="60%" sx={{ mx: "auto" }} />
-            <Skeleton variant="text" width="40%" height={32} sx={{ mx: "auto", my: 0.5 }} />
-            <Skeleton variant="text" width="70%" sx={{ mx: "auto" }} />
-          </Paper>
-        ))}
-      </Box>
+        <Skeleton variant="text" width="100%" height={40} />
+        <Skeleton variant="rectangular" width="100%" height={120} sx={{ mt: 1, borderRadius: 1 }} />
+      </TableContainer>
     );
   }
 
   return (
-    <Box
+    <TableContainer
+      component={Paper}
+      elevation={1}
       sx={{
-        display: "grid",
-        gridTemplateColumns: showLeavesView
-          ? {
-              xs: "repeat(2, 1fr)",
-              sm: "repeat(3, 1fr)",
-              md: "repeat(4, 1fr)",
-            }
-          : {
-              xs: "repeat(1, 1fr)",
-              sm: "repeat(3, 1fr)",
-            },
-        gap: 2,
-        width: "100%",
         mt: 2,
+        borderRadius: "10px",
+        border: "1px solid",
+        borderColor: "divider",
+        overflowX: "auto",
       }}
     >
-      <Paper
+      <Table
+        size="small"
         sx={{
-          p: 2,
-          textAlign: "center",
-          bgcolor: "background.paper",
-          borderRadius: "10px",
-          border: "1px solid",
-          borderColor: "divider",
-          gridColumn: showLeavesView
-            ? { xs: "span 2", sm: "span 1" }
-            : "span 1",
-        }}
-      >
-        <Typography
-          variant="body2"
-          color="text.secondary"
-          sx={{ fontWeight: "bold" }}
-        >
-          Total Students
-        </Typography>
-        <Typography variant="h5" sx={{ mt: 1, fontWeight: "bold" }}>
-          {stats.totalCount || 0}
-        </Typography>
-        {renderStats(
-          stats.totalDayScholar,
-          stats.totalDayBoarder,
-          stats.totalFullBoarder,
-          "text.secondary",
-        )}
-      </Paper>
-      <Paper
-        sx={{
-          p: 2,
-          textAlign: "center",
-          bgcolor: "success.50",
-          borderRadius: "10px",
-          border: "1px solid",
-          borderColor: "success.200",
-        }}
-      >
-        <Typography
-          variant="body2"
-          color="success.main"
-          sx={{ fontWeight: "bold" }}
-        >
-          Present
-        </Typography>
-        <Typography variant="h5" color="success.main" sx={{ mt: 1, fontWeight: "bold" }}>
-          {stats.presentCount || 0}
-        </Typography>
-        {renderStats(
-          stats.presentDayScholar,
-          stats.presentDayBoarder,
-          stats.presentFullBoarder,
-          "success.main",
-        )}
-      </Paper>
-      <Paper
-        sx={{
-          p: 2,
-          textAlign: "center",
-          bgcolor: "error.50",
-          borderRadius: "10px",
-          border: "1px solid",
-          borderColor: "error.200",
-        }}
-      >
-        <Typography
-          variant="body2"
-          color="error.main"
-          sx={{ fontWeight: "bold" }}
-        >
-          Absent
-        </Typography>
-        <Typography variant="h5" color="error.main" sx={{ mt: 1, fontWeight: "bold" }}>
-          {stats.absentCount || 0}
-        </Typography>
-        {renderStats(
-          stats.absentDayScholar,
-          stats.absentDayBoarder,
-          stats.absentFullBoarder,
-          "error.main",
-        )}
-      </Paper>
-      {showLeavesView && (
-        <Paper
-          sx={{
-            p: 2,
-            textAlign: "center",
-            bgcolor: "info.50",
-            borderRadius: "10px",
+          width: "100%",
+          minWidth: 280,
+          "& td, & th": {
             border: "1px solid",
-            borderColor: "info.200",
-          }}
-        >
-          <Typography
-            variant="body2"
-            color="info.main"
-            sx={{ fontWeight: "bold" }}
-          >
-            Leave
-          </Typography>
-          <Typography variant="h5" color="info.main" sx={{ mt: 1, fontWeight: "bold" }}>
-            {stats.leaveCount || 0}
-          </Typography>
-          {renderStats(
-            stats.leaveDayScholar,
-            stats.leaveDayBoarder,
-            stats.leaveFullBoarder,
-            "info.main",
-          )}
-        </Paper>
-      )}
-    </Box>
+            borderColor: "divider",
+            px: { xs: 1, sm: 1.5 },
+            py: { xs: 0.6, sm: 0.8 },
+            fontSize: { xs: "0.75rem", sm: "0.85rem" },
+            textAlign: "center",
+          },
+        }}
+      >
+        <TableHead>
+          <TableRow sx={{ bgcolor: "action.hover" }}>
+            <TableCell sx={{ fontWeight: "bold" }}>Type</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Total</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "success.main" }}>Present</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "error.main" }}>Absent</TableCell>
+            {showLeavesView && (
+              <TableCell sx={{ fontWeight: "bold", color: "info.main" }}>Leave</TableCell>
+            )}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          <TableRow sx={{ bgcolor: "background.paper" }}>
+            <TableCell sx={{ fontWeight: "bold" }}>All</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>{stats.totalCount || 0}</TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "success.main" }}>
+              {stats.presentCount || 0}
+            </TableCell>
+            <TableCell sx={{ fontWeight: "bold", color: "error.main" }}>
+              {stats.absentCount || 0}
+            </TableCell>
+            {showLeavesView && (
+              <TableCell sx={{ fontWeight: "bold", color: "info.main" }}>
+                {stats.leaveCount || 0}
+              </TableCell>
+            )}
+          </TableRow>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 600 }}>DS</TableCell>
+            <TableCell>{stats.totalDayScholar || 0}</TableCell>
+            <TableCell sx={{ color: "success.main", fontWeight: 600 }}>
+              {stats.presentDayScholar || 0}
+            </TableCell>
+            <TableCell sx={{ color: "error.main", fontWeight: 600 }}>
+              {stats.absentDayScholar || 0}
+            </TableCell>
+            {showLeavesView && (
+              <TableCell sx={{ color: "info.main", fontWeight: 600 }}>
+                {stats.leaveDayScholar || 0}
+              </TableCell>
+            )}
+          </TableRow>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 600 }}>DB</TableCell>
+            <TableCell>{stats.totalDayBoarder || 0}</TableCell>
+            <TableCell sx={{ color: "success.main", fontWeight: 600 }}>
+              {stats.presentDayBoarder || 0}
+            </TableCell>
+            <TableCell sx={{ color: "error.main", fontWeight: 600 }}>
+              {stats.absentDayBoarder || 0}
+            </TableCell>
+            {showLeavesView && (
+              <TableCell sx={{ color: "info.main", fontWeight: 600 }}>
+                {stats.leaveDayBoarder || 0}
+              </TableCell>
+            )}
+          </TableRow>
+          <TableRow>
+            <TableCell sx={{ fontWeight: 600 }}>B</TableCell>
+            <TableCell>{stats.totalFullBoarder || 0}</TableCell>
+            <TableCell sx={{ color: "success.main", fontWeight: 600 }}>
+              {stats.presentFullBoarder || 0}
+            </TableCell>
+            <TableCell sx={{ color: "error.main", fontWeight: 600 }}>
+              {stats.absentFullBoarder || 0}
+            </TableCell>
+            {showLeavesView && (
+              <TableCell sx={{ color: "info.main", fontWeight: 600 }}>
+                {stats.leaveFullBoarder || 0}
+              </TableCell>
+            )}
+          </TableRow>
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 };
+

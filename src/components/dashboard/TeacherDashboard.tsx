@@ -693,6 +693,7 @@ export const TeacherDashboard = React.memo(({
           </Grid>
         </Grid>
       )}
+      <Box sx={{ height: { xs: 120, sm: 160 }, width: "100%" }} />
     </Box>
   );
 });

@@ -665,11 +665,13 @@ export const attendanceApi = {
       const activeSchoolId = getActiveSchoolId();
 
       let docs: any[] = [];
+      // Fetch deep enough to skip empty days, scale with daysLimit (e.g. 6 limit -> 60 days, 12 limit -> 120 days)
+      const SEARCH_DEPTH = Math.max(60, daysLimit * 10);
 
       if (selectedClassId) {
         // Query specifically for this class
         const colRef = collection(db, "schools", activeSchoolId, "classes", selectedClassId, "attendance");
-        const q = query(colRef, orderBy(documentId(), "desc"), limit(daysLimit));
+        const q = query(colRef, orderBy(documentId(), "desc"), limit(SEARCH_DEPTH));
         const snapshot = await getDocs(q);
         docs = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -682,7 +684,7 @@ export const attendanceApi = {
 
         const classDocsPromises = classIds.map(async (cId) => {
           const colRef = collection(db, "schools", activeSchoolId, "classes", cId, "attendance");
-          const q = query(colRef, orderBy(documentId(), "desc"), limit(daysLimit));
+          const q = query(colRef, orderBy(documentId(), "desc"), limit(SEARCH_DEPTH));
           const snap = await getDocs(q);
           return snap.docs.map(doc => ({ date: doc.id, data: doc.data() }));
         });
@@ -704,13 +706,14 @@ export const attendanceApi = {
         }));
       }
 
-      const datesList = await runCalculationWorker("CALCULATE_HISTORY", {
+      let datesList = await runCalculationWorker("CALCULATE_HISTORY", {
         docs,
         classStudentIds,
         selectedClassId,
       });
 
-      return datesList;
+      // Limit to the requested days after filtering in the worker
+      return datesList.slice(0, daysLimit);
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, "attendance");
       return [];

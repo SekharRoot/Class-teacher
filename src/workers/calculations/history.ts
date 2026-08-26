@@ -29,7 +29,9 @@ export function calculateHistory(payload: any): any[] {
       }
     }
 
-    datesList.push({ date: id, present, absent, leave });
+    if (present > 0 || absent > 0 || leave > 0) {
+      datesList.push({ date: id, present, absent, leave });
+    }
   }
 
   datesList.sort((a, b) => b.date.localeCompare(a.date));
@@ -68,12 +70,14 @@ export function calculateLocalHistory(payload: any): any[] {
         else if (status === "leave") leave++;
       }
 
-      datesList.push({
-        date: dateStr,
-        present,
-        absent,
-        leave,
-      });
+      if (present > 0 || absent > 0 || leave > 0) {
+        datesList.push({
+          date: dateStr,
+          present,
+          absent,
+          leave,
+        });
+      }
     }
   }
   datesList.sort((a, b) => b.date.localeCompare(a.date));

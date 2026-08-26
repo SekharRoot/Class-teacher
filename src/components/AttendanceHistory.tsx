@@ -132,12 +132,12 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                   <Paper
                     elevation={1}
                     sx={{
-                      p: 2.5,
+                      p: { xs: 2, sm: 2.5 },
                       borderRadius: 2,
                       display: "flex",
-                      alignItems: "center",
+                      flexDirection: { xs: "column", sm: "row" },
+                      alignItems: { xs: "stretch", sm: "center" },
                       justifyContent: "space-between",
-                      flexWrap: "wrap",
                       gap: 2,
                       borderLeft: isSelected ? "5px solid #1976d2" : "1px solid",
                       borderColor: isSelected ? "primary.main" : "divider",
@@ -156,7 +156,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                     <Box>
                       <Typography
                         variant="h6"
-                        sx={{ fontWeight: "bold" }}
+                        sx={{ fontWeight: "bold", fontSize: { xs: "1.05rem", sm: "1.25rem" } }}
                         color="text.primary"
                       >
                         {format(new Date(record.date + "T12:00:00"), "dd/MM/yyyy")}
@@ -164,7 +164,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                       <Typography
                         variant="caption"
                         color="text.secondary"
-                        sx={{ fontFamily: "monospace" }}
+                        sx={{ fontFamily: "monospace", display: "block", mt: 0.25 }}
                       >
                         Date ID: {record.date} • Total Logged: {total} students
                       </Typography>
@@ -173,25 +173,26 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                     <Box
                       sx={{
                         display: "flex",
-                        alignItems: "center",
+                        flexDirection: { xs: "column", sm: "row" },
+                        alignItems: { xs: "stretch", sm: "center" },
                         gap: 2,
-                        flexWrap: "wrap",
+                        width: { xs: "100%", sm: "auto" },
                       }}
                     >
-                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                      <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", justifyContent: { xs: "space-between", sm: "flex-start" } }}>
                         <Chip
                           size="small"
                           variant="outlined"
                           color="success"
                           label={`P: ${record.present}`}
-                          sx={{ fontWeight: 600 }}
+                          sx={{ fontWeight: 600, flexGrow: { xs: 1, sm: 0 } }}
                         />
                         <Chip
                           size="small"
                           variant="outlined"
                           color="error"
                           label={`A: ${record.absent}`}
-                          sx={{ fontWeight: 600 }}
+                          sx={{ fontWeight: 600, flexGrow: { xs: 1, sm: 0 } }}
                         />
                         {record.leave > 0 && (
                           <Chip
@@ -199,7 +200,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                             variant="outlined"
                             color="info"
                             label={`Leave: ${record.leave}`}
-                            sx={{ fontWeight: 600 }}
+                            sx={{ fontWeight: 600, flexGrow: { xs: 1, sm: 0 } }}
                           />
                         )}
                       </Box>
@@ -212,7 +213,7 @@ export const AttendanceHistory: React.FC<AttendanceHistoryProps> = ({
                         sx={{
                           textTransform: "none",
                           borderRadius: 4,
-                          minWidth: 120,
+                          minWidth: { xs: "100%", sm: 120 },
                           fontWeight: "bold",
                         }}
                       >

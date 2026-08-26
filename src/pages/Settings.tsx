@@ -753,6 +753,7 @@ export default function Settings() {
           {toast.message}
         </Alert>
       </Snackbar>
+      <Box sx={{ height: { xs: 120, sm: 160 }, width: "100%" }} />
     </Box>
   );
 }

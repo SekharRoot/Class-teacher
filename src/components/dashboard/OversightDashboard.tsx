@@ -478,6 +478,7 @@ export const OversightDashboard = React.memo(({
           authorizedClassIds={authorizedClassIds}
         />
       )}
+      <Box sx={{ height: { xs: 120, sm: 160 }, width: "100%" }} />
     </Box>
   );
 });
