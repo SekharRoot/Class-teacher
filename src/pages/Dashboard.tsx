@@ -283,14 +283,14 @@ export default function Dashboard() {
 
   const overallAttendanceRate = useMemo(() => {
     let totalPresent = 0;
-    let totalMarked = 0;
+    let totalEnrolled = 0;
     classStats.forEach((cs) => {
-      totalPresent += cs.presentCount;
-      totalMarked += cs.markedCount;
+      totalPresent += cs.presentCount || 0;
+      totalEnrolled += cs.totalStudents || 0;
     });
-    return totalMarked > 0
-      ? Math.round((totalPresent / totalMarked) * 100)
-      : null;
+    return totalEnrolled > 0
+      ? Math.round((totalPresent / totalEnrolled) * 100)
+      : 0;
   }, [classStats]);
 
   if (loading || loadingScope) {

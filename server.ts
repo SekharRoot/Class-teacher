@@ -16,8 +16,8 @@ async function startServer() {
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
-  // AI Studio infrastructure strictly routes all traffic to 3000.
-  const PORT = 3000;
+  // AI Studio and Cloud Run port configuration (Cloud Run injects PORT, default to 3000)
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
   console.log(
     `Starting server in ${

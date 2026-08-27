@@ -404,7 +404,7 @@ export const attendanceApi = {
           }
         });
 
-        const rate = marked > 0 ? Math.round((present / marked) * 100) : null;
+        const rate = total > 0 ? Math.round((present / total) * 100) : 0;
 
         const classStat = {
           classId: cId,
@@ -546,13 +546,13 @@ export const attendanceApi = {
         }
       });
 
-      const todayAttendanceRate =
-        todayTotalMarked > 0
-          ? Math.round((todayPresent / todayTotalMarked) * 100)
-          : null;
-
       const classesCount = classesList.length;
       const studentsCount = finalClassStats.reduce((sum: number, cs: any) => sum + (cs.totalStudents || 0), 0);
+
+      const todayAttendanceRate =
+        studentsCount > 0
+          ? Math.round((todayPresent / studentsCount) * 100)
+          : 0;
 
       // 7. Save the final aggregated summary and absentee documents using atomic writeBatch
       const batchSummaries = writeBatch(db);

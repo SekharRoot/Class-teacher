@@ -48,6 +48,7 @@ interface OversightDashboardProps {
   stats: {
     totalClasses: number;
     totalStudents: number;
+    todayPresentCount?: number;
   };
   unmarkedClasses: ClassStat[];
   oversightPendingLeavesCount: number;
@@ -242,7 +243,7 @@ export const OversightDashboard = React.memo(({
                     Strength & Classes
                   </Typography>
                   <Typography variant="h4" sx={{ fontWeight: 800, mt: 0.5 }}>
-                    {stats.totalStudents}
+                    {stats.todayPresentCount ?? 0} / {stats.totalStudents}
                   </Typography>
                 </Box>
                 <Avatar

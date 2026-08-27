@@ -64,18 +64,19 @@ export function calculateDashboardStats(payload: any): any {
     }
   });
 
-  // Calculate rates
+  // Calculate rates based on active enrolled student strength
   const classStats = Array.from(classStatsMap.values()).map((cStats: any) => {
-    cStats.attendanceRate = cStats.markedCount > 0 
-      ? Math.round((cStats.presentCount / cStats.markedCount) * 100) 
-      : null;
+    cStats.attendanceRate = cStats.totalStudents > 0 
+      ? Math.round((cStats.presentCount / cStats.totalStudents) * 100) 
+      : 0;
     return cStats;
   });
 
+  const totalActiveEnrolled = activeStudents.length;
   const attendanceRate =
-    todayTotalMarked > 0
-      ? Math.round((todayPresent / todayTotalMarked) * 100)
-      : null;
+    totalActiveEnrolled > 0
+      ? Math.round((todayPresent / totalActiveEnrolled) * 100)
+      : 0;
 
   return {
     stats: {
