@@ -345,50 +345,154 @@ export const DailyStatusReport = React.memo(({
           <CircularProgress />
         </Box>
       ) : (
-        <TableContainer component={Paper} sx={{ borderRadius: "10px", boxShadow: "none", border: "1px solid", borderColor: "divider" }}>
-          <Table size="small" stickyHeader>
+        <TableContainer
+          component={Paper}
+          sx={{
+            borderRadius: "10px",
+            boxShadow: "none",
+            border: "1px solid",
+            borderColor: "divider",
+            overflowX: "auto",
+            "& .MuiTableCell-root": {
+              border: "1px solid",
+              borderColor: "divider",
+              px: { xs: 0.5, sm: 1 },
+              py: { xs: 0.4, sm: 0.6 },
+              fontSize: { xs: "0.72rem", sm: "0.8rem" },
+            },
+          }}
+        >
+          <Table size="small" stickyHeader sx={{ minWidth: 700, borderCollapse: "collapse" }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: "action.hover" }}>
-                <TableCell sx={{ fontWeight: "bold", bgcolor: "inherit" }}>Class</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "inherit" }}>Total</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "inherit" }}>Total DB</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "inherit" }}>Total DS</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "inherit" }}>Total BOARDER</TableCell>
-                
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present DB</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present DS</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "success.light", color: "success.contrastText" }}>Present Boarders</TableCell>
-                
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent DB</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent DS</TableCell>
-                <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "error.light", color: "error.contrastText" }}>Absent Boarders</TableCell>
+              {/* Tier 1: Category Super Headers */}
+              <TableRow>
+                <TableCell
+                  rowSpan={2}
+                  sx={{
+                    fontWeight: 800,
+                    bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.900" : "grey.100"),
+                    minWidth: 130,
+                    verticalAlign: "middle",
+                  }}
+                >
+                  Class
+                </TableCell>
+                <TableCell
+                  colSpan={4}
+                  align="center"
+                  sx={{
+                    fontWeight: 800,
+                    bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.800" : "grey.200"),
+                    color: "text.primary",
+                    borderBottomWidth: "2px",
+                  }}
+                >
+                  Enrolled Strength
+                </TableCell>
+                <TableCell
+                  colSpan={4}
+                  align="center"
+                  sx={{
+                    fontWeight: 800,
+                    bgcolor: (theme) =>
+                      theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.25)" : "#e8f5e9",
+                    color: (theme) =>
+                      theme.palette.mode === "dark" ? "success.light" : "success.dark",
+                    borderBottomWidth: "2px",
+                  }}
+                >
+                  Present Today
+                </TableCell>
+                <TableCell
+                  colSpan={4}
+                  align="center"
+                  sx={{
+                    fontWeight: 800,
+                    bgcolor: (theme) =>
+                      theme.palette.mode === "dark" ? "rgba(211, 47, 47, 0.25)" : "#ffebee",
+                    color: (theme) =>
+                      theme.palette.mode === "dark" ? "error.light" : "error.dark",
+                    borderBottomWidth: "2px",
+                  }}
+                >
+                  Absent Today
+                </TableCell>
+              </TableRow>
+
+              {/* Tier 2: Sub-headers */}
+              <TableRow>
+                {/* Strength sub-headers */}
+                <TableCell align="center" sx={{ fontWeight: 700, bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.800" : "grey.100") }}>
+                  Total
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.800" : "grey.100"), color: "text.secondary" }}>
+                  DB
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.800" : "grey.100"), color: "text.secondary" }}>
+                  DS
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.800" : "grey.100"), color: "text.secondary" }}>
+                  Bdr
+                </TableCell>
+
+                {/* Present sub-headers */}
+                <TableCell align="center" sx={{ fontWeight: 700, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "#f1f8e9", color: "success.main" }}>
+                  Total
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "#f1f8e9", color: "success.main" }}>
+                  DB
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "#f1f8e9", color: "success.main" }}>
+                  DS
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(46, 125, 50, 0.15)" : "#f1f8e9", color: "success.main" }}>
+                  Bdr
+                </TableCell>
+
+                {/* Absent sub-headers */}
+                <TableCell align="center" sx={{ fontWeight: 700, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "#fbe9e7", color: "error.main" }}>
+                  Total
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "#fbe9e7", color: "error.main" }}>
+                  DB
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "#fbe9e7", color: "error.main" }}>
+                  DS
+                </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600, bgcolor: (theme) => theme.palette.mode === "dark" ? "rgba(211, 47, 47, 0.15)" : "#fbe9e7", color: "error.main" }}>
+                  Bdr
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {reportData.map((row) => (
-                <TableRow key={row.classId} hover>
+              {reportData.map((row, idx) => (
+                <TableRow
+                  key={row.classId}
+                  hover
+                  sx={{
+                    bgcolor: idx % 2 === 1 ? "action.hover" : "inherit",
+                  }}
+                >
                   <TableCell sx={{ fontWeight: 600 }}>{row.className}</TableCell>
-                  <TableCell align="center">{row.total}</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700 }}>{row.total}</TableCell>
                   <TableCell align="center" sx={{ color: "text.secondary" }}>{row.totalDB}</TableCell>
                   <TableCell align="center" sx={{ color: "text.secondary" }}>{row.totalDS}</TableCell>
                   <TableCell align="center" sx={{ color: "text.secondary" }}>{row.totalBoarder}</TableCell>
                   
-                  <TableCell align="center" sx={{ fontWeight: "bold", color: "success.main" }}>{row.present}</TableCell>
-                  <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentDB}</TableCell>
-                  <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentDS}</TableCell>
-                  <TableCell align="center" sx={{ color: "success.main", opacity: 0.8 }}>{row.presentBoarder}</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, color: "success.main" }}>{row.present}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main", opacity: 0.85 }}>{row.presentDB}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main", opacity: 0.85 }}>{row.presentDS}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main", opacity: 0.85 }}>{row.presentBoarder}</TableCell>
                   
-                  <TableCell align="center" sx={{ fontWeight: "bold", color: "error.main" }}>{row.absent}</TableCell>
-                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentDB}</TableCell>
-                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentDS}</TableCell>
-                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.8 }}>{row.absentBoarder}</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 700, color: "error.main" }}>{row.absent}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.85 }}>{row.absentDB}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.85 }}>{row.absentDS}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main", opacity: 0.85 }}>{row.absentBoarder}</TableCell>
                 </TableRow>
               ))}
               {reportData.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={13} align="center" sx={{ py: 4 }}>
+                  <TableCell colSpan={13} align="center" sx={{ py: 3, color: "text.secondary" }}>
                     No data available for the selected scope.
                   </TableCell>
                 </TableRow>
@@ -396,19 +500,28 @@ export const DailyStatusReport = React.memo(({
             </TableBody>
             {reportData.length > 0 && (
               <TableFooter>
-                <TableRow sx={{ bgcolor: "action.selected", "& .MuiTableCell-root": { fontWeight: 800 } }}>
+                <TableRow
+                  sx={{
+                    bgcolor: (theme) => (theme.palette.mode === "dark" ? "grey.900" : "grey.200"),
+                    "& .MuiTableCell-root": {
+                      fontWeight: 800,
+                      borderTop: "2px solid",
+                      borderColor: "divider",
+                    },
+                  }}
+                >
                   <TableCell sx={{ fontWeight: 800 }}>Total ({reportData.length} Classes)</TableCell>
-                  <TableCell align="center">{totals.total}</TableCell>
-                  <TableCell align="center">{totals.totalDB}</TableCell>
-                  <TableCell align="center">{totals.totalDS}</TableCell>
-                  <TableCell align="center">{totals.totalBoarder}</TableCell>
+                  <TableCell align="center" sx={{ fontWeight: 800 }}>{totals.total}</TableCell>
+                  <TableCell align="center" sx={{ color: "text.secondary" }}>{totals.totalDB}</TableCell>
+                  <TableCell align="center" sx={{ color: "text.secondary" }}>{totals.totalDS}</TableCell>
+                  <TableCell align="center" sx={{ color: "text.secondary" }}>{totals.totalBoarder}</TableCell>
 
-                  <TableCell align="center" sx={{ color: "success.main" }}>{totals.present}</TableCell>
+                  <TableCell align="center" sx={{ color: "success.main", fontWeight: 800 }}>{totals.present}</TableCell>
                   <TableCell align="center" sx={{ color: "success.main" }}>{totals.presentDB}</TableCell>
                   <TableCell align="center" sx={{ color: "success.main" }}>{totals.presentDS}</TableCell>
                   <TableCell align="center" sx={{ color: "success.main" }}>{totals.presentBoarder}</TableCell>
 
-                  <TableCell align="center" sx={{ color: "error.main" }}>{totals.absent}</TableCell>
+                  <TableCell align="center" sx={{ color: "error.main", fontWeight: 800 }}>{totals.absent}</TableCell>
                   <TableCell align="center" sx={{ color: "error.main" }}>{totals.absentDB}</TableCell>
                   <TableCell align="center" sx={{ color: "error.main" }}>{totals.absentDS}</TableCell>
                   <TableCell align="center" sx={{ color: "error.main" }}>{totals.absentBoarder}</TableCell>
