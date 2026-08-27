@@ -61,13 +61,6 @@ export const ClassCard: React.FC<ClassCardProps> = ({
             >
               {fullName}
             </Typography>
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontFamily: "monospace" }}
-            >
-              ID: {item.id}
-            </Typography>
           </Box>
         </Box>
 

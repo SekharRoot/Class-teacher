@@ -88,10 +88,13 @@ export const AttendanceSummary: React.FC<AttendanceSummaryProps> = ({
       component={Paper}
       elevation={1}
       sx={{
-        mt: 2,
+        mt: { xs: 1.5, sm: 2 },
         borderRadius: "10px",
         border: "1px solid",
         borderColor: "divider",
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
         overflowX: "auto",
       }}
     >

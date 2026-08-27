@@ -264,11 +264,14 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
       <Box
         sx={{
           display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
+          flexDirection: { xs: "column", md: "row" },
           justifyContent: "space-between",
-          alignItems: { xs: "stretch", sm: "center" },
+          alignItems: { xs: "stretch", md: "center" },
           mb: 2.5,
           gap: 1.5,
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
         }}
       >
         {/* Buttons and controls container */}
@@ -276,73 +279,145 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
           sx={{
             display: "flex",
             flexDirection: "column",
-            gap: 1.5,
+            gap: 1.25,
             flexGrow: 1,
             width: "100%",
+            maxWidth: "100%",
+            boxSizing: "border-box",
           }}
         >
-          {/* Top Row: Primary action buttons */}
-          <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
-            <Button
-              startIcon={<ChevronLeft />}
-              onClick={onBack}
-              variant="outlined"
-              size="small"
-              sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: "0.75rem" }}
-            >
-              Back
-            </Button>
-            {!readOnly && (
-              <Tooltip
-                title={
-                  !allMarked
-                    ? `${unmarkedStudentsCount} student(s) unmarked. Mark all students to save.`
-                    : "Save attendance to server"
-                }
-              >
-                <span>
-                  <Button
-                    startIcon={
-                      syncing ? (
-                        <CircularProgress size={12} color="inherit" />
-                      ) : (
-                        <Save sx={{ fontSize: 16 }} />
-                      )
-                    }
-                    onClick={handleSync}
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    disabled={syncing || !allMarked}
-                    sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: "0.75rem" }}
-                  >
-                    {syncing ? "Saving..." : "Save"}
-                  </Button>
-                </span>
-              </Tooltip>
-            )}
-
-            {/* Holiday Assignment Button to the right of Save button */}
-            {!readOnly && onAssignHoliday && (
+          {/* Top Row: Primary action buttons + Bulk actions integrated on mobile */}
+          <Box
+            sx={{
+              display: "flex",
+              gap: 1,
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
+            <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
               <Button
-                startIcon={<EventBusy sx={{ fontSize: 16 }} />}
-                onClick={() => setHolidayDialogOpen(true)}
-                variant={dayInfo?.isHoliday ? "contained" : "outlined"}
-                color={dayInfo?.isHoliday ? "warning" : "inherit"}
+                startIcon={<ChevronLeft />}
+                onClick={onBack}
+                variant="outlined"
                 size="small"
+                sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: "0.75rem" }}
+              >
+                Back
+              </Button>
+              {!readOnly && (
+                <Tooltip
+                  title={
+                    !allMarked
+                      ? `${unmarkedStudentsCount} student(s) unmarked. Mark all students to save.`
+                      : "Save attendance to server"
+                  }
+                >
+                  <span>
+                    <Button
+                      startIcon={
+                        syncing ? (
+                          <CircularProgress size={12} color="inherit" />
+                        ) : (
+                          <Save sx={{ fontSize: 16 }} />
+                        )
+                      }
+                      onClick={handleSync}
+                      variant="contained"
+                      color="primary"
+                      size="small"
+                      disabled={syncing || !allMarked}
+                      sx={{ borderRadius: 2, textTransform: "none", height: 32, fontSize: "0.75rem" }}
+                    >
+                      {syncing ? "Saving..." : "Save"}
+                    </Button>
+                  </span>
+                </Tooltip>
+              )}
+
+              {/* Holiday Assignment Button to the right of Save button */}
+              {!readOnly && onAssignHoliday && (
+                <Button
+                  startIcon={<EventBusy sx={{ fontSize: 16 }} />}
+                  onClick={() => setHolidayDialogOpen(true)}
+                  variant={dayInfo?.isHoliday ? "contained" : "outlined"}
+                  color={dayInfo?.isHoliday ? "warning" : "inherit"}
+                  size="small"
+                  sx={{
+                    borderRadius: 2,
+                    textTransform: "none",
+                    height: 32,
+                    fontSize: "0.75rem",
+                    fontWeight: dayInfo?.isHoliday ? "bold" : "medium",
+                    boxShadow: dayInfo?.isHoliday ? 2 : 0,
+                  }}
+                >
+                  {dayInfo?.isHoliday
+                    ? `${typeof dayInfo.dayReason === "string" && dayInfo.dayReason.trim() ? dayInfo.dayReason : (typeof dayInfo.dayReasonType === "string" && dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
+                    : "Assign Holiday"}
+                </Button>
+              )}
+            </Box>
+
+            {/* Bulk actions placed conveniently in top action bar on mobile or end on desktop */}
+            {!readOnly && (
+              <Box
                 sx={{
+                  display: "flex",
+                  gap: 0.75,
+                  alignItems: "center",
+                  bgcolor: "action.hover",
+                  px: 1,
+                  py: 0.25,
                   borderRadius: 2,
-                  textTransform: "none",
-                  height: 32,
-                  fontSize: "0.75rem",
-                  fontWeight: dayInfo?.isHoliday ? "bold" : "medium",
-                  boxShadow: dayInfo?.isHoliday ? 2 : 0,
+                  border: "1px solid",
+                  borderColor: "divider",
                 }}
               >
-                {dayInfo?.isHoliday
-                  ? `${typeof dayInfo.dayReason === "string" && dayInfo.dayReason.trim() ? dayInfo.dayReason : (typeof dayInfo.dayReasonType === "string" && dayInfo.dayReasonType === "weekly_off" ? "Weekly Off" : "Holiday")}`
-                  : "Assign Holiday"}
-              </Button>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ fontWeight: "bold", whiteSpace: "nowrap", fontSize: "0.65rem" }}
+                >
+                  Bulk:
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="success"
+                  onClick={() => onMarkAll("present", classStudents)}
+                  sx={{
+                    borderRadius: 2,
+                    fontSize: "0.65rem",
+                    textTransform: "none",
+                    py: 0.25,
+                    px: 1,
+                    minWidth: 0,
+                    height: 26,
+                  }}
+                >
+                  Present
+                </Button>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="error"
+                  onClick={() => onMarkAll("absent", classStudents)}
+                  sx={{
+                    borderRadius: 2,
+                    fontSize: "0.65rem",
+                    textTransform: "none",
+                    py: 0.25,
+                    px: 1,
+                    minWidth: 0,
+                    height: 26,
+                  }}
+                >
+                  Absent
+                </Button>
+              </Box>
             )}
           </Box>
 
@@ -354,11 +429,19 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               gap: 1,
               flexWrap: "wrap",
               alignItems: { xs: "stretch", sm: "center" },
+              width: "100%",
             }}
           >
             {/* Side-by-side dropdowns on mobile */}
-            <Box sx={{ display: "flex", gap: 1, width: { xs: "100%", sm: "auto" } }}>
-              <FormControl size="small" sx={{ flex: { xs: 1, sm: "initial" }, minWidth: { xs: 0, sm: 120 } }}>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "auto auto" },
+                gap: 1,
+                width: { xs: "100%", sm: "auto" },
+              }}
+            >
+              <FormControl size="small" sx={{ minWidth: { xs: 0, sm: 120 } }}>
                 <Select
                   value=""
                   displayEmpty
@@ -408,7 +491,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
                 </Select>
               </FormControl>
 
-              <FormControl size="small" sx={{ flex: { xs: 1, sm: "initial" }, minWidth: { xs: 0, sm: 130 } }}>
+              <FormControl size="small" sx={{ minWidth: { xs: 0, sm: 130 } }}>
                 <Select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as string)}
@@ -443,6 +526,7 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               sx={{
+                flex: { xs: "1 1 100%", sm: "0 0 180px" },
                 width: { xs: "100%", sm: 180 },
                 "& .MuiOutlinedInput-root": {
                   borderRadius: 2,
@@ -463,65 +547,6 @@ export const AttendanceStudentList: React.FC<AttendanceStudentListProps> = ({
             />
           </Box>
         </Box>
-
-        {/* Bulk select container */}
-        {!readOnly && (
-          <Box
-            sx={{
-              display: "flex",
-              gap: 1,
-              alignItems: "center",
-              alignSelf: { xs: "flex-start", sm: "center" },
-              bgcolor: "action.hover",
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: "divider",
-              mt: { xs: 0.5, sm: 0 },
-            }}
-          >
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ fontWeight: "bold", whiteSpace: "nowrap", fontSize: "0.65rem" }}
-            >
-              Bulk:
-            </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              color="success"
-              onClick={() => onMarkAll("present", classStudents)}
-              sx={{
-                borderRadius: 2,
-                fontSize: "0.65rem",
-                textTransform: "none",
-                py: 0.25,
-                px: 1.25,
-                minWidth: 0,
-              }}
-            >
-              Present
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              onClick={() => onMarkAll("absent", classStudents)}
-              sx={{
-                borderRadius: 2,
-                fontSize: "0.65rem",
-                textTransform: "none",
-                py: 0.25,
-                px: 1.25,
-                minWidth: 0,
-              }}
-            >
-              Absent
-            </Button>
-          </Box>
-        )}
       </Box>
 
       {dayInfo?.isHoliday && (

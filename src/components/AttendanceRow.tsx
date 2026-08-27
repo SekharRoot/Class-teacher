@@ -263,7 +263,7 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
               }}
             >
               <ToggleButton value="present" aria-label="present">
-                <CheckCircle sx={{ width: 40, height: 40, fontSize: 40 }} />
+                <CheckCircle sx={{ width: 30, height: 30, fontSize: 30 }} />
               </ToggleButton>
               <ToggleButton
                 value={status === "leave" ? "leave" : "absent"}
@@ -276,9 +276,9 @@ const AttendanceRowComponent: React.FC<AttendanceRowProps> = ({
                 onClick={handleAbsentClick}
               >
                 {status === "leave" ? (
-                  <Star sx={{ width: 40, height: 40, fontSize: 40 }} />
+                  <Star sx={{ width: 30, height: 30, fontSize: 30 }} />
                 ) : (
-                  <Cancel sx={{ width: 40, height: 40, fontSize: 40 }} />
+                  <Cancel sx={{ width: 30, height: 30, fontSize: 30 }} />
                 )}
               </ToggleButton>
             </ToggleButtonGroup>

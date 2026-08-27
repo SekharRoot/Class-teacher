@@ -49,13 +49,17 @@ export const AttendanceHeaderControls: React.FC<AttendanceHeaderControlsProps> =
     <Paper
       elevation={2}
       sx={{
-        p: { xs: 1.5, sm: 2 },
-        mb: 3,
+        p: { xs: 1.25, sm: 2 },
+        mb: { xs: 2, sm: 3 },
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflow: "hidden",
         display: "flex",
         flexDirection: { xs: "column", md: "row" },
         alignItems: { xs: "stretch", md: "center" },
         justifyContent: "space-between",
-        gap: 2,
+        gap: { xs: 1.5, sm: 2 },
         borderRadius: "10px",
         bgcolor: "background.paper",
       }}
@@ -66,6 +70,9 @@ export const AttendanceHeaderControls: React.FC<AttendanceHeaderControlsProps> =
           alignItems: "center",
           justifyContent: "center",
           flexWrap: "wrap",
+          width: "100%",
+          maxWidth: "100%",
+          boxSizing: "border-box",
           gap: 1,
           bgcolor: "action.hover",
           p: 0.5,
