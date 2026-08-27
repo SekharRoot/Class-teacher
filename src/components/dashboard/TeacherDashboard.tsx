@@ -295,29 +295,7 @@ export const TeacherDashboard = React.memo(({
                         </Typography>
                       </Box>
                       <Divider />
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontWeight: 500 }}
-                        >
-                          Marked Students
-                        </Typography>
-                        <Typography
-                          variant="subtitle1"
-                          sx={{ fontWeight: 800 }}
-                        >
-                          {teacherClassStat?.markedCount || 0} /{" "}
-                          {teacherClassStat?.totalStudents || 0}
-                        </Typography>
-                      </Box>
-                      <Divider />
+                    
                       <Box
                         sx={{
                           display: "flex",
@@ -391,30 +369,6 @@ export const TeacherDashboard = React.memo(({
                         </Typography>
                       </Box>
                       <Divider />
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ fontWeight: 500 }}
-                        >
-                          Unmarked Students
-                        </Typography>
-                        <Typography
-                          variant="subtitle1"
-                          color="text.secondary"
-                          sx={{ fontWeight: 800 }}
-                        >
-                          {(teacherClassStat?.totalStudents || 0) -
-                            (teacherClassStat?.markedCount || 0)}{" "}
-                          Remaining
-                        </Typography>
-                      </Box>
                     </Stack>
                   </Grid>
                 </Grid>
