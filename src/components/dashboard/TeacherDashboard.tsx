@@ -291,7 +291,7 @@ export const TeacherDashboard = React.memo(({
                           variant="subtitle1"
                           sx={{ fontWeight: 800 }}
                         >
-                          {teacherClassStat?.totalStudents || 0} Students
+                          {teacherClassStat?.totalStudents || 0}
                         </Typography>
                       </Box>
                       <Divider />
@@ -315,7 +315,7 @@ export const TeacherDashboard = React.memo(({
                           color="success.main"
                           sx={{ fontWeight: 800 }}
                         >
-                          {teacherClassStat?.presentCount || 0} Present
+                          {teacherClassStat?.presentCount || 0}
                         </Typography>
                       </Box>
                     </Stack>
@@ -342,7 +342,7 @@ export const TeacherDashboard = React.memo(({
                           color="error.main"
                           sx={{ fontWeight: 800 }}
                         >
-                          {teacherClassStat?.absentCount || 0} Absent
+                          {teacherClassStat?.absentCount || 0}
                         </Typography>
                       </Box>
                       <Divider />
@@ -365,7 +365,7 @@ export const TeacherDashboard = React.memo(({
                           color="warning.main"
                           sx={{ fontWeight: 800 }}
                         >
-                          {teacherClassStat?.leaveCount || 0} On Leave
+                          {teacherClassStat?.leaveCount || 0}
                         </Typography>
                       </Box>
                       <Divider />
