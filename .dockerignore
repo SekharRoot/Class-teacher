@@ -1,0 +1,12 @@
+node_modules
+dist
+output
+out
+.git
+.gitignore
+.env
+.env.*
+*.log
+*.py
+*.cjs
+*.md

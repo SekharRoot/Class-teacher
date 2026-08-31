@@ -21,6 +21,7 @@ export function calculateMonthlyReport(payload: any): any {
       if (ignoreSundays && d.getDay() === 0) return false;
       if (ignoreSaturdays && d.getDay() === 6) return false;
     }
+    if (doc.data?.isHoliday) return false;
     return true;
   });
   const totalWorkingDays = monthDocs.length;

@@ -103,7 +103,7 @@ export async function generateMonthlyReportData(
   const ignoreSaturdays = options.ignoreSaturdays !== undefined ? options.ignoreSaturdays : false;
   const studentStatus = options.studentStatus || "active";
 
-  // 1. Fetch current month's daily attendance records from cache or Firestore
+  // 1. Fetch current month's daily attendance records from Firestore and merge with local cache
   const classAttendanceColRef = collection(
     db,
     "schools",
@@ -114,17 +114,9 @@ export async function generateMonthlyReportData(
   );
 
   const currentMonthDataByDate: Record<string, any> = {};
-  const cachedMonth = loadMonthlySheetCache(activeSchoolId, classId, month);
 
-  if (cachedMonth && cachedMonth.recordsMap) {
-    // Populate from local cache
-    Object.entries(cachedMonth.recordsMap).forEach(([dateStr, studentMap]) => {
-      currentMonthDataByDate[dateStr] = { ...studentMap };
-      if (cachedMonth.dayInfoMap && cachedMonth.dayInfoMap[dateStr]) {
-        Object.assign(currentMonthDataByDate[dateStr], cachedMonth.dayInfoMap[dateStr]);
-      }
-    });
-  } else {
+  // Fetch full month from Firestore
+  try {
     const qCurrentMonth = query(
       classAttendanceColRef,
       where(documentId(), ">=", `${month}-01`),
@@ -134,6 +126,23 @@ export async function generateMonthlyReportData(
 
     currentMonthSnap.forEach((d) => {
       currentMonthDataByDate[d.id] = d.data();
+    });
+  } catch (err) {
+    console.warn("Direct Firestore month fetch failed in report engine, falling back to cache:", err);
+  }
+
+  // Merge with local cache (for any un-persisted or locally updated entries)
+  const cachedMonth = loadMonthlySheetCache(activeSchoolId, classId, month);
+  if (cachedMonth && cachedMonth.recordsMap) {
+    Object.entries(cachedMonth.recordsMap).forEach(([dateStr, studentMap]) => {
+      if (!currentMonthDataByDate[dateStr]) {
+        currentMonthDataByDate[dateStr] = { ...studentMap };
+      } else {
+        Object.assign(currentMonthDataByDate[dateStr], studentMap);
+      }
+      if (cachedMonth.dayInfoMap && cachedMonth.dayInfoMap[dateStr]) {
+        Object.assign(currentMonthDataByDate[dateStr], cachedMonth.dayInfoMap[dateStr]);
+      }
     });
   }
 

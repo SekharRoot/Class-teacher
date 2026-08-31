@@ -21,17 +21,16 @@ FROM node:22-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Copy dependency manifests and compiled outputs from builder
+# Copy dependency manifests, compiled outputs, and dependencies from builder
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/firebase-applet-config.json* ./
-
-# Install production-only dependencies
-RUN npm install --omit=dev
+COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 3000
 EXPOSE 8080
 
 # Start the application
 CMD ["node", "dist/server.cjs"]
+

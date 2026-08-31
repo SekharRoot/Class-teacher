@@ -16,8 +16,9 @@ async function startServer() {
   const isProduction =
     process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
 
-  // AI Studio and Cloud Run port configuration (Cloud Run injects PORT, default to 3000)
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+  // AI Studio and Cloud Run port configuration (Cloud Run injects PORT, default to 8080 in prod, 3000 in dev)
+  const portParsed = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
+  const PORT = Number.isInteger(portParsed) && portParsed > 0 ? portParsed : (isProduction ? 8080 : 3000);
 
   console.log(
     `Starting server in ${
@@ -26,7 +27,7 @@ async function startServer() {
   );
 
   // Health check routes FIRST for Cloud Run & platform probes
-  app.get(
+  app.all(
     [
       "/api/health",
       "/health",
@@ -36,7 +37,7 @@ async function startServer() {
       "/_ah/readiness",
     ],
     (req, res) => {
-      res.json({
+      res.status(200).json({
         status: "ok",
         mode: isProduction ? "production" : "development",
         timestamp: new Date().toISOString(),
