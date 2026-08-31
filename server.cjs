@@ -34,11 +34,12 @@ process.on("uncaughtException", (err) => {
 async function startServer() {
   const app = (0, import_express.default)();
   const isProduction = process.env.NODE_ENV === "production" || !!process.env.K_SERVICE;
-  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3e3;
+  const portParsed = process.env.PORT ? parseInt(process.env.PORT, 10) : NaN;
+  const PORT = Number.isInteger(portParsed) && portParsed > 0 ? portParsed : isProduction ? 8080 : 3e3;
   console.log(
     `Starting server in ${isProduction ? "production" : "development"} mode on port ${PORT}...`
   );
-  app.get(
+  app.all(
     [
       "/api/health",
       "/health",
@@ -48,7 +49,7 @@ async function startServer() {
       "/_ah/readiness"
     ],
     (req, res) => {
-      res.json({
+      res.status(200).json({
         status: "ok",
         mode: isProduction ? "production" : "development",
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
