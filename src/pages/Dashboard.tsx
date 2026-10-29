@@ -73,8 +73,13 @@ export default function Dashboard() {
     students,
     setStudents,
     leaves,
+    ensureLeavesLoaded,
     loading: globalLoading,
   } = useData();
+
+  useEffect(() => {
+    ensureLeavesLoaded();
+  }, [ensureLeavesLoaded]);
 
   const [loading, setLoading] = useState(true);
   const [todayRecords, setTodayRecords] = useState<Record<string, any> | null>(null);
@@ -174,7 +179,8 @@ export default function Dashboard() {
           await attendanceApi.getByDate(todayDateString, authorizedClassIds);
 
         if (active) {
-          if (todayRecordsOnline) {
+          const hasUnsyncedEdits = localStorage.getItem(`unsynced_${todayDateString}`) === "true";
+          if (todayRecordsOnline && !hasUnsyncedEdits) {
             const isDifferent = JSON.stringify(todayRecordsOnline) !== JSON.stringify(lastProcessedRecords);
             
             if (isDifferent) {

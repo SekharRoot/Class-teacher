@@ -45,48 +45,35 @@ export async function findStudentClass(studentId: string): Promise<{ schoolId: s
   }
 
   try {
-    const q = query(
-      collectionGroup(db, "students"),
-      where(documentId(), "==", studentId)
-    );
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const foundDoc = snapshot.docs[0];
-      const data = foundDoc.data();
-      let classId = data.classId;
-      if (classId === undefined) {
-        const pathParts = foundDoc.ref.path.split("/");
-        if (pathParts.length >= 4) {
-          classId = pathParts[3];
-        }
-      }
-      return { 
-        schoolId: data.schoolId || activeSchoolId, 
-        classId: classId === "unassigned" ? "" : (classId || ""), 
-        data: data 
-      };
-    }
-  } catch (err) {
-    console.warn("findStudentClass targeted collectionGroup lookup failed:", err);
-  }
-
-  try {
     const classesList = await classesApi.getAll();
-    const classIds = ["unassigned", ...classesList.map(c => c.id)];
-    for (const cId of classIds) {
-      const ref = doc(db, "schools", activeSchoolId, "classes", cId, "students", studentId);
-      const snap = await getDoc(ref);
-      if (snap.exists()) {
-        const data = snap.data();
-        return { 
-          schoolId: activeSchoolId, 
-          classId: cId === "unassigned" ? "" : cId, 
-          data: data 
-        };
+    const classIds = Array.from(new Set(["unassigned", ...classesList.map(c => c.id)]));
+    
+    // Parallel check across class student subcollections for this school
+    const checkPromises = classIds.map(async (cId) => {
+      try {
+        const ref = doc(db, "schools", activeSchoolId, "classes", cId, "students", studentId);
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          const data = snap.data();
+          return {
+            schoolId: data.schoolId || activeSchoolId,
+            classId: cId === "unassigned" ? "" : cId,
+            data,
+          };
+        }
+      } catch {
+        // ignore per-class check error
       }
+      return null;
+    });
+
+    const results = await Promise.all(checkPromises);
+    const found = results.find(Boolean);
+    if (found) {
+      return found;
     }
   } catch (err) {
-    console.error("findStudentClass iterative fallback failed:", err);
+    console.error("findStudentClass lookup error:", err);
   }
 
   return null;

@@ -422,23 +422,6 @@ export const OversightDashboard = React.memo(({
                   <Button
                     fullWidth
                     variant="outlined"
-                    startIcon={<PendingActionsIcon sx={{ color: leavesCardStyle.iconColor }} />}
-                    endIcon={<ArrowForwardIcon />}
-                    onClick={() => navigate("/reports")}
-                    sx={{
-                      justifyContent: "space-between",
-                      py: 1.5,
-                      borderRadius: "10px",
-                      fontWeight: 600,
-                      color: "text.primary",
-                      borderColor: "divider",
-                    }}
-                  >
-                    View School Monthly Reports
-                  </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
                     startIcon={<PendingActionsIcon />}
                     endIcon={
                       oversightPendingLeavesCount > 0 ? (

@@ -280,8 +280,10 @@ export const attendanceApi = {
       });
 
       // 2. Identify which classes have modified records in partialRecords
+      const metaKeys = new Set(["_meta", "dayReason", "dayReasonType", "isHoliday", "updatedAt", "date", "classId"]);
       const classIdToRecords: Record<string, Record<string, any>> = {};
       Object.entries(partialRecords).forEach(([studentId, val]) => {
+        if (metaKeys.has(studentId) || studentId.startsWith("_")) return;
         let classId = val && typeof val === "object" ? (val as any).classId : null;
         if (!classId) {
           classId = studentToClass[studentId] || "unassigned";
@@ -325,6 +327,7 @@ export const attendanceApi = {
         // Also find any students who have actual attendance records on this date for this class
         const loggedStudentIds = new Set<string>();
         Object.entries(mergedClassRecords).forEach(([studentId, val]) => {
+          if (metaKeys.has(studentId) || studentId.startsWith("_")) return;
           const isObj = typeof val === "object" && val !== null;
           const recordClassId = isObj ? (val as any).classId : null;
           if (
@@ -360,6 +363,7 @@ export const attendanceApi = {
         const classAbsentees: any[] = [];
 
         allUniqueStudentIds.forEach((studentId) => {
+          if (metaKeys.has(studentId) || studentId.startsWith("_")) return;
           const val = mergedClassRecords[studentId];
           const status = unwrapStatus(val);
 
@@ -439,6 +443,9 @@ export const attendanceApi = {
 
         newlyComputedClassStats[cId] = classStat;
       });
+
+      // Await all parallel class computations before writing batch
+      await Promise.all(classSummaryPromises);
 
       // Write class-level summary documents using atomic batch writes
       const computedEntries = Object.entries(newlyComputedClassStats);
@@ -804,9 +811,10 @@ export const attendanceApi = {
         ignoreSundays,
         ignoreSaturdays,
         studentStatus,
+        overrideTotalWd: options?.overrideTotalWd,
       });
 
-      if (report && options?.overrideTotalWd !== undefined && !isNaN(options.overrideTotalWd)) {
+      if (report && options?.overrideTotalWd !== undefined && !isNaN(options.overrideTotalWd) && options.overrideTotalWd >= 0) {
         report.totalWorkingDays = options.overrideTotalWd;
       }
 
@@ -1157,6 +1165,11 @@ export const attendanceApi = {
             unwrapMap[m.studentId] = m.status === "none" ? "" : m.status;
           });
         updateMonthlySheetCacheForDate(classId, dStr, unwrapMap, undefined, nowIso);
+
+        // Recalculate daily summary for modified date in background so Dashboard & Daily Status Reports stay accurate
+        this.generateAndSaveSummary(dStr, dateToUpdates[dStr]).catch((summaryErr) => {
+          console.warn(`Background summary recalculation for date ${dStr} notice:`, summaryErr);
+        });
       });
     } catch (error) {
       handleFirestoreError(

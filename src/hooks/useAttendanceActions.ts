@@ -40,6 +40,11 @@ export function useAttendanceActions(
       };
     });
     cache.set(`attendance_${dateString}`, enriched);
+    try {
+      localStorage.setItem(`attendance_${dateString}`, JSON.stringify(enriched));
+    } catch (e) {
+      console.warn("Could not write attendance to localStorage cache:", e);
+    }
     localStorage.setItem(`unsynced_${dateString}`, "true");
     return enriched;
   }, [students, dateString]);
@@ -87,25 +92,37 @@ export function useAttendanceActions(
       localStorage.removeItem(`summary_${dateString}`);
       localStorage.removeItem(`attendance_${dateString}`);
 
-      // Check for any other unsynced offline dates in local storage
+      // Check for any other unsynced offline dates in local storage using a static key snapshot
       let otherCount = 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith("unsynced_") && key !== `unsynced_${dateString}`) {
-          const otherDate = key.replace("unsynced_", "");
-          if (otherDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            const rawCached = localStorage.getItem(`attendance_${otherDate}`);
-            if (rawCached) {
-              try {
-                const parsed = JSON.parse(rawCached);
-                await attendanceApi.saveByDate(otherDate, parsed, false);
-                localStorage.removeItem(`unsynced_${otherDate}`);
-                localStorage.removeItem(`summary_${otherDate}`);
-                localStorage.removeItem(`attendance_${otherDate}`);
-                otherCount++;
-              } catch (e) {
-                console.warn(`Could not sync pending offline date ${otherDate}:`, e);
-              }
+      const unsyncedKeys = Object.keys(localStorage).filter(
+        (key) => key.startsWith("unsynced_") && key !== `unsynced_${dateString}`
+      );
+
+      for (const key of unsyncedKeys) {
+        const otherDate = key.replace("unsynced_", "");
+        if (otherDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          let rawCached = localStorage.getItem(`attendance_${otherDate}`);
+          let parsed: any = null;
+          if (rawCached) {
+            try {
+              parsed = JSON.parse(rawCached);
+            } catch (e) {}
+          }
+          if (!parsed) {
+            try {
+              parsed = await cache.get(`attendance_${otherDate}`);
+            } catch (e) {}
+          }
+          if (parsed) {
+            try {
+              await attendanceApi.saveByDate(otherDate, parsed, false);
+              localStorage.removeItem(`unsynced_${otherDate}`);
+              localStorage.removeItem(`summary_${otherDate}`);
+              localStorage.removeItem(`attendance_${otherDate}`);
+              await cache.remove(`attendance_${otherDate}`);
+              otherCount++;
+            } catch (e) {
+              console.warn(`Could not sync pending offline date ${otherDate}:`, e);
             }
           }
         }

@@ -84,7 +84,8 @@ export function useAttendanceData() {
   const fetchAttendanceForDate = async (dateStr: string) => {
     if (!authResolved) return;
     fetchDayInfo(dateStr, selectedClassId);
-    if (offlineMode) {
+    const hasUnsyncedEdits = localStorage.getItem(`unsynced_${dateStr}`) === "true";
+    if (offlineMode || hasUnsyncedEdits) {
       try {
         setLoading(true);
         const cached = localStorage.getItem(`attendance_${dateStr}`);
@@ -234,6 +235,11 @@ export function useAttendanceData() {
     const unsubAttendance = onSnapshot(
       docRef,
       (docSnap) => {
+        if (localStorage.getItem(`unsynced_${dateString}`) === "true") {
+          // Preserve local unsynced edits until user explicitly syncs
+          setLoading(false);
+          return;
+        }
         if (docSnap.exists()) {
           const data = docSnap.data();
           // Merge with existing attendance to preserve data for other classes

@@ -7,6 +7,7 @@ export function calculateMonthlyReport(payload: any): any {
     ignoreSundays = false,
     ignoreSaturdays = false,
     studentStatus = "active",
+    overrideTotalWd,
   } = payload;
   const reportEntries: any[] = [];
   
@@ -22,9 +23,24 @@ export function calculateMonthlyReport(payload: any): any {
       if (ignoreSaturdays && d.getDay() === 6) return false;
     }
     if (doc.data?.isHoliday) return false;
+    // Check if the document has at least one marked student status (not just metadata)
+    if (doc.data) {
+      const hasMarks = Object.entries(doc.data).some(([k, val]) => {
+        if (k === "_meta" || k === "dayReason" || k === "dayReasonType" || k === "isHoliday" || k === "updatedAt" || k === "classId" || k.startsWith("_")) {
+          return false;
+        }
+        const s = (typeof val === "object" && val !== null ? (val as any).status : val || "").toString().toLowerCase().trim();
+        return s === "present" || s === "p" || s === "absent" || s === "a" || s === "leave" || s === "l";
+      });
+      if (!hasMarks) return false;
+    }
     return true;
   });
-  const totalWorkingDays = monthDocs.length;
+  const autoWorkingDays = monthDocs.length;
+  const totalWorkingDays =
+    overrideTotalWd !== undefined && !isNaN(overrideTotalWd) && overrideTotalWd >= 0
+      ? overrideTotalWd
+      : autoWorkingDays;
 
   const studentIdsInDocs = new Set<string>();
   monthDocs.forEach((doc: any) => {

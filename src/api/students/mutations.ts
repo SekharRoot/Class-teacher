@@ -71,22 +71,20 @@ export async function update(
 
     if (oldClassId !== targetClassId) {
       const oldRef = getStudentDocRef(activeSchoolId, oldClassId, studentId);
-      console.log(`[studentsApi] Deleting old record at: ${oldRef.path}`);
-      await deleteDoc(oldRef);
-
       const newRef = getStudentDocRef(activeSchoolId, targetClassId, studentId);
-      console.log(`[studentsApi] Creating new record at: ${newRef.path}`);
-
       const mergedData = {
         ...(studentInfo.data || {}),
         ...payload,
         classId: targetClassId,
         updatedAt: new Date().toISOString(),
       };
-      await setDoc(newRef, mergedData);
+      // Atomic class transition using writeBatch
+      const batch = writeBatch(db);
+      batch.delete(oldRef);
+      batch.set(newRef, mergedData);
+      await batch.commit();
     } else {
       const ref = getStudentDocRef(activeSchoolId, oldClassId, studentId);
-      console.log(`[studentsApi] Updating existing record at: ${ref.path}`);
       await setDoc(ref, {
         ...payload,
         updatedAt: new Date().toISOString(),
@@ -107,7 +105,12 @@ export async function deleteStudent(studentId: string): Promise<void> {
     const studentInfo = await findStudentClass(studentId);
     if (studentInfo) {
       const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
-      await setDoc(studentRef, { isActive: false, updatedAt: new Date().toISOString() }, { merge: true });
+      const nowIso = new Date().toISOString();
+      await setDoc(studentRef, { 
+        isActive: false, 
+        deactivatedAt: nowIso, 
+        updatedAt: nowIso 
+      }, { merge: true });
     }
     clearStudentsCache();
   } catch (error) {
@@ -131,6 +134,7 @@ export async function batchDelete(studentIds: string[]): Promise<void> {
 
     const validStudents = studentInfos.filter(Boolean);
     const BATCH_SIZE = 450;
+    const nowIso = new Date().toISOString();
     for (let i = 0; i < validStudents.length; i += BATCH_SIZE) {
       const chunk = validStudents.slice(i, i + BATCH_SIZE);
       const batch = writeBatch(db);
@@ -143,7 +147,7 @@ export async function batchDelete(studentIds: string[]): Promise<void> {
           );
           batch.set(
             studentRef,
-            { isActive: false, updatedAt: new Date().toISOString() },
+            { isActive: false, deactivatedAt: nowIso, updatedAt: nowIso },
             { merge: true },
           );
         }
@@ -162,7 +166,11 @@ export async function restore(studentId: string): Promise<void> {
     const studentInfo = await findStudentClass(studentId);
     if (studentInfo) {
       const studentRef = getStudentDocRef(activeSchoolId, studentInfo.classId, studentId);
-      await setDoc(studentRef, { isActive: true, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(studentRef, { 
+        isActive: true, 
+        deactivatedAt: null, 
+        updatedAt: new Date().toISOString() 
+      }, { merge: true });
     }
     clearStudentsCache();
   } catch (error) {
@@ -245,7 +253,8 @@ export async function batchUpdateProfiles(
     if (total === 0) return;
 
     let processed = 0;
-    const chunkSize = 500;
+    // Chunk size safe for class moves (where each student change generates 2 operations: delete + set)
+    const chunkSize = 225;
 
     for (let i = 0; i < total; i += chunkSize) {
       const chunk = updates.slice(i, i + chunkSize);
